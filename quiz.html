@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BigStack - Quizzes</title>
+  <link rel="stylesheet" href="/src/index.css" />
+  <script type="module" defer>
+    document.addEventListener('DOMContentLoaded', () => {
+      const links = document.querySelectorAll('.sidebar-link');
+      links.forEach(link => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          links.forEach(l => l.classList.remove('active-tab'));
+          link.classList.add('active-tab');
+        });
+      });
+    });
+  </script>
+  <style>
+    body {
+      background: linear-gradient(135deg, #1e1e1e, #2a2a2a);
+    }
+    .active-tab {
+      border-left: 4px solid #22c55e;
+      background-color: #2f2f2f;
+    }
+    .sidebar-link {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1rem;
+      border-radius: 0.5rem;
+      transition: all 0.2s ease-in-out;
+      cursor: pointer;
+    }
+    .sidebar-link:hover {
+      transform: scale(1.02);
+      box-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
+    }
+  </style>
+</head>
+<body class="text-white min-h-screen flex font-sans">
+  <!-- Sidebar -->
+  <aside class="w-64 bg-gray-800 p-6 border-r border-gray-700 space-y-6">
+    <h2 class="text-2xl font-extrabold text-green-400 mb-4">🧠 Quizzes</h2>
+    <nav class="space-y-3">
+      <a href="#" class="sidebar-link active-tab bg-green-500/20">♠️ <span>Solve Quizzes</span></a>
+      <a href="#" class="sidebar-link bg-yellow-500/20">⏱️ <span>Quiz Rush</span></a>
+      <a href="#" class="sidebar-link bg-purple-500/20">📅 <span>Daily Quiz</span></a>
+      <a href="#" class="sidebar-link bg-blue-500/20">🧩 <span>Custom Quizzes</span></a>
+    </nav>
+    <div class="mt-10 border-t border-gray-600 pt-6">
+      <a href="stats.html" class="text-sm text-gray-300 hover:text-green-400 flex items-center">
+        📈 View Stats
+      </a>
+      <a href="dashboard.html" class="text-sm text-gray-300 hover:text-green-400 flex items-center mt-2">
+        🏠 Back to Dashboard
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="flex-1 flex items-center justify-center px-6 pt-12">
+    <div class="max-w-2xl text-center p-6 rounded-xl bg-gray-800/70 shadow-xl">
+      <h1 class="text-3xl font-bold mb-2 font-serif text-green-400">Welcome to Poker Quizzes</h1>
+      <p class="text-gray-300 mb-8 text-base font-light">Sharpen your instincts and track your ELO by solving strategic hands and scenario-based quizzes.</p>
+      <button class="bg-green-500 hover:bg-green-600 text-white font-bold px-6 py-3 rounded-xl shadow-lg transition-transform transform hover:scale-105">
+        🎯 Start Quiz
+      </button>
+    </div>
+  </main>
+</body>
+</html>

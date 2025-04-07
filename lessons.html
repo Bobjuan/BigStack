@@ -6,18 +6,41 @@
   <title>BigStack - Lessons</title>
   <link rel="stylesheet" href="/src/index.css" />
   <script type="module" src="/src/js/lessons.js" defer></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const cashBtn = document.getElementById('toggle-cash');
+      const tourneyBtn = document.getElementById('toggle-tourney');
+
+      function setActive(type) {
+        if (type === 'cash') {
+          cashBtn.classList.add('bg-green-500', 'hover:bg-green-600');
+          cashBtn.classList.remove('bg-gray-700', 'hover:bg-gray-600');
+
+          tourneyBtn.classList.remove('bg-green-500', 'hover:bg-green-600');
+          tourneyBtn.classList.add('bg-gray-700', 'hover:bg-gray-600');
+        } else {
+          tourneyBtn.classList.add('bg-green-500', 'hover:bg-green-600');
+          tourneyBtn.classList.remove('bg-gray-700', 'hover:bg-gray-600');
+
+          cashBtn.classList.remove('bg-green-500', 'hover:bg-green-600');
+          cashBtn.classList.add('bg-gray-700', 'hover:bg-gray-600');
+        }
+      }
+
+      cashBtn.addEventListener('click', () => setActive('cash'));
+      tourneyBtn.addEventListener('click', () => setActive('tourney'));
+    });
+  </script>
 </head>
 <body class="bg-gray-900 text-white min-h-screen flex">
   <!-- Sidebar -->
-  
   <aside class="w-64 bg-gray-800 p-6 border-r border-gray-700 hidden md:block">
-    <a href="dashboard.html" class="flex items-center mb-6 text-green-400 hover:text-green-300 font-semibold">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-        <path d="M10.707 1.293a1 1 0 00-1.414 0L2 8.586V18a2 2 0 002 2h4a1 1 0 001-1v-5h2v5a1 1 0 001 1h4a2 2 0 002-2V8.586l-7.293-7.293z" />
-      </svg>
-      Home
-    </a>
-    
+    <!-- Toggle Section -->
+    <div class="flex justify-between items-center mb-6">
+      <button id="toggle-cash" class="text-sm font-semibold px-3 py-1 rounded bg-green-500 text-white hover:bg-green-600">Cash Game</button>
+      <button id="toggle-tourney" class="text-sm font-semibold px-3 py-1 rounded bg-gray-700 text-white hover:bg-gray-600">Tournament</button>
+    </div>
+
     <h2 class="text-xl font-bold text-green-400 mb-6">Poker Lessons</h2>
     <div class="space-y-4" id="lesson-sidebar">
       <!-- Dynamically populated lesson list will go here -->
