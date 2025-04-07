@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BigStack - Login / Sign Up</title>
+  <link rel="stylesheet" href="/src/index.css" />
+  <script type="module" src="/src/js/auth.js" defer></script>
+</head>
+<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen p-4">
+
+  <div class="bg-gray-800 rounded-2xl shadow-xl w-full max-w-md p-8">
+    <h1 class="text-3xl font-bold text-green-400 mb-6 text-center">Welcome to BigStack</h1>
+
+    <!-- Toggle Tabs -->
+    <div class="flex justify-center mb-6 space-x-4">
+      <button id="login-tab" class="tab active">Log In</button>
+      <button id="signup-tab" class="tab">Sign Up</button>
+    </div>
+
+    <!-- Login Form -->
+    <form id="login-form" class="space-y-4">
+      <input type="email" id="login-email" placeholder="Email" required
+             class="w-full p-3 rounded bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500" />
+      <input type="password" id="login-password" placeholder="Password" required
+             class="w-full p-3 rounded bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500" />
+      <button type="submit"
+              class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded">
+        Log In
+      </button>
+    </form>
+
+    <!-- Sign Up Form (hidden by default) -->
+    <!-- Sign Up Form (with username) -->
+<form id="signup-form" class="space-y-4 hidden">
+  <input type="text" id="signup-username" placeholder="Username" required
+         class="w-full p-3 rounded bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500" />
+
+  <input type="email" id="signup-email" placeholder="Email" required
+         class="w-full p-3 rounded bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500" />
+
+  <input type="password" id="signup-password" placeholder="Password" required
+         class="w-full p-3 rounded bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500" />
+
+  <button type="submit"
+          class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded">
+    Sign Up
+  </button>
+</form>
+
+
+    <p id="auth-message" class="text-sm text-center mt-4 text-gray-300"></p>
+  </div>
+
+  <style>
+    .tab {
+      font-weight: bold;
+      padding: 0.5rem 1rem;
+      border-radius: 9999px;
+      background-color: #2d3748;
+      color: #a0aec0;
+      transition: all 0.2s ease;
+      border: 2px solid transparent;
+    }
+  
+    .tab.active {
+      background-color: #22c55e; /* green-500 */
+      color: white;
+      border-color: #16a34a; /* green-600 */
+      transform: scale(1.05);
+    }
+  
+    .tab:hover {
+      background-color: #38a169;
+      color: white;
+    }
+  </style>
+  
+
+</body>
+</html>

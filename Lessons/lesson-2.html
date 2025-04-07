@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lesson 2 - Poker Hand Rankings</title>
+  <link rel="stylesheet" href="/src/index.css" />
+</head>
+<body class="bg-gray-900 text-white p-8 max-w-3xl mx-auto min-h-screen">
+
+  <h1 class="text-3xl font-extrabold text-green-400 mb-6">Lesson 2: Poker Hand Rankings</h1>
+
+  <!-- Section 1 -->
+  <section class="mb-10">
+    <h2 class="text-2xl font-bold text-white mb-2">🃏 What is a Poker Hand?</h2>
+    <p class="text-gray-300">
+      In Texas Hold’em, each player makes the best possible five-card poker hand using a combination of their two hole cards and the five community cards. The strength of these hands determines the winner at showdown.
+    </p>
+  </section>
+
+  <!-- Section 2 -->
+  <section class="mb-10">
+    <h2 class="text-2xl font-bold text-white mb-2">📊 Hand Rankings (Lowest to Highest)</h2>
+    <ul class="list-decimal list-inside text-gray-300 space-y-2">
+      <li><strong>High Card</strong> – No combinations. Highest single card wins.</li>
+      <li><strong>One Pair</strong> – Two cards of the same rank.</li>
+      <li><strong>Two Pair</strong> – Two different pairs.</li>
+      <li><strong>Three of a Kind</strong> – Three cards of the same rank.</li>
+      <li><strong>Straight</strong> – Five consecutive cards, different suits.</li>
+      <li><strong>Flush</strong> – Five cards of the same suit, not in sequence.</li>
+      <li><strong>Full House</strong> – Three of a kind + a pair.</li>
+      <li><strong>Four of a Kind</strong> – Four cards of the same rank.</li>
+      <li><strong>Straight Flush</strong> – Five consecutive cards of the same suit.</li>
+      <li><strong>Royal Flush</strong> – A, K, Q, J, 10 of the same suit. The best hand possible.</li>
+    </ul>
+  </section>
+
+  <!-- Section 3 -->
+  <section class="mb-10">
+    <h2 class="text-2xl font-bold text-white mb-2">❗️Common Mistakes Beginners Make</h2>
+    <ul class="list-disc list-inside text-gray-300 space-y-2">
+      <li>Thinking a flush beats a full house (it doesn’t — full house is stronger).</li>
+      <li>Not realizing that suits have no rank in poker (spades ≠ stronger than hearts).</li>
+      <li>Miscounting straights (e.g., forgetting A-2-3-4-5 is a valid low straight).</li>
+    </ul>
+  </section>
+
+  <!-- Section 4 -->
+  <section class="mb-10">
+    <h2 class="text-2xl font-bold text-white mb-2">💡 Tip: Use Mnemonics to Remember</h2>
+    <p class="text-gray-300 mb-2">
+      A useful phrase: <em>“High Pair Tricky Students Find Full Fours Straight Royals”</em>
+    </p>
+    <p class="text-sm italic text-gray-400">
+      (High card, Pair, Three of a kind, Straight, Flush, Full House, Four of a Kind, Straight Flush, Royal Flush)
+    </p>
+  </section>
+
+  <!-- Completion + Navigation -->
+  <div class="mt-10">
+    <button 
+      onclick="completeLesson(2)"
+      class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded"
+    >
+      ✅ Mark as Complete
+    </button>
+    <a href="/lesson.html" class="ml-4 text-green-400 hover:underline">← Back to Lessons</a>
+  </div>
+
+  <script>
+    function completeLesson(id) {
+      localStorage.setItem(`lesson-${id}`, "complete");
+      alert("Lesson marked as complete!");
+    }
+  </script>
+
+</body>
+</html>
