@@ -38,21 +38,20 @@ const lessons = {
           <li><strong>Button</strong> – the dealer, considered the best position</li>
         </ul>
       `
-    }, 
+    },
     'blinds-and-dealer': {
-        title: "Blinds and Dealer Button",
-        content: `
-          <p>In Texas Hold'em, the action begins with the blinds — two forced bets that drive the action.</p>
-          <ul class="list-disc ml-6">
-            <li><strong>Small Blind (SB):</strong> Player to the immediate left of the dealer button posts this.</li>
-            <li><strong>Big Blind (BB):</strong> Player two seats left of the dealer posts a larger forced bet.</li>
-            <li><strong>Dealer Button:</strong> Rotates clockwise each hand and determines the order of action.</li>
-          </ul>
-        `
-      }   
+      title: "Blinds and Dealer Button",
+      content: `
+        <p>In Texas Hold'em, the action begins with the blinds — two forced bets that drive the action.</p>
+        <ul class="list-disc ml-6">
+          <li><strong>Small Blind (SB):</strong> Player to the immediate left of the dealer button posts this.</li>
+          <li><strong>Big Blind (BB):</strong> Player two seats left of the dealer posts a larger forced bet.</li>
+          <li><strong>Dealer Button:</strong> Rotates clockwise each hand and determines the order of action.</li>
+        </ul>
+      `
+    }
   }
   
-  // Save completed lessons to localStorage
   function markLessonCompleted(id) {
     const completed = JSON.parse(localStorage.getItem('completedLessons') || '[]')
     if (!completed.includes(id)) {
@@ -61,13 +60,6 @@ const lessons = {
     }
   }
   
-  // Load completed lessons for future use
-  function isLessonCompleted(id) {
-    const completed = JSON.parse(localStorage.getItem('completedLessons') || '[]')
-    return completed.includes(id)
-  }
-  
-  // Update UI bubbles next to each lesson
   function updateCompletionBubbles() {
     const completed = JSON.parse(localStorage.getItem('completedLessons') || '[]')
     document.querySelectorAll('.lesson-link').forEach(link => {
@@ -83,37 +75,68 @@ const lessons = {
     })
   }
   
-  // DOM Elements
-  const titleEl = document.getElementById('lesson-title')
-  const contentEl = document.getElementById('lesson-content')
-  const links = document.querySelectorAll('.lesson-link')
+  // Generate Sidebar
+  function populateSidebar() {
+    const sidebar = document.getElementById('lesson-sidebar')
+    const section = document.createElement('div')
   
-  // Set up listeners for lesson selection
-  links.forEach(link => {
-    link.addEventListener('click', () => {
-      const id = link.dataset.id
-      const lesson = lessons[id]
+    const header = document.createElement('h3')
+    header.className = "text-sm text-gray-400 uppercase font-semibold mb-2"
+    header.textContent = "The Very Basics"
+    section.appendChild(header)
   
-      if (lesson) {
-        titleEl.textContent = lesson.title
-        contentEl.innerHTML = `
-          <div>${lesson.content}</div>
-          <button class="mt-6 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded" id="complete-btn">
-            ✅ Mark Lesson Complete
-          </button>
-        `
+    const list = document.createElement('ul')
+    list.className = "space-y-2"
   
-        updateCompletionBubbles()
-  
-        document.getElementById('complete-btn').addEventListener('click', () => {
-          markLessonCompleted(id)
-          updateCompletionBubbles()
-          alert('Lesson marked as complete!')
-        })
-      }
+    Object.entries(lessons).forEach(([id, lesson], index) => {
+      const li = document.createElement('li')
+      const btn = document.createElement('button')
+      btn.dataset.id = id
+      btn.className = "lesson-link flex items-center justify-between w-full px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition"
+      btn.innerHTML = `
+        <span>${index + 1}. ${lesson.title}</span>
+        <span class="completion-bubble w-3 h-3 rounded-full bg-gray-500"></span>
+      `
+      li.appendChild(btn)
+      list.appendChild(li)
     })
-  })
   
-  // Initial load update
+    section.appendChild(list)
+    sidebar.appendChild(section)
+  }
+  
+  // Display Selected Lesson
+  function setupLessonClicks() {
+    const titleEl = document.getElementById('lesson-title')
+    const contentEl = document.getElementById('lesson-content')
+  
+    document.querySelectorAll('.lesson-link').forEach(link => {
+      link.addEventListener('click', () => {
+        const id = link.dataset.id
+        const lesson = lessons[id]
+  
+        if (lesson) {
+          titleEl.textContent = lesson.title
+          contentEl.innerHTML = `
+            <div>${lesson.content}</div>
+            <button class="mt-6 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded" id="complete-btn">
+              ✅ Mark Lesson Complete
+            </button>
+          `
+  
+          updateCompletionBubbles()
+  
+          document.getElementById('complete-btn').addEventListener('click', () => {
+            markLessonCompleted(id)
+            updateCompletionBubbles()
+            alert('Lesson marked as complete!')
+          })
+        }
+      })
+    })
+  }
+  
+  populateSidebar()
+  setupLessonClicks()
   updateCompletionBubbles()
   
