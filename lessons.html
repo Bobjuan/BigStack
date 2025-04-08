@@ -6,6 +6,8 @@
   <title>BigStack - Lessons</title>
   <link rel="stylesheet" href="/src/index.css" />
   <script type="module" src="/src/js/lessons.js" defer></script>
+
+  <!-- Category Toggle -->
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       const cashBtn = document.getElementById('toggle-cash');
@@ -32,22 +34,41 @@
     });
   </script>
 </head>
+
 <body class="bg-gray-900 text-white min-h-screen flex">
+
   <!-- Sidebar -->
   <aside class="w-64 bg-gray-800 p-6 border-r border-gray-700 hidden md:block">
-    <!-- Toggle Section -->
+    <!-- Toggle Buttons -->
     <div class="flex justify-between items-center mb-6">
       <button id="toggle-cash" class="text-sm font-semibold px-3 py-1 rounded bg-green-500 text-white hover:bg-green-600">Cash Game</button>
       <button id="toggle-tourney" class="text-sm font-semibold px-3 py-1 rounded bg-gray-700 text-white hover:bg-gray-600">Tournament</button>
     </div>
 
     <h2 class="text-xl font-bold text-green-400 mb-6">Poker Lessons</h2>
-    <div class="space-y-4" id="lesson-sidebar">
-      <!-- Dynamically populated lesson list will go here -->
+
+    <!-- Lesson Categories -->
+    <div id="lesson-sidebar" class="space-y-4">
+
+      <!-- Category: Preflop Strategy -->
+      <div class="mb-4">
+        <button class="w-full text-left font-semibold bg-gray-700 px-4 py-2 rounded hover:bg-gray-600 transition"
+                onclick="toggleCategory('preflop')">
+          Preflop Strategy
+        </button>
+        <div id="category-preflop" class="ml-4 mt-2 space-y-2 transition-all overflow-hidden max-h-0">
+          <button class="lesson-link block text-left text-sm text-gray-300 hover:text-white" data-id="starting-hands">• Starting Hands</button>
+          <button class="lesson-link block text-left text-sm text-gray-300 hover:text-white" data-id="positional-ranges">• Positional Ranges</button>
+          <button class="lesson-link block text-left text-sm text-gray-300 hover:text-white" data-id="3bet-theory">• 3-Bet / 4-Bet Theory</button>
+        </div>
+      </div>
+
+      <!-- More categories will be added here -->
+
     </div>
   </aside>
 
-  <!-- Main Content -->
+  <!-- Main Lesson Content -->
   <main class="flex-1 p-6">
     <h1 id="lesson-title" class="text-2xl font-bold mb-4">Select a lesson</h1>
     <div id="lesson-content" class="prose prose-invert max-w-none">
