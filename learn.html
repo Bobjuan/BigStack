@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Learn - BigStack</title>
+  <link rel="stylesheet" href="/src/index.css" />
+</head>
+<body class="bg-gray-900 text-white font-sans min-h-screen">
+  <div class="flex flex-col h-screen">
+    <!-- Lesson Prompt Section -->
+    <section class="w-full bg-gray-800 p-6 flex flex-col justify-between h-1/3">
+      <!-- Dynamic Chat Box -->
+      <div id="lesson-box" class="bg-gray-900 rounded-lg p-4 shadow-md mb-6">
+        <div class="flex items-start gap-3">
+          <img src="/avatar.png" alt="Coach Avatar" class="w-10 h-10 rounded-full border border-white" />
+          <div>
+            <h2 id="lesson-title" class="text-lg font-semibold text-blue-400">Loading lesson...</h2>
+            <p id="lesson-message" class="mt-1 text-white"></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation Buttons -->
+      <div class="flex justify-between items-center">
+        <span id="step-tracker" class="text-sm text-gray-400">Step 0/0</span>
+        <button id="next-btn" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded text-sm font-semibold">Next ▶</button>
+      </div>
+    </section>
+
+    <!-- Poker Table Placeholder -->
+    <section class="w-full flex-grow bg-green-700 flex items-center justify-center p-4">
+      <div class="bg-gray-800 w-full h-full rounded-xl shadow-inner flex items-center justify-center">
+        <p class="text-xl text-white opacity-70">[ Poker Table Simulation Placeholder ]</p>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const lessonPath = urlParams.get('lesson');
+
+    let currentStep = 0;
+    let steps = [];
+
+    async function loadLesson() {
+      try {
+        const res = await fetch(`/src/lessons-data/${lessonPath}`);
+        const data = await res.json();
+        steps = data.steps;
+        currentStep = 0;
+        showStep();
+      } catch (err) {
+        document.getElementById('lesson-title').textContent = 'Error loading lesson';
+        document.getElementById('lesson-message').textContent = 'Make sure the path is correct.';
+      }
+    }
+
+    function showStep() {
+      if (!steps.length) return;
+      const step = steps[currentStep];
+      document.getElementById('lesson-title').textContent = step.title || `Step ${currentStep + 1}`;
+      document.getElementById('lesson-message').textContent = step.message;
+      document.getElementById('step-tracker').textContent = `Step ${currentStep + 1}/${steps.length}`;
+    }
+
+    document.getElementById('next-btn').addEventListener('click', () => {
+      if (currentStep < steps.length - 1) {
+        currentStep++;
+        showStep();
+      } else {
+        alert('Lesson complete!');
+      }
+    });
+
+    loadLesson();
+  </script>
+</body>
+</html>

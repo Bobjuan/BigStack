@@ -1,0 +1,21 @@
+{
+    "steps": [
+      {
+        "title": "Hand Rankings Overview",
+        "message": "Poker hands are ranked from strongest to weakest. Let’s go through them."
+      },
+      {
+        "title": "Top Hands",
+        "message": "Royal Flush > Straight Flush > Four of a Kind > Full House > Flush > Straight"
+      },
+      {
+        "title": "Lower Hands",
+        "message": "Three of a Kind > Two Pair > One Pair > High Card"
+      },
+      {
+        "title": "Remember",
+        "message": "The stronger your hand, the better your chances of winning — but don't forget strategy matters too!"
+      }
+    ]
+  }
+  

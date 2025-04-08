@@ -101,17 +101,31 @@ window.toggleCategory = function (categoryId) {
 
 // SETUP LESSON CLICK EVENTS
 function setupLessonClicks(type = 'cash') {
-  const titleEl = document.getElementById('lesson-title')
-  const contentEl = document.getElementById('lesson-content')
-
-  document.querySelectorAll('.lesson-link').forEach(link => {
-    link.addEventListener('click', () => {
-      const id = link.dataset.id
-      const lesson = lessons[type]
-        .flatMap(category => category.lessons)
-        .find(lesson => lesson.id === id)
-
-      if (lesson) {
+    document.querySelectorAll('.lesson-link').forEach(link => {
+      link.addEventListener('click', () => {
+        const id = link.dataset.id
+  
+        // 🔧 Corrected lookup method
+        let lesson = null
+        for (const category of lessons[type]) {
+          const found = category.lessons.find(l => l.id === id)
+          if (found) {
+            lesson = found
+            break
+          }
+        }
+  
+        if (!lesson) return
+  
+        // 🔀 Learn lesson? Go to learn.html
+        if (lesson.type === 'learn') {
+          window.location.href = `/learn.html?lesson=${lesson.path}`
+          return
+        }
+  
+        // 🧾 Static content lesson
+        const titleEl = document.getElementById('lesson-title')
+        const contentEl = document.getElementById('lesson-content')
         titleEl.textContent = lesson.title
         contentEl.innerHTML = `
           <div>${lesson.content}</div>
@@ -119,18 +133,19 @@ function setupLessonClicks(type = 'cash') {
             ✅ Mark Lesson Complete
           </button>
         `
-
         updateCompletionBubbles()
-
+  
         document.getElementById('complete-btn').addEventListener('click', () => {
           markLessonCompleted(id)
           updateCompletionBubbles()
           alert('Lesson marked as complete!')
         })
-      }
+      })
     })
-  })
-}
+  }
+  
+
+  
 
 // TOGGLE BUTTON EVENTS
 const toggleCash = document.getElementById('toggle-cash')

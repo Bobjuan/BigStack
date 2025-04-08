@@ -1,0 +1,17 @@
+{
+    "steps": [
+      {
+        "title": "The Dealer Button",
+        "message": "The button rotates clockwise each hand. It determines who posts blinds and who acts first."
+      },
+      {
+        "title": "The Blinds",
+        "message": "Small Blind (SB) and Big Blind (BB) are forced bets. SB is to the left of the dealer, BB is two seats left."
+      },
+      {
+        "title": "Why They're Important",
+        "message": "Blinds create action. Every hand starts with money in the pot, which gives players incentive to compete."
+      }
+    ]
+  }
+  

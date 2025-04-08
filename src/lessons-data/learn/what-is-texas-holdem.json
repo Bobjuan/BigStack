@@ -1,0 +1,17 @@
+{
+    "steps": [
+      {
+        "title": "Welcome to Texas Hold'em",
+        "message": "Texas Hold'em is the most popular form of poker today. Each player gets 2 private cards and uses them with 5 shared cards to make the best 5-card hand."
+      },
+      {
+        "title": "The Betting Rounds",
+        "message": "Each hand has 4 rounds: Preflop, Flop, Turn, and River. Players can bet, raise, or fold in each round."
+      },
+      {
+        "title": "How to Win",
+        "message": "The best 5-card poker hand wins the pot. Sometimes you win by everyone folding to your bet — even without showing your cards!"
+      }
+    ]
+  }
+  
