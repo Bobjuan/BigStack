@@ -3,12 +3,19 @@
 import TheVeryBasics from '../lessons-data/cash/the-very-basics.js'
 import PlayerTypes from '../lessons-data/cash/player-types.js'
 import Strategy from '../lessons-data/cash/strategy.js'
+import PreflopStrategy from '../lessons-data/cash/preflop-strategy.js'
 
 
 const lessons = {
-  cash: [TheVeryBasics, PlayerTypes, Strategy],
-  tournament: [] // Add tournament lessons when ready
-}
+    cash: [
+      TheVeryBasics,
+      PlayerTypes,
+      Strategy,
+      PreflopStrategy
+    ],
+    tournament: []
+  }
+  
 
 // MARK LESSON COMPLETED
 function markLessonCompleted(id) {
