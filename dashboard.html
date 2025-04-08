@@ -6,51 +6,137 @@
   <title>BigStack - Dashboard</title>
   <link rel="stylesheet" href="/src/index.css" />
   <script type="module" src="/src/js/dashboard.js" defer></script>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&display=swap" rel="stylesheet" />
+
+  <style>
+    .card-button {
+      width: 160px;
+      height: 230px;
+      background-image: url('/public/card-tan.png');
+      background-size: cover;
+      background-position: center;
+      border-radius: 1rem;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Georgia', serif;
+      font-weight: bold;
+      font-size: 1.2rem;
+      text-align: center;
+      color: #000;
+      text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6);
+      transition: transform 0.3s ease, z-index 0.3s;
+      position: relative;
+      z-index: 1;
+      opacity: 0;
+      animation: fan-in 0.8s ease-out forwards;
+    }
+
+    .card-button:nth-child(1) {
+      animation-delay: 0.1s;
+    }
+
+    .card-button:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .card-button:nth-child(3) {
+      animation-delay: 0.3s;
+    }
+
+    .card-button:nth-child(4) {
+      animation-delay: 0.4s;
+    }
+
+    .card-button:hover {
+      transform: scale(1.05) rotate(0deg) !important;
+      z-index: 10;
+    }
+
+    @keyframes fan-in {
+      from {
+        opacity: 0;
+        transform: translateY(40px) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+  </style>
 </head>
-<body class="bg-gradient-to-br from-gray-900 to-black text-white min-h-screen flex flex-col items-center p-6">
-  <div class="w-full max-w-4xl mt-12">
+
+<body class="bg-cover bg-center text-white min-h-screen flex flex-col items-center p-6" style="background-image: url('public/dashboard-bg.png');">
+  
+  <!-- Profile Icon (Top Right) -->
+  <div class="absolute top-6 right-6 z-10">
+    <a href="profile.html">
+      <img src="public/profile.png"
+           alt="Profile"
+           class="w-10 h-10 rounded-full border-2 border-white hover:scale-105 transition-transform duration-150 shadow-lg" />
+    </a>
+  </div>
+
+  <div class="w-full max-w-4xl">
     <!-- Welcome Header -->
-    <div class="text-center mb-10">
-      <h1 class="text-3xl font-extrabold text-green-400">Welcome to BigStack 🃏</h1>
-      <p id="dashboard-greeting" class="text-gray-300 mt-2 text-lg">Loading...</p>
+    <div class="text-center mt-14 mb-12">
+      <h1 class="text-4xl font-semibold text-slate-200 drop-shadow-xl tracking-wide" style="font-family: 'Playfair Display', serif;">
+        Welcome to BigStack 🃏
+      </h1>
+      <p id="dashboard-greeting"
+         class="text-slate-300 mt-2 text-lg tracking-wide"
+         style="font-family: 'Playfair Display', serif;">
+         Loading...
+      </p>
     </div>
 
-    <!-- Dashboard Grid -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-      <a href="play.html" class="dashboard-card bg-green-500 hover:bg-green-600">🎮 Live Play</a>
-      <a href="lessons.html" class="dashboard-card bg-blue-500 hover:bg-blue-600">📘 Lessons</a>
-      <a href="quiz.html" class="dashboard-card bg-purple-500 hover:bg-purple-600">🧠 Quiz</a>
-      <a href="stats.html" class="dashboard-card bg-yellow-500 hover:bg-yellow-600">📊 Stats</a>
+    <!-- Card Button Deck -->
+    <div class="relative flex justify-center items-end mt-20 min-h-[320px] gap-6">
+      
+      <!-- Play -->
+      <a href="play.html"
+         class="card-button rotate-[-8deg] top-6">
+        <div class="absolute inset-0 flex items-center justify-center text-black text-xl font-semibold text-center tracking-wide"
+             style="font-family: 'Georgia', serif; text-shadow: 0 1px 3px rgba(255,255,255,0.7);">
+          Play
+        </div>
+      </a>
+
+      <!-- Quiz -->
+      <a href="quiz.html"
+         class="card-button rotate-[-2deg]">
+        <div class="absolute inset-0 flex items-center justify-center text-black text-xl font-semibold text-center tracking-wide"
+             style="font-family: 'Georgia', serif; text-shadow: 0 1px 3px rgba(255,255,255,0.7);">
+          Quizzes
+        </div>
+      </a>
+
+      <!-- Lessons -->
+      <a href="lessons.html"
+         class="card-button rotate-[2deg]">
+        <div class="absolute inset-0 flex items-center justify-center text-black text-xl font-semibold text-center tracking-wide"
+             style="font-family: 'Georgia', serif; text-shadow: 0 1px 3px rgba(255,255,255,0.7);">
+          Lessons
+        </div>
+      </a>
+
+      <!-- Stats -->
+      <a href="stats.html"
+         class="card-button rotate-[8deg] top-6">
+        <div class="absolute inset-0 flex items-center justify-center text-black text-xl font-semibold text-center tracking-wide"
+             style="font-family: 'Georgia', serif; text-shadow: 0 1px 3px rgba(255,255,255,0.7);">
+          Stats
+        </div>
+      </a>
     </div>
 
-    <!-- Logout -->
-    <div class="text-center mt-10">
-      <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded">
+    <!-- Logout Button -->
+    <div class="text-center mt-20">
+      <button onclick="logout()" class="bg-red-700 hover:bg-red-800 text-white font-bold py-2 px-6 rounded">
         Log Out
       </button>
     </div>
   </div>
-
-  <style>
-    .dashboard-card {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 2rem;
-      font-size: 1.25rem;
-      font-weight: bold;
-      border-radius: 1rem;
-      text-align: center;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
-      text-decoration: none;
-      color: white;
-    }
-
-    .dashboard-card:hover {
-      transform: translateY(-4px) scale(1.03);
-      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.7);
-    }
-  </style>
 </body>
 </html>
