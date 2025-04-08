@@ -10,26 +10,32 @@
   <div class="flex flex-col h-screen">
     <!-- Lesson Prompt Section -->
     <section class="w-full bg-gray-800 p-6 flex flex-col justify-between h-1/3">
+      <!-- Top Nav Buttons -->
+      <div class="flex justify-between mb-4">
+        <a href="lessons.html" class="text-sm text-white bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded">← Back to Learn</a>
+        <span></span>
+      </div>
+
       <!-- Dynamic Chat Box -->
       <div id="lesson-box" class="bg-gray-900 rounded-lg p-4 shadow-md mb-6">
-        <div class="flex items-start gap-3">
-          <img src="/avatar.png" alt="Coach Avatar" class="w-10 h-10 rounded-full border border-white" />
-          <div>
-            <h2 id="lesson-title" class="text-lg font-semibold text-blue-400">Loading lesson...</h2>
-            <p id="lesson-message" class="mt-1 text-white"></p>
-          </div>
+        <div>
+          <h2 id="lesson-title" class="text-2xl font-semibold text-blue-400">Loading lesson...</h2>
+          <p id="lesson-message" class="mt-4 text-lg leading-relaxed text-white"></p>
         </div>
       </div>
 
       <!-- Navigation Buttons -->
       <div class="flex justify-between items-center">
         <span id="step-tracker" class="text-sm text-gray-400">Step 0/0</span>
-        <button id="next-btn" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded text-sm font-semibold">Next ▶</button>
+        <div class="flex gap-2">
+          <button id="prev-btn" class="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded text-sm font-semibold">⬅ Prev</button>
+          <button id="next-btn" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded text-sm font-semibold">Next ▶</button>
+        </div>
       </div>
     </section>
 
     <!-- Poker Table Placeholder -->
-    <section class="w-full flex-grow bg-green-700 flex items-center justify-center p-4">
+    <section class="w-full flex-grow flex items-center justify-center p-4">
       <div class="bg-gray-800 w-full h-full rounded-xl shadow-inner flex items-center justify-center">
         <p class="text-xl text-white opacity-70">[ Poker Table Simulation Placeholder ]</p>
       </div>
@@ -69,7 +75,14 @@
         currentStep++;
         showStep();
       } else {
-        alert('Lesson complete!');
+        window.location.href = 'lessons.html';
+      }
+    });
+
+    document.getElementById('prev-btn').addEventListener('click', () => {
+      if (currentStep > 0) {
+        currentStep--;
+        showStep();
       }
     });
 

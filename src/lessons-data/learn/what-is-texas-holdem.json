@@ -2,16 +2,23 @@
     "steps": [
       {
         "title": "Welcome to Texas Hold'em",
-        "message": "Texas Hold'em is the most popular form of poker today. Each player gets 2 private cards and uses them with 5 shared cards to make the best 5-card hand."
+        "message": "Texas Hold'em is the most popular form of poker today. You'll play against other players, not the house. Everyone gets 2 private cards, and 5 shared cards are placed in the middle."
       },
       {
-        "title": "The Betting Rounds",
-        "message": "Each hand has 4 rounds: Preflop, Flop, Turn, and River. Players can bet, raise, or fold in each round."
+        "title": "The Setup",
+        "message": "You’ll be dealt two private cards, face down. Then five community cards will be revealed in stages. You’ll try to make the best 5-card hand using any combination of your 2 cards and the 5 shared ones."
       },
       {
-        "title": "How to Win",
-        "message": "The best 5-card poker hand wins the pot. Sometimes you win by everyone folding to your bet — even without showing your cards!"
+        "title": "How the Game Flows",
+        "message": "There are four rounds of betting: Preflop, Flop, Turn, and River. After each betting round, more cards are revealed. You can fold, call, or raise during each round."
+      },
+      {
+        "title": "The Winning Hand",
+        "message": "At the end, if multiple players are left, everyone shows their cards. The best 5-card hand wins the pot. Or — you can win if everyone else folds before showdown!"
+      },
+      {
+        "title": "Let’s Continue",
+        "message": "Great job. You now know the basic structure of Texas Hold'em. Next, let’s look at what makes a strong hand."
       }
     ]
   }
-  

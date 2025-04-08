@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Player Types Quadrant</title>
+  <style>
+    body {
+      margin: 0; 
+      padding: 0; 
+      font-family: sans-serif;
+      background: #f9f9f9;
+    }
+    .title {
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin: 20px 0;
+      color: #333;
+    }
+    .grid-container {
+      width: 600px; 
+      height: 400px;
+      margin: 0 auto;
+      position: relative;
+      border: 1px solid #ccc;
+    }
+    /* Four quadrant backgrounds using absolute positioning */
+    .quad {
+      position: absolute;
+      width: 50%;
+      height: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      color: #333;
+      font-weight: bold;
+      font-size: 1.1rem;
+    }
+    .top-left {
+      top: 0; 
+      left: 0; 
+      background: linear-gradient(135deg, #FFC0C0, #FFE0E0);
+    }
+    .top-right {
+      top: 0; 
+      left: 50%;
+      background: linear-gradient(135deg, #C0FFC0, #E0FFE0);
+    }
+    .bottom-left {
+      top: 50%; 
+      left: 0;
+      background: linear-gradient(135deg, #C0FFFF, #E0FFFF);
+    }
+    .bottom-right {
+      top: 50%; 
+      left: 50%;
+      background: linear-gradient(135deg, #FFFFC0, #FFFFE0);
+    }
+    /* Red dots with hover tooltip (title attribute) */
+    .dot {
+      width: 20px; 
+      height: 20px; 
+      border-radius: 50%; 
+      background: red;
+      cursor: pointer;
+      position: relative;
+      /* Center within each quadrant text */
+      margin-top: 8px;
+    }
+    .axis-label {
+      position: absolute; 
+      color: #555; 
+      font-weight: 600;
+    }
+    /* Y-axis labels (tight -> loose) */
+    .axis-label.y-top {
+      top: -24px;
+      left: 50%; 
+      transform: translateX(-50%);
+    }
+    .axis-label.y-bottom {
+      bottom: -24px;
+      left: 50%; 
+      transform: translateX(-50%);
+    }
+    /* X-axis labels (passive -> aggressive) */
+    .axis-label.x-left {
+      left: -40px;
+      top: 50%; 
+      transform: rotate(-90deg) translateY(50%);
+      transform-origin: center;
+    }
+    .axis-label.x-right {
+      right: -40px;
+      top: 50%; 
+      transform: rotate(90deg) translateY(50%);
+      transform-origin: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="title">Player Types Interactive Grid</div>
+
+  <div class="grid-container">
+    <!-- Quadrants -->
+    <div class="quad top-left">
+      Loose-Passive<br/>(Calling Station)
+      <div class="dot" title="Loose-Passive: Calls often, wide range of starting hands."></div>
+    </div>
+    <div class="quad top-right">
+      Loose-Aggressive<br/>(LAG)
+      <div class="dot" title="Loose-Aggressive: Plays many hands, bets/raises often, can bluff."></div>
+    </div>
+    <div class="quad bottom-left">
+      Tight-Passive<br/>(Rock)
+      <div class="dot" title="Tight-Passive: Plays few hands, seldom raises. Predictable but safe."></div>
+    </div>
+    <div class="quad bottom-right">
+      Tight-Aggressive<br/>(TAG)
+      <div class="dot" title="Tight-Aggressive: Selective about hands, frequently bets/raises when in."></div>
+    </div>
+
+    <!-- Axis Labels -->
+    <div class="axis-label y-top">Loose</div>
+    <div class="axis-label y-bottom">Tight</div>
+    <div class="axis-label x-left">Passive</div>
+    <div class="axis-label x-right">Aggressive</div>
+  </div>
+
+</body>
+</html>

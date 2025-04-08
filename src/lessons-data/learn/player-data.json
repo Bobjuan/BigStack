@@ -1,0 +1,33 @@
+{
+    "quadrants": [
+      {
+        "name": "Tight",
+        "label": "Tight Player (Nit)",
+        "description": "Plays fewer, high-value hands. Strength: minimizes losses by playing only the best hands; Weakness: can be overly predictable.",
+        "coordinates": { "x": 150, "y": 150 },
+        "color": "#E53E3E"
+      },
+      {
+        "name": "Loose",
+        "label": "Loose Player (LAG)",
+        "description": "Plays many hands and can be unpredictable. Strength: creates big pots; Weakness: often involved in marginal situations.",
+        "coordinates": { "x": 450, "y": 150 },
+        "color": "#E53E3E"
+      },
+      {
+        "name": "Aggressive",
+        "label": "Aggressive",
+        "description": "Frequently bets and raises, putting constant pressure on opponents. Strength: forces errors from opponents; Weakness: can overcommit chips.",
+        "coordinates": { "x": 150, "y": 450 },
+        "color": "#E53E3E"
+      },
+      {
+        "name": "Passive",
+        "label": "Passive Player (Calling Station)",
+        "description": "Calls more than bets, rarely taking control of the hand. Strength: can trap aggressive players; Weakness: rarely seizes initiative.",
+        "coordinates": { "x": 450, "y": 450 },
+        "color": "#E53E3E"
+      }
+    ]
+  }
+  
