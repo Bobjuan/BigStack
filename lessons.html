@@ -4,12 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>BigStack - Lessons</title>
-    <link rel="stylesheet" href="/src/index.css" />
-    <script type="module" src="/src/js/lessons.js" defer></script>
+    <link rel="stylesheet" href="./src/index.css" />
+    <script type="module" src="./src/js/lessons.js" defer></script>
   </head>
 
   <body class="bg-gray-900 text-white min-h-screen font-sans">
-
     <!-- 🔷 Top Banner -->
     <header class="w-full bg-gray-800 p-4 flex items-center justify-between relative shadow-md">
       <div class="absolute left-4 top-1/2 -translate-y-1/2">
@@ -44,7 +43,7 @@
           <!-- 🔹 Lesson Sidebar Content -->
           <div id="lesson-sidebar"
             class="flex-1 p-4 pt-2 space-y-4 overflow-y-auto"
-            style="background-image: url('/lessons-bg.png'); background-size: cover; background-position: center;">
+            style="background-image: url('./public/images/lessons-bg.png'); background-size: cover; background-position: center;">
             <!-- JS will populate this -->
           </div>
         </aside>
@@ -64,7 +63,7 @@
       </main>
     </div>
 
-    <!-- 🔧 Toggle + Collapse Script -->
+    <!-- 🔧 Toggle + Collapse Script (for sidebar functionality) -->
     <script>
       document.addEventListener('DOMContentLoaded', () => {
         const cashBtn = document.getElementById('toggle-cash');
@@ -77,13 +76,11 @@
           if (type === 'cash') {
             cashBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
             cashBtn.classList.remove('bg-gray-700', 'hover:bg-gray-600');
-
             tourneyBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
             tourneyBtn.classList.add('bg-gray-700', 'hover:bg-gray-600');
           } else {
             tourneyBtn.classList.add('bg-red-600', 'hover:bg-red-700');
             tourneyBtn.classList.remove('bg-gray-700', 'hover:bg-gray-600');
-
             cashBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
             cashBtn.classList.add('bg-gray-700', 'hover:bg-gray-600');
           }
@@ -112,7 +109,7 @@
           updateSidebarState();
         });
 
-        updateSidebarState(); // Init state on page load
+        updateSidebarState();
       });
     </script>
 
