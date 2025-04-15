@@ -5,6 +5,8 @@ import CommunityCards from './CommunityCards';
 import PlayerInfo from './PlayerInfo';
 import PotDisplay from './PotDisplay';
 import ActionButtons from './ActionButtons';
+import tableBg from '/src/assets/table.png'; // Import the table background
+import dealerChip from '/src/assets/dealer.png'; // Import dealer chip asset
 
 const SUITS = ['h', 'd', 'c', 's'];
 const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
@@ -125,6 +127,7 @@ const initialGameState = {
     deck: [],
     communityCards: [],
     pot: 0,
+    calculatedPots: [],
     currentBettingRound: GamePhase.PREFLOP,
     currentPlayerIndex: -1,
     dealerIndex: -1,
@@ -162,6 +165,7 @@ function PokerGame() {
         currentState.deck = shuffleDeck(createDeck());
         currentState.communityCards = [];
         currentState.pot = 0;
+        currentState.calculatedPots = [];
         currentState.currentBettingRound = GamePhase.PREFLOP;
         currentState.currentHighestBet = 0;
         currentState.minRaiseAmount = BIG_BLIND_AMOUNT;
@@ -296,13 +300,15 @@ function PokerGame() {
     // ----- Pot Awarding Logic (with Side Pots) -----
     function awardPot(state) {
         const nonFoldedPlayers = state.players.filter(p => !p.isFolded);
-        
+        let newState = JSON.parse(JSON.stringify(state));
+
         if (nonFoldedPlayers.length === 1) {
             const winner = nonFoldedPlayers[0];
-            const winnerIndex = state.players.findIndex(p => p.id === winner.id);
-            state.players[winnerIndex].stack += state.pot;
-            state.message = `${winner.name} wins $${state.pot} by default.`;
-            state.pot = 0;
+            const winnerIndex = newState.players.findIndex(p => p.id === winner.id);
+            newState.players[winnerIndex].stack += newState.pot;
+            newState.message = `${winner.name} wins $${newState.pot} by default.`;
+            newState.calculatedPots = [{ amount: newState.pot, eligiblePlayerIds: [winner.id], winnerIds: [winner.id] }];
+            newState.pot = 0;
         } else {
             let contenders = nonFoldedPlayers.map(player => ({
                 ...player,
@@ -352,6 +358,9 @@ function PokerGame() {
                   }; 
              }
 
+            newState.calculatedPots = pots.map(p => ({...p, winnerIds: [], winnerHandDescr: '' }));
+            newState.pot = 0;
+
             let finalMessages = [];
             pots.forEach((pot, potIndex) => {
                 if (pot.amount <= 0) return;
@@ -359,13 +368,17 @@ function PokerGame() {
                 const eligibleContenders = contenders.filter(c => pot.eligiblePlayerIds.includes(c.id));
                 
                 if (eligibleContenders.length === 0) {
+                     console.warn(`Pot ${potIndex+1} has no eligible contenders! Amount: ${pot.amount}`);
                      return;
                 }
                 
                 if (eligibleContenders.length === 1) {
                     const winner = eligibleContenders[0];
-                    state.players[winner.originalIndex].stack += pot.amount;
-                    finalMessages.push(`${winner.name} wins Pot ${potIndex + 1} ($${pot.amount})`);
+                    newState.players[winner.originalIndex].stack += pot.amount;
+                    const potLabel = newState.calculatedPots.length > 1 ? `Side Pot ${potIndex + 1}` : 'Main Pot';
+                    finalMessages.push(`${winner.name} wins ${potLabel} ($${pot.amount})`);
+                    pot.winnerIds = [winner.id];
+                    pot.winnerHandDescr = `(${winner.evaluatedHand.descr || winner.evaluatedHand.name})`;
                 } else {
                     const solvedHandsForPot = eligibleContenders.map(c => c.evaluatedHand);
                     const winningHands = Hand.winners(solvedHandsForPot);
@@ -374,27 +387,32 @@ function PokerGame() {
                         winningHands.some(wh => wh === c.evaluatedHand)
                     );
                     
+                    pot.winnerIds = winnersForPot.map(w => w.id);
+                    const winnerHandDescr = winnersForPot[0].evaluatedHand.descr || winnersForPot[0].evaluatedHand.name;
+                    pot.winnerHandDescr = `(${winnerHandDescr})`;
+
                     const potSplit = Math.floor(pot.amount / winnersForPot.length);
                     const oddChip = pot.amount % winnersForPot.length;
                     
+                    let potMessageNames = [];
                     winnersForPot.forEach((winner, i) => {
                         const awardAmount = potSplit + (i === 0 ? oddChip : 0); 
-                        state.players[winner.originalIndex].stack += awardAmount;
-                        if (!finalMessages.some(msg => msg.startsWith(winner.name))) {
-                           finalMessages.push(`${winner.name} wins with ${winner.evaluatedHand.descr || winner.evaluatedHand.name}`);
-                        }
+                        newState.players[winner.originalIndex].stack += awardAmount;
+                        potMessageNames.push(winner.name);
                     });
+
+                    const potLabel = newState.calculatedPots.length > 1 ? `Side Pot ${potIndex + 1}` : 'Main Pot';
+                    finalMessages.push(`${potMessageNames.join(' & ')} split ${potLabel} ($${pot.amount}) with ${winnerHandDescr}`);
                 }
             });
             
-            state.message = finalMessages.length > 0 ? finalMessages.join('. ') : "No winners? Error or Chop pot? Check logs.";
-            state.pot = 0;
+            newState.message = finalMessages.join('. ');
         }
         
-        state.currentBettingRound = GamePhase.HAND_OVER;
-        state.currentPlayerIndex = -1;
-        state.players.forEach(p => { p.isTurn = false; p.currentBet = 0; p.totalBetInHand = 0; });
-        return state;
+        newState.currentBettingRound = GamePhase.HAND_OVER;
+        newState.currentPlayerIndex = -1;
+        newState.players.forEach(p => { p.isTurn = false; p.currentBet = 0; p.totalBetInHand = 0; });
+        return newState;
     }
 
     function advanceToNextRound(state) {
@@ -637,6 +655,52 @@ function PokerGame() {
         });
     };
 
+    // --- Player Positioning Logic ---
+    const getPlayerPosition = (index, totalPlayers) => {
+        const angle = (index / totalPlayers) * 2 * Math.PI;
+        const tableWidth = 1200;
+        const tableHeight = 675;
+        const horizontalRadius = tableWidth * 0.46;
+        const verticalRadius = tableHeight * 0.38;
+        const infoWidth = 140;
+        const infoHeight = 60;
+        const cardWidth = 100;
+        const cardHeight = 64;
+        const centerX = tableWidth / 2;
+        const centerY = tableHeight / 2;
+        let baseX = centerX + horizontalRadius * Math.cos(angle - Math.PI / 2);
+        let baseY = centerY + verticalRadius * Math.sin(angle - Math.PI / 2);
+
+        // --- Calculate Info Box Position --- 
+        let infoX = baseX - infoWidth / 2;
+        let infoY = baseY - infoHeight / 2;
+        const infoLeftPercent = (infoX / tableWidth) * 100;
+        const infoTopPercent = (infoY / tableHeight) * 100;
+        const infoStyle = {
+            position: 'absolute',
+            left: `${infoLeftPercent}%`,
+            top: `${infoTopPercent}%`,
+            width: `${infoWidth}px`,
+            zIndex: 10,
+        };
+
+        // --- Calculate Card Hand Position --- 
+        let cardX = baseX - cardWidth / 2;
+        let cardY = infoY - cardHeight * 0.8;
+        const cardLeftPercent = (cardX / tableWidth) * 100;
+        const cardTopPercent = (cardY / tableHeight) * 100;
+        const cardStyle = {
+            position: 'absolute',
+            left: `${cardLeftPercent}%`,
+            top: `${cardTopPercent}%`,
+            width: `${cardWidth}px`,
+            zIndex: 5,
+        };
+
+        return { infoStyle, cardStyle };
+    };
+    // --- End Player Positioning ---
+
     const currentPlayer = gameState.currentPlayerIndex >= 0 ? gameState.players[gameState.currentPlayerIndex] : null;
     
     const canCheck = currentPlayer?.currentBet === gameState.currentHighestBet;
@@ -655,103 +719,170 @@ function PokerGame() {
     const getPlayerId = (index) => `player${index + 1}`;
 
     return (
-        <div className="poker-table border border-green-700 rounded-lg p-6 bg-gray-800 max-w-4xl mx-auto relative">
-            <div className="absolute top-2 left-2 z-10 flex space-x-2">
-                <button 
-                    onClick={() => setIsTestMode(prev => !prev)}
-                    className={`px-3 py-1 text-xs rounded ${isTestMode ? 'bg-red-600' : 'bg-gray-600'} hover:bg-gray-500 text-white`}
-                >
-                    Test Mode: {isTestMode ? 'ON' : 'OFF'}
-                </button>
-                {/* Show Cards Toggle (only visible in Test Mode) */}
-                {isTestMode && (
-                     <button 
-                         onClick={() => setShowAllCards(prev => !prev)}
-                         className={`px-3 py-1 text-xs rounded ${showAllCards ? 'bg-blue-600' : 'bg-gray-600'} hover:bg-gray-500 text-white`}
-                     >
-                         Show Cards: {showAllCards ? 'ON' : 'OFF'}
-                     </button>
-                )}
+        <div
+            className="poker-table relative mx-auto bg-gray-900" // Added bg color fallback
+            style={{
+                width: `${1200}px`, // Use template literal for clarity
+                height: `${675}px`,
+                backgroundImage: `url(${tableBg})`,
+                backgroundSize: 'contain',
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'center',
+            }}
+        >
+            {/* Game Info - Top Left */}
+            <div className="absolute top-4 left-4 z-20 text-left max-w-xs">
+                 <h2 className="text-sm font-bold text-gray-200">{`Round: ${gameState.currentBettingRound}`}</h2>
+                 <p className="text-xs text-yellow-300 h-auto">{gameState.message || ' '}</p>
             </div>
-             {/* Player Count Selection */}
-             <div className="absolute top-10 left-2 z-10 flex space-x-1">
-                 <span className="text-xs text-gray-400 self-center mr-1">Players:</span>
-                 {[2, 6, 9].map(count => (
-                     <button 
-                         key={count}
-                         onClick={() => handleSetNumPlayers(count)} // Pass the count directly
-                         className={`px-2 py-0.5 text-xs rounded ${numPlayers === count ? 'bg-green-700' : 'bg-gray-600'} hover:bg-gray-500 text-white`}
-                     >
-                         {count}
-                     </button>
-                 ))}
-             </div>
-            
-            <h2 className="text-xl font-bold text-gray-400 mb-1 text-center">{`Round: ${gameState.currentBettingRound}`}</h2>
-            <p className="text-center text-yellow-300 mb-3 h-5">{gameState.message || '\u00A0'}</p> {/* Use non-breaking space */} 
-            
-            {/* Community Cards */}
-            <CommunityCards cards={gameState.communityCards} />
-            
-            {/* Pot */}
-            <PotDisplay amount={gameState.pot} />
-            
-            {/* Players */}
-             <div className="players-area flex justify-around items-start flex-wrap my-4 relative min-h-[150px]"> {/* Added min-height and flex-wrap */} 
-                {gameState.players.map((player) => ( // Removed index from map args
-                <div 
-                    key={player.id} // <-- Use player.id as the key
-                    // Basic positioning attempt - needs refinement for circle
-                    // style={{ /* Add absolute positioning logic later if needed */ }}
-                    className={`player-section p-2 border rounded mb-2 ${player.isTurn ? 'border-yellow-400 ring-2 ring-yellow-300' : 'border-gray-600'} ${player.isFolded ? 'opacity-40 grayscale' : ''} transition-all duration-300 w-[120px] flex flex-col items-center`}> {/* Fixed width, flex column */} 
-                    <PlayerInfo 
-                        name={player.name} 
-                        stack={player.stack} 
-                        currentBet={player.currentBet} 
-                        isTurn={player.isTurn} 
-                        isDealer={player.isDealer}
-                        isSB={player.isSB}
-                        isBB={player.isBB}
-                    />
-                    <PlayerHand cards={player.cards} showAll={player.id === 'player1' || (isTestMode && showAllCards)} /> 
-                </div>
-                ))}
-            </div>
-            
-            {/* Action Buttons */}
-             {currentPlayer && (isTestMode || currentPlayer.id === 'player1') && gameState.currentBettingRound !== GamePhase.HAND_OVER && (
-                 <ActionButtons 
-                    onCheck={handleCheck} 
-                    onCall={handleCall} 
-                    onBet={handleBet} 
-                    onFold={handleFold} 
-                    canCheck={canCheck}
-                    canCall={canCall}
-                    callAmount={callAmount}
-                    canBet={canBetRender}
-                    minBetAmount={minChipsToAddRender} 
-                    maxBetAmount={maxChipsToAddRender} 
-                    potSize={gameState.pot}     // <-- Pass pot size
-                 />
-             )}
 
-            {/* Waiting Message */}
-            {currentPlayer && currentPlayer.id !== 'player1' && !isTestMode && gameState.currentBettingRound !== GamePhase.HAND_OVER && (
-                <p className="text-center text-gray-400 mt-6">Waiting for {currentPlayer.name}'s action...</p>
-            )}
-
-            {/* Start Next Hand Button */}
-            {gameState.currentBettingRound === GamePhase.HAND_OVER && (
-                <div className="text-center mt-4">
-                    <button 
-                        onClick={() => setGameState(prevState => startNewHand(JSON.parse(JSON.stringify(prevState))))} 
-                        className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded"
+            {/* Test Mode / Player Count Controls - Top Right */}
+            <div className="absolute top-4 right-4 z-20 flex flex-col items-end space-y-1">
+                 {/* Test Mode Buttons */}
+                <div className="flex space-x-2">
+                    <button
+                        onClick={() => setIsTestMode(prev => !prev)}
+                        className={`px-3 py-1 text-xs rounded ${isTestMode ? 'bg-red-600' : 'bg-gray-600'} hover:bg-gray-500 text-white`}
                     >
-                        Start Next Hand
+                        Test Mode: {isTestMode ? 'ON' : 'OFF'}
                     </button>
-                </div>
-            )}
-            
+                    {isTestMode && (
+                        <button
+                            onClick={() => setShowAllCards(prev => !prev)}
+                            className={`px-3 py-1 text-xs rounded ${showAllCards ? 'bg-blue-600' : 'bg-gray-600'} hover:bg-gray-500 text-white`}
+                        >
+                            Show Cards: {showAllCards ? 'ON' : 'OFF'}
+                        </button>
+                    )}
+                 </div>
+                 {/* Player Count Selection */}
+                 <div className="flex space-x-1 items-center">
+                    <span className="text-xs text-gray-400 mr-1">Players:</span>
+                    {[2, 6, 9].map(count => (
+                        <button
+                            key={count}
+                            onClick={() => handleSetNumPlayers(count)}
+                            className={`px-2 py-0.5 text-xs rounded ${numPlayers === count ? 'bg-green-700' : 'bg-gray-600'} hover:bg-gray-500 text-white`}
+                        >
+                            {count}
+                        </button>
+                    ))}
+                 </div>
+            </div>
+
+            {/* Central Area for Community Cards & Pot */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none">
+                <CommunityCards cards={gameState.communityCards} />
+                {/* Display Main Pot OR Calculated Pots at Showdown/End */}
+                {gameState.calculatedPots.length === 0 ? (
+                    <PotDisplay amount={gameState.pot} label="Pot" />
+                ) : (
+                    <div className="flex flex-col items-center space-y-1">
+                        {gameState.calculatedPots.map((pot, index) => (
+                             <PotDisplay
+                                key={index}
+                                amount={pot.amount}
+                                label={gameState.calculatedPots.length > 1 && index > 0 ? `Side Pot ${index}` : 'Main Pot'}
+                                subtext={pot.winnerHandDescr}
+                              />
+                        ))}
+                    </div>
+                 )}
+            </div>
+
+            {/* Players Area - Render Player Info and Hand separately */}
+             <div className="players-area absolute inset-0 w-full h-full z-0">
+                {gameState.players.map((player, index) => {
+                    const { infoStyle, cardStyle } = getPlayerPosition(index, gameState.players.length);
+
+                    // Determine combined classes for styling the info box
+                    const infoClasses = [
+                        'player-info-container relative p-1 border rounded',
+                        'transition-all duration-300',
+                        player.isTurn ? 'border-yellow-400 ring-4 ring-yellow-300 ring-opacity-50' : 'border-gray-700 bg-gray-900 bg-opacity-80',
+                        // Removed folded/allin style here, apply overlay instead
+                    ].filter(Boolean).join(' ');
+
+                    return (
+                        <React.Fragment key={player.id}>
+                            {/* Player Hand (Cards) - Positioned Separately */}
+                            <div style={cardStyle} className={`${player.isFolded ? 'opacity-30 grayscale' : ''}`}>
+                                <PlayerHand 
+                                    cards={player.cards} 
+                                    showAll={player.id === 'player1' || (isTestMode && showAllCards)} 
+                                />
+                            </div>
+
+                            {/* Player Info Box - Positioned Separately */}
+                            <div style={infoStyle} className={infoClasses}>
+                                {/* Status Overlay (Folded / All-In) - Inside info container */}
+                                {(player.isFolded || player.isAllIn) && (
+                                    <div className="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center z-20 rounded">
+                                        <span className={`font-bold text-lg ${player.isAllIn ? 'text-red-500' : 'text-gray-400'}`}>
+                                            {player.isAllIn ? 'ALL-IN' : 'FOLDED'}
+                                        </span>
+                                    </div>
+                                )}
+                                
+                                {/* Dealer Chip - Position relative to info container */}
+                                {player.isDealer && (
+                                    <img
+                                        src={dealerChip}
+                                        alt="Dealer Button"
+                                        className="absolute -top-3 -right-3 w-6 h-6 z-30" // Adjusted size/pos
+                                    />
+                                )}
+                                
+                                {/* Actual Player Info Component */}
+                                <PlayerInfo
+                                    name={player.name}
+                                    stack={player.stack}
+                                    currentBet={player.currentBet}
+                                    isTurn={player.isTurn} // Pass turn status for potential internal styling 
+                                    // Removed dealer/sb/bb props as they are handled by chip/overlays
+                                />
+                            </div>
+                        </React.Fragment>
+                    );
+                })}
+            </div>
+
+            {/* Action Buttons Container - Bottom Right */}
+             <div className="absolute bottom-4 right-4 z-20 flex flex-col items-end">
+                 {currentPlayer && (isTestMode || currentPlayer.id === 'player1') && gameState.currentBettingRound !== GamePhase.HAND_OVER && (
+                     <ActionButtons
+                        onCheck={handleCheck} 
+                        onCall={handleCall} 
+                        onBet={handleBet} 
+                        onFold={handleFold} 
+                        canCheck={canCheck}
+                        canCall={canCall}
+                        callAmount={callAmount}
+                        canBet={canBetRender}
+                        minBetAmount={minChipsToAddRender} 
+                        maxBetAmount={maxChipsToAddRender} 
+                        potSize={gameState.pot}
+                     />
+                 )}
+
+                 {/* Waiting Message - Below Buttons in Bottom Right */}
+                 {currentPlayer && currentPlayer.id !== 'player1' && !isTestMode && gameState.currentBettingRound !== GamePhase.HAND_OVER && (
+                     <p className="text-right text-gray-400 text-xs mt-1">Waiting for {currentPlayer.name}'s action...</p>
+                 )}
+
+                 {/* Start Next Hand Button - Below Buttons in Bottom Right */}
+                 {gameState.currentBettingRound === GamePhase.HAND_OVER && (
+                     <div>
+                         <button
+                             onClick={() => setGameState(prevState => startNewHand(JSON.parse(JSON.stringify(prevState))))}
+                             className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded mt-2"
+                         >
+                             Start Next Hand
+                         </button>
+                     </div>
+                 )}
+            </div>
+
         </div>
     );
 }
