@@ -265,36 +265,67 @@ function PokerGame() {
     }
 
     function checkRoundCompletion(state) {
-        const activePlayers = state.players.filter(p => !p.isFolded && !p.isAllIn);
-        const foldedOrAllInPlayers = state.players.filter(p => p.isFolded || p.isAllIn);
         const nonFoldedPlayers = state.players.filter(p => !p.isFolded);
-
         if (nonFoldedPlayers.length <= 1) {
-            return true;
+            return true; // Hand is over or only one player left
         }
 
-        let allMatchedOrFolded = true;
-        for(const player of state.players) {
-            if (!player.isFolded && !player.isAllIn) {
-                if (player.currentBet < state.currentHighestBet || !player.hasActedThisRound) {
-                    if (state.currentBettingRound === GamePhase.PREFLOP && player.isBB && state.currentHighestBet === BIG_BLIND_AMOUNT && state.lastAggressorIndex === state.players.findIndex(p=>p.isBB)) {
-                       if (state.currentPlayerIndex === state.players.findIndex(p=>p.isBB)) {
-                           allMatchedOrFolded = false;
-                           break;
-                       }
-                    } else {
-                      allMatchedOrFolded = false;
-                      break;
-                    }
+        const activePlayers = state.players.filter(p => !p.isFolded && !p.isAllIn);
+        if (activePlayers.length <= 1 && state.currentBettingRound !== GamePhase.PREFLOP) {
+             // If only one player can bet post-flop, no more betting can occur this round
+             // (Unless it's preflop where blinds might force action)
+             // Check if everyone else has matched or is all-in
+             let allOthersMatchedOrAllIn = true;
+             for (const player of state.players) {
+                 if (!player.isFolded && !player.isAllIn && player.id !== activePlayers[0]?.id) {
+                      if (player.currentBet < state.currentHighestBet) {
+                         allOthersMatchedOrAllIn = false;
+                         break;
+                      }
+                 }
+             }
+             if(allOthersMatchedOrAllIn) return true;
+        }
+
+        let roundOver = true;
+        for (const player of state.players) {
+            if (!player.isFolded && !player.isAllIn) { // Only check players who can still act
+                // Condition 1: Has everyone acted?
+                if (!player.hasActedThisRound) {
+                    roundOver = false;
+                    break;
+                }
+                // Condition 2: Has everyone matched the highest bet?
+                if (player.currentBet < state.currentHighestBet) {
+                    roundOver = false;
+                    break;
                 }
             }
         }
-
-        if (state.currentPlayerIndex === state.actionClosingPlayerIndex && allMatchedOrFolded) {
-             return true;
+        
+        if (!roundOver) {
+            return false; // If basic conditions aren't met, round isn't over
         }
 
-        return false;
+        // Special Case: Pre-flop Big Blind Option
+        // If the round seems over, but it's pre-flop and the action is on the BB who hasn't raised,
+        // they still have the option to raise.
+        const bbIndex = state.players.findIndex(p => p.isBB);
+        if (state.currentBettingRound === GamePhase.PREFLOP && 
+            state.currentPlayerIndex === bbIndex && 
+            state.players[bbIndex].currentBet === BIG_BLIND_AMOUNT && // BB just called the initial blind
+            state.currentHighestBet === BIG_BLIND_AMOUNT && // No raise occurred
+            !state.players[bbIndex].isAllIn) // BB is not all-in
+             {
+                 // Check if the BB has acted *beyond* posting the blind
+                 // We assume posting blind doesn't set hasActedThisRound initially
+                 if (!state.players[bbIndex].hasActedThisRound) {
+                    return false; // BB still needs to exercise their option
+                 }
+        }
+
+        // If we passed all checks, the round is complete.
+        return true;
     }
 
     // ----- Pot Awarding Logic (with Side Pots) -----
@@ -665,7 +696,7 @@ function PokerGame() {
         const infoWidth = 140;
         const infoHeight = 60;
         const cardWidth = 100;
-        const cardHeight = 64;
+        const cardHeight = 72;
         const centerX = tableWidth / 2;
         const centerY = tableHeight / 2;
         let baseX = centerX + horizontalRadius * Math.cos(angle - Math.PI / 2);
@@ -696,8 +727,36 @@ function PokerGame() {
             width: `${cardWidth}px`,
             zIndex: 5,
         };
+        
+        // --- Calculate Bet Amount Position ---
+        // Position it closer to the table center than the player info
+        const betPositionFactor = 0.75; // How far from center (0=center, 1=player base)
+        let betX = centerX + betPositionFactor * (baseX - centerX);
+        let betY = centerY + betPositionFactor * (baseY - centerY);
 
-        return { infoStyle, cardStyle };
+        // --- Overlap Check for Bottom Players ---
+        const cardBottomY = cardY + cardHeight;
+        const playerAngle = (index / totalPlayers) * 2 * Math.PI; // Calculate player's angle
+        const bottomAngle = Math.PI;
+        const angleTolerance = 0.2; // Radians (approx 11 degrees tolerance)
+
+        // Apply adjustment only if player is near the bottom AND bet overlaps cards
+        if (Math.abs(playerAngle - bottomAngle) < angleTolerance && betY < cardBottomY) {
+             betY = cardBottomY + -100; // Position bet 5px below cards
+        }
+        // --- End Overlap Check ---
+
+        const betLeftPercent = (betX / tableWidth) * 100;
+        const betTopPercent = (betY / tableHeight) * 100;
+         const betStyle = {
+            position: 'absolute',
+            left: `${betLeftPercent}%`,
+            top: `${betTopPercent}%`,
+            transform: 'translateX(-50%) translateY(-50%)', // Center the element precisely
+            zIndex: 15, // Above info box, below potential overlays
+        };
+
+        return { infoStyle, cardStyle, betStyle };
     };
     // --- End Player Positioning ---
 
@@ -725,7 +784,7 @@ function PokerGame() {
                 width: `${1200}px`, // Use template literal for clarity
                 height: `${675}px`,
                 backgroundImage: `url(${tableBg})`,
-                backgroundSize: 'contain',
+                backgroundSize: '80%', // Changed from 'cover' to 90%
                 backgroundRepeat: 'no-repeat',
                 backgroundPosition: 'center',
             }}
@@ -793,7 +852,7 @@ function PokerGame() {
             {/* Players Area - Render Player Info and Hand separately */}
              <div className="players-area absolute inset-0 w-full h-full z-0">
                 {gameState.players.map((player, index) => {
-                    const { infoStyle, cardStyle } = getPlayerPosition(index, gameState.players.length);
+                    const { infoStyle, cardStyle, betStyle } = getPlayerPosition(index, gameState.players.length);
 
                     // Determine combined classes for styling the info box
                     const infoClasses = [
@@ -842,6 +901,15 @@ function PokerGame() {
                                     // Removed dealer/sb/bb props as they are handled by chip/overlays
                                 />
                             </div>
+                            
+                            {/* Player Bet Amount - Positioned Separately */}
+                            {player.currentBet > 0 && !player.isFolded && (
+                                <div style={betStyle} className="player-bet-amount">
+                                    <span className="bg-gray-700 text-yellow-300 text-xs font-bold rounded-full px-2 py-0.5 shadow-md border border-yellow-600">
+                                        {player.currentBet}
+                                    </span>
+                                </div>
+                            )}
                         </React.Fragment>
                     );
                 })}

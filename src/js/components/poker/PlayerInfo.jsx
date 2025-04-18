@@ -1,7 +1,7 @@
 import React from 'react';
 
 // Placeholder avatar image URL - replace with actual path or dynamic source
-const defaultAvatar = '/src/assets/default-avatar.png';
+const defaultAvatar = '/src/assets/temp-avatar.png';
 
 function PlayerInfo({ name, stack, currentBet, isTurn, avatar }) {
   // Removed unused props: isDealer, isSB, isBB
@@ -31,10 +31,10 @@ function PlayerInfo({ name, stack, currentBet, isTurn, avatar }) {
         </p>
         {/* Stack */}
         <p className="text-xs text-gray-300">${stack}</p>
-        {/* Current Bet */}
-        {currentBet > 0 && (
+        {/* Current Bet - REMOVED */}
+        {/* {currentBet > 0 && (
           <p className="text-xs text-yellow-400 font-bold">Bet: ${currentBet}</p>
-        )}
+        )} */}
       </div>
     </div>
   );

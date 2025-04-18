@@ -127,7 +127,7 @@ function ActionButtons({
   };
 
   // --- Styling --- (Adapt colors and structure from screenshots)
-  const baseButtonClass = "flex items-center justify-center h-12 px-4 rounded-md font-semibold text-sm border-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed";
+  const baseButtonClass = "flex items-center justify-center h-12 px-4 rounded-md font-semibold text-sm border-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 disabled:opacity-30 disabled:cursor-not-allowed";
   const checkCallClass = `${baseButtonClass} bg-gray-700 border-green-500 text-green-300 hover:bg-gray-600 focus:ring-green-400`;
   const raiseClass = `${baseButtonClass} bg-gray-700 border-green-500 text-green-300 hover:bg-gray-600 focus:ring-green-400`;
   // Style for the Check button when it IS the valid action: Muted green border/text
@@ -138,7 +138,7 @@ function ActionButtons({
   const raiseConfirmButtonClass = `${baseButtonClass} w-28 bg-green-600 border-green-500 text-white hover:bg-green-500 focus:ring-green-400`;
   const backButtonClass = `${baseButtonClass} w-28 bg-gray-700 border-gray-500 text-white hover:bg-gray-600 focus:ring-gray-400`;
   const inputClass = "bg-gray-900 border border-gray-600 rounded p-2 text-center text-xl font-bold text-white w-24 focus:outline-none focus:ring-2 focus:ring-green-500";
-  const sliderClass = "w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-yellow-500"; // Basic slider style
+  const sliderClass = "w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-yellow-500 disabled:opacity-30 disabled:cursor-not-allowed";
 
   return (
     <div className="action-buttons-container w-[450px]"> {/* Container to manage layout */}
@@ -146,7 +146,7 @@ function ActionButtons({
         // Default Action View
         <div className="flex space-x-2">
           {canCheck ? (
-            <button onClick={onCheck} className={checkEnabledClass} disabled={!canCheck}>CHECK</button>
+            <button onClick={onCheck} className={checkCallClass} disabled={!canCheck}>CHECK</button>
           ) : (
             <button onClick={onCall} className={checkCallClass} disabled={!canCall}>
               CALL {callAmount > 0 ? `$${callAmount}` : ''}
@@ -200,7 +200,7 @@ function ActionButtons({
           {/* Bottom row: Back / Raise Confirmation */}
           <div className="flex justify-end space-x-2 pt-2 border-t border-gray-700">
              <button onClick={() => setIsRaiseMode(false)} className={backButtonClass}>BACK</button>
-             <button onClick={handleFinalRaiseClick} className={raiseConfirmButtonClass} disabled={!canBet || !betAmount || betAmount < minBetAmount || betAmount > maxBetAmount}>RAISE</button>
+             <button onClick={handleFinalRaiseClick} className={raiseConfirmButtonClass} disabled={!canBet || !betAmount || parseInt(betAmount, 10) < minBetAmount || parseInt(betAmount, 10) > maxBetAmount}>RAISE</button>
           </div>
         </div>
       )}

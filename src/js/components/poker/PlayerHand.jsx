@@ -52,7 +52,7 @@ function Card({ card, show }) {
     <img
       src={svgSrc}
       alt={show ? card : 'Card Back'}
-      className="h-16 w-auto inline-block mx-[-5px] shadow-sm" // Adjusted size and negative margin for overlap
+      className="h-18 w-auto inline-block mx-[-5px] shadow-sm" // Increased height from h-16
     />
   );
 }
@@ -66,7 +66,7 @@ function PlayerHand({ cards = [], showAll = false }) {
   ];
 
   return (
-    <div className="player-hand mt-1 h-[64px]"> {/* Fixed height to prevent layout shifts */}
+    <div className="player-hand mt-1 h-[72px]"> {/* Increased height from h-[64px] */}
       {/* Removed <p>Hand:</p> */}
       <div className="flex justify-center items-center">
         {displayCards.map((card, index) => (
