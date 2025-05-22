@@ -1,10 +1,17 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App.jsx'
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import App from './App';
+import './styles/main.css';
 
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
+const container = document.getElementById('root');
+if (!container) {
+  throw new Error('Failed to find the root element');
+}
+
+const root = createRoot(container);
+
+root.render(
+  <React.StrictMode>
     <App />
-  </StrictMode>,
-)
+  </React.StrictMode>
+);
