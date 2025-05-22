@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../../config/supabase';
 
 const SignupPage = () => {
@@ -59,63 +59,107 @@ const SignupPage = () => {
   };
 
   return (
-    <div className="bg-[#1b1f2b] text-white min-h-screen flex flex-col items-center p-6">
-      <div className="w-full max-w-md mt-16">
-        <h1 className="text-4xl font-bold text-center mb-8">Create Account</h1>
-        {error && (
-          <div className="bg-red-500/20 border border-red-500 text-red-100 p-3 rounded-md mb-6">
-            {error}
-          </div>
-        )}
-        <form onSubmit={handleSignup} className="space-y-6">
-          <div>
-            <label htmlFor="username" className="block text-sm font-medium mb-2">Username</label>
-            <input
-              type="text"
-              id="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value.toLowerCase())}
-              className="w-full px-4 py-2 bg-[#2f3542] rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            />
-          </div>
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium mb-2">Email</label>
-            <input
-              type="email"
-              id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2 bg-[#2f3542] rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            />
-          </div>
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium mb-2">Password</label>
-            <input
-              type="password"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 bg-[#2f3542] rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className={`w-full py-3 bg-blue-600 text-white rounded-md transition-colors ${
-              loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'
-            }`}
-          >
-            {loading ? 'Creating Account...' : 'Sign Up'}
-          </button>
-        </form>
-        <p className="mt-6 text-center text-gray-400">
+    <div className="min-h-screen flex items-center justify-center bg-black p-6 relative overflow-hidden">
+      {/* Background decoration */}
+      <div className="absolute top-0 left-0 w-full h-full">
+        <div className="absolute top-[10%] left-[5%] w-[40rem] h-[40rem] bg-white/5 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-[10%] right-[5%] w-[30rem] h-[30rem] bg-white/5 rounded-full blur-3xl"></div>
+      </div>
+
+      {/* Auth card */}
+      <div className="w-full max-w-md relative z-30">
+        {/* Card header */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold tracking-tight mb-4 text-white leading-relaxed py-1">
+            Create Your Account
+          </h1>
+          <p className="text-lg text-gray-400">Start your poker journey today</p>
+        </div>
+
+        {/* Auth card body */}
+        <div className="bg-white rounded-2xl shadow-2xl shadow-black/30 p-8 lg:p-10">
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg mb-6 text-sm">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSignup} className="space-y-6">
+            <div>
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2 uppercase tracking-wide">
+                Username
+              </label>
+              <input
+                type="text"
+                id="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value.toLowerCase())}
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent shadow-sm text-gray-900 placeholder-gray-500"
+                placeholder="Choose a username"
+                required
+              />
+            </div>
+
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2 uppercase tracking-wide">
+                Email
+              </label>
+              <input
+                type="email"
+                id="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent shadow-sm text-gray-900 placeholder-gray-500"
+                placeholder="Enter your email"
+                required
+              />
+            </div>
+
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2 uppercase tracking-wide">
+                Password
+              </label>
+              <input
+                type="password"
+                id="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent shadow-sm text-gray-900 placeholder-gray-500"
+                placeholder="Choose a password"
+                required
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className={`w-full py-3 px-6 bg-black text-white rounded-full font-medium text-base transition-all duration-150 ${
+                loading
+                  ? 'opacity-50 cursor-not-allowed'
+                  : 'hover:bg-gray-900 active:scale-95 hover:shadow-lg hover:shadow-black/10 hover:-translate-y-0.5'
+              }`}
+            >
+              {loading ? (
+                <span className="flex items-center justify-center">
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Creating account...
+                </span>
+              ) : (
+                'Create account'
+              )}
+            </button>
+          </form>
+        </div>
+
+        {/* Footer */}
+        <p className="mt-8 text-center text-gray-400">
           Already have an account?{' '}
-          <a href="/login" className="text-blue-400 hover:text-blue-300">
-            Log in
-          </a>
+          <Link to="/login" className="text-white font-medium hover:text-gray-300 transition-colors duration-150">
+            Sign in
+          </Link>
         </p>
       </div>
     </div>
