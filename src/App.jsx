@@ -5,6 +5,8 @@ import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/auth/LoginPage';
 import SignupPage from './pages/auth/SignupPage';
 import DashboardPage from './pages/DashboardPage';
+import PlayPage from './pages/game/PlayPage';
+import PlayWithFriendsPage from './pages/game/PlayWithFriendsPage';
 import CashGamePage from './pages/game/CashGamePage';
 import HeadsUpPage from './pages/game/HeadsUpPage';
 import GTOTrainerPage from './pages/game/GTOTrainerPage';
@@ -26,6 +28,22 @@ function App() {
             element={
               <ProtectedRoute>
                 <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/play"
+            element={
+              <ProtectedRoute>
+                <PlayPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/friends"
+            element={
+              <ProtectedRoute>
+                <PlayWithFriendsPage />
               </ProtectedRoute>
             }
           />
