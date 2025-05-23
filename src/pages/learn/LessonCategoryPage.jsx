@@ -1,6 +1,5 @@
 import React from 'react';
 import { Link, useParams } from 'react-router-dom';
-import PageLayout from '../../components/layout/PageLayout';
 
 const playerProfilingLessons = [
   { id: 'straightforward-loose-passive', title: 'Straightforward Loose Passive', description: 'Identify and exploit players who call too often and rarely bet or raise.', icon: '🎣' },
@@ -12,29 +11,45 @@ const playerProfilingLessons = [
 ];
 
 const fundamentalsLessons = [
-  { 
-    id: 'what-is-texas-holdem', 
-    title: 'What is Texas Hold\'em?', 
-    description: 'Learn the basic rules and structure of the most popular poker variant.', 
-    icon: '🎮' 
+  {
+    id: 'what-is-texas-holdem',
+    title: "What is Texas Hold'em?",
+    description: "Learn the basic rules and structure of the most popular poker variant.",
+    icon: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+      </svg>
+    )
   },
-  { 
-    id: 'hand-rankings', 
-    title: 'Hand Rankings', 
-    description: 'Master the hierarchy of poker hands from high card to royal flush.', 
-    icon: '🃏' 
+  {
+    id: 'hand-rankings',
+    title: "Hand Rankings",
+    description: "Master the hierarchy of poker hands from high card to royal flush.",
+    icon: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+      </svg>
+    )
   },
-  { 
-    id: 'positions-and-blinds', 
-    title: 'Positions and Blinds', 
-    description: 'Understand table positions and the role of blinds in poker.', 
-    icon: '🎯' 
+  {
+    id: 'positions-and-blinds',
+    title: "Positions and Blinds",
+    description: "Understand the importance of position and how blinds work in poker.",
+    icon: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+      </svg>
+    )
   },
-  { 
-    id: 'basic-strategy', 
-    title: 'Basic Strategy', 
-    description: 'Learn fundamental concepts to start winning at poker.', 
-    icon: '📚' 
+  {
+    id: 'basic-strategy',
+    title: "Basic Strategy",
+    description: "Learn fundamental strategies for playing winning poker.",
+    icon: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+      </svg>
+    )
   }
 ];
 
@@ -109,24 +124,19 @@ const getLessonsForCategory = (categoryName) => {
 };
 
 const LessonCategoryPage = () => {
-  const { categoryId } = useParams();
-  const lessons = getLessonsForCategory(categoryId);
+  const { categoryName } = useParams();
+  const lessons = getLessonsForCategory(categoryName);
 
   const formatCategoryName = (name) => {
-    return name.split('-').map(word => 
-      word.charAt(0).toUpperCase() + word.slice(1)
-    ).join(' ');
+    return name.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
   };
 
   return (
-    <PageLayout showProfile={true} showNavigation={true}>
-      <div className="max-w-6xl mx-auto px-4 py-12 bg-black">
+    <div className="min-h-screen bg-black">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="mb-8">
-          <Link
-            to="/learn"
-            className="inline-flex items-center px-4 py-2 text-gray-300 hover:text-white transition-colors duration-200"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <Link to="/learn" className="text-gray-400 hover:text-white transition-colors duration-200 flex items-center">
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
             Back to Lesson Library
@@ -134,30 +144,30 @@ const LessonCategoryPage = () => {
         </div>
 
         <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold tracking-tight mb-6 text-white">{formatCategoryName(categoryId)}</h1>
-          {lessons.length === 0 && (
-            <p className="text-xl text-gray-400">Lessons for this category are coming soon!</p>
-          )}
+          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-4 text-white">{formatCategoryName(categoryName)}</h1>
+          <p className="text-lg sm:text-xl text-gray-300 max-w-3xl mx-auto">
+            Master the essential concepts and strategies to improve your game.
+          </p>
         </div>
 
         {lessons.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-            {lessons.map(lesson => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+            {lessons.map((lesson) => (
               <Link
                 key={lesson.id}
-                to={`/learn/${categoryId}/${lesson.id}`}
-                className="group bg-black rounded-2xl p-8 border border-white/10 hover:border-white/20 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-500/10"
+                to={`/learn/${categoryName}/${lesson.id}`}
+                className="group bg-white rounded-xl p-5 sm:p-6 border border-white/10 hover:border-indigo-400/20 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-400/10"
               >
-                <div className="flex items-start mb-4">
-                  <span className="text-3xl mr-4">{lesson.icon}</span>
+                <div className="flex items-start mb-3">
+                  <span className="text-[#0F1115] mr-3">{lesson.icon}</span>
                   <div>
-                    <h2 className="text-2xl font-bold text-white group-hover:text-indigo-400 transition-colors duration-200">{lesson.title}</h2>
-                    <p className="text-gray-300 mt-2 group-hover:text-gray-200 transition-colors duration-200">{lesson.description}</p>
+                    <h2 className="text-lg sm:text-xl font-bold text-[#0F1115] group-hover:text-indigo-600 transition-colors duration-200">{lesson.title}</h2>
+                    <p className="text-gray-600 mt-1 text-sm group-hover:text-gray-700 transition-colors duration-200">{lesson.description}</p>
                   </div>
                 </div>
-                <div className="mt-6 flex items-center text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <div className="mt-3 sm:mt-4 flex items-center text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                   <span className="text-sm font-medium">Start Lesson</span>
-                  <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </div>
@@ -165,21 +175,14 @@ const LessonCategoryPage = () => {
             ))}
           </div>
         ) : (
-          <div className="text-center">
-            <div className="animate-pulse text-6xl mb-8">🚧</div>
-            <Link
-              to="/learn"
-              className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-full transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-500/20 text-lg font-medium"
-            >
-              Back to Lesson Library
-              <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </Link>
+          <div className="text-center py-12">
+            <div className="text-4xl mb-4">🚧</div>
+            <h2 className="text-2xl font-bold text-white mb-2">Coming Soon!</h2>
+            <p className="text-gray-400">We're working hard to bring you more lessons. Check back soon!</p>
           </div>
         )}
       </div>
-    </PageLayout>
+    </div>
   );
 };
 

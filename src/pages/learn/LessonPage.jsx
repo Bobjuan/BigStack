@@ -1,6 +1,5 @@
 import React from 'react';
-import { useParams, Link } from 'react-router-dom';
-import PageLayout from '../../components/layout/PageLayout';
+import { useParams, useNavigate } from 'react-router-dom';
 
 // Dummy function to get lesson details - replace with actual data fetching or structure
 const getLessonDetails = (categoryName, lessonId) => {
@@ -71,7 +70,8 @@ Remember these key points:
           "Learn to count outs for drawing hands",
           "Understand the relative strength of different hands"
         ],
-        interactiveSection: '/learn/fundamentals/hand-rankings/interactive'
+        interactiveSection: '/learn/fundamentals/hand-rankings/interactive',
+        videoUrl: "https://www.youtube.com/embed/your-video-id"
       },
       'positions-and-blinds': {
         title: 'Positions and Blinds',
@@ -109,7 +109,8 @@ Positional advantages:
           "Defend your blinds appropriately",
           "Use position to control pot size"
         ],
-        interactiveSection: '/learn/fundamentals/positions-and-blinds/interactive'
+        interactiveSection: '/learn/fundamentals/positions-and-blinds/interactive',
+        videoUrl: "https://www.youtube.com/embed/your-video-id"
       },
       'basic-strategy': {
         title: 'Basic Strategy',
@@ -145,7 +146,8 @@ Positional advantages:
           "Avoid fancy plays until you master basics",
           "Keep detailed records of your play"
         ],
-        interactiveSection: '/learn/fundamentals/basic-strategy/interactive'
+        interactiveSection: '/learn/fundamentals/basic-strategy/interactive',
+        videoUrl: "https://www.youtube.com/embed/your-video-id"
       }
     },
     'advanced': {
@@ -609,25 +611,23 @@ Finally, keep tilt in check. Stations will outdraw you sometimes-two-outer on th
 
 const LessonPage = () => {
   const { categoryName, lessonId } = useParams();
+  const navigate = useNavigate();
   const lesson = getLessonDetails(categoryName, lessonId);
 
   if (!lesson) {
     return (
-      <PageLayout>
-        <div className="text-center py-12">
-          <h1 className="text-4xl font-bold text-white mb-4">Lesson Not Found</h1>
-          <p className="text-gray-400 mb-8">Sorry, we couldn't find the lesson you're looking for.</p>
-          <Link 
-            to={`/learn/${categoryName || ''}`} 
-            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-full transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-500/20"
+      <div className="min-h-screen bg-black text-white p-6">
+        <div className="max-w-4xl mx-auto">
+          <h1 className="text-2xl font-bold mb-4">Lesson Not Found</h1>
+          <p className="mb-4">The requested lesson could not be found.</p>
+          <button
+            onClick={() => navigate(`/learn/${categoryName}`)}
+            className="bg-white text-black px-4 py-2 rounded-lg hover:bg-indigo-100 transition-colors duration-200"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to {categoryName ? categoryName.replace('-', ' ').toUpperCase() : 'Lessons'}
-          </Link>
+            Back to Category
+          </button>
         </div>
-      </PageLayout>
+      </div>
     );
   }
 
@@ -637,87 +637,62 @@ const LessonPage = () => {
     .join(' ');
 
   return (
-    <PageLayout>
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="mb-8">
-          <Link 
-            to={`/learn/${categoryName}`} 
-            className="inline-flex items-center text-gray-300 hover:text-white transition-colors duration-200 mb-4"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to {formattedCategoryName}
-          </Link>
-          <div className="flex items-center mb-6">
-            <span className="text-4xl mr-4">{lesson.icon}</span>
-            <h1 className="text-4xl font-bold text-white">{lesson.title}</h1>
-          </div>
+    <div className="min-h-screen bg-black text-white p-6">
+      <div className="max-w-4xl mx-auto">
+        <button
+          onClick={() => navigate(`/learn/${categoryName}`)}
+          className="mb-6 flex items-center text-white hover:text-indigo-400 transition-colors duration-200"
+        >
+          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Back to Lessons
+        </button>
+
+        <h1 className="text-3xl font-bold mb-6">{lesson.title}</h1>
+
+        <div className="bg-white text-black rounded-xl p-6 mb-8">
+          <p className="text-lg mb-6 whitespace-pre-line">{lesson.content}</p>
+          
+          {lesson.keyCharacteristics && (
+            <div className="mb-6">
+              <h2 className="text-xl font-bold mb-3">Key Characteristics</h2>
+              <ul className="list-disc list-inside space-y-2">
+                {lesson.keyCharacteristics.map((characteristic, index) => (
+                  <li key={index}>{characteristic}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {lesson.howToExploit && (
+            <div className="mb-6">
+              <h2 className="text-xl font-bold mb-3">How to Exploit</h2>
+              <ul className="list-disc list-inside space-y-2">
+                {lesson.howToExploit.map((tip, index) => (
+                  <li key={index}>{tip}</li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
 
-        {lesson.videoUrl && (
-          <div className="mb-12 rounded-2xl overflow-hidden shadow-xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02]">
-            <iframe 
-              width="100%" 
-              height="400"
-              src={lesson.videoUrl} 
-              title={lesson.title}
-              frameBorder="0" 
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-              allowFullScreen
-              className="w-full"
-            ></iframe>
-          </div>
-        )}
-
-        <article className="space-y-8">
-          <section className="bg-gradient-to-br from-white/5 to-white/[0.02] rounded-2xl p-8 border border-white/10">
-            <h2 className="text-2xl font-bold text-white mb-6">Teaching</h2>
-            <div className="prose prose-lg prose-invert max-w-none text-gray-300 leading-relaxed">
-              {lesson.content.split('\n\n').map((paragraph, index) => (
-                <p key={index} className="mb-4">{paragraph.trim()}</p>
-              ))}
-            </div>
-          </section>
-
-          <section className="bg-gradient-to-br from-white/5 to-white/[0.02] rounded-2xl p-8 border border-white/10">
-            <h2 className="text-2xl font-bold text-white mb-6">Key Characteristics</h2>
-            <ul className="space-y-4">
-              {lesson.keyCharacteristics && lesson.keyCharacteristics.map((characteristic, index) => (
-                <li key={index} className="flex items-start">
-                  <span className="text-indigo-400 mr-3">•</span>
-                  <span className="text-gray-300">{characteristic}</span>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          <section className="bg-gradient-to-br from-white/5 to-white/[0.02] rounded-2xl p-8 border border-white/10">
-            <h2 className="text-2xl font-bold text-white mb-6">How to Exploit</h2>
-            <ul className="space-y-4">
-              {lesson.howToExploit && lesson.howToExploit.map((item, index) => (
-                <li key={index} className="flex items-start">
-                  <span className="text-indigo-400 mr-3">•</span>
-                  <span className="text-gray-300">{item}</span>
-                </li>
-              ))}
-            </ul>
-          </section>
-        </article>
-        
-        <div className="mt-12 text-center">
-          <Link 
-            to={lesson.interactiveSection}
-            className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-full transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-500/20 text-lg font-medium"
+        <div className="flex justify-between">
+          <button
+            onClick={() => navigate(`/learn/${categoryName}`)}
+            className="bg-white text-black px-6 py-3 rounded-lg hover:bg-indigo-100 transition-colors duration-200"
           >
-            Start Interactive Section
-            <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </Link>
+            Back to Lessons
+          </button>
+          <button
+            onClick={() => navigate('/quiz')}
+            className="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition-colors duration-200"
+          >
+            Take Quiz
+          </button>
         </div>
       </div>
-    </PageLayout>
+    </div>
   );
 };
 
