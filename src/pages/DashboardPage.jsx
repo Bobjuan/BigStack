@@ -201,13 +201,16 @@ const DashboardPage = () => {
             <h2 className="text-2xl font-bold mb-8">Stats Overview</h2>
             
             {/* Stats Cards */}
-            <div className="space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {/* ELO Tracker Card */}
               <div className="w-full bg-[#1F2127] rounded-xl p-6">
                 <div className="text-xl font-bold mb-4">
                   ELO: <span id="elo-value" className="text-white">1200</span>
                 </div>
-                <div className="w-full h-48 rounded-lg">
+                <div className="w-full h-64 rounded-lg bg-[#2a2d36] border border-gray-700 relative">
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-white text-2xl font-bold">Embed graphs here</span>
+                  </div>
                   <canvas 
                     id="elo-chart" 
                     className="w-full h-full"
@@ -220,7 +223,10 @@ const DashboardPage = () => {
                 <div className="text-xl font-bold mb-4">
                   Bankroll: $<span id="bankroll-value" className="text-white">0</span>
                 </div>
-                <div className="w-full h-48 rounded-lg">
+                <div className="w-full h-64 rounded-lg bg-[#2a2d36] border border-gray-700 relative">
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-white text-2xl font-bold">Embed graphs here</span>
+                  </div>
                   <canvas 
                     id="bankroll-chart" 
                     className="w-full h-full"
