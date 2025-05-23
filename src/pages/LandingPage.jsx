@@ -121,7 +121,7 @@ const LandingPage = () => {
       <main className="flex flex-col items-center justify-start min-h-screen px-4 sm:px-6 lg:px-8 pt-40 relative z-20">
         <div className="max-w-4xl mx-auto text-center relative z-30">
           <h1 className="text-5xl sm:text-6xl font-bold tracking-tight mb-8 text-white relative z-30 leading-relaxed py-1">
-            BigStack: Learn Poker At All Levels
+            BigStake: Dynamic Poker Training
           </h1>
           <div className={`transform transition-all duration-1000 ease-out ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'} relative z-30`}>
             <p className="text-xl text-gray-400 mb-12 max-w-2xl mx-auto leading-relaxed">
@@ -202,6 +202,28 @@ const LandingPage = () => {
 
       {/* Bottom Spacing */}
       <div className="h-32"></div>
+
+      {/* Footer */}
+      <footer className="w-full border-t border-white/10 bg-[#0F1115]/80 backdrop-blur-xl py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row justify-between items-center">
+            <div className="text-gray-400 mb-4 md:mb-0">
+              © 2025 BigStake. All rights reserved.
+            </div>
+            <div className="flex flex-wrap justify-center gap-4">
+              {navItems.map((item) => (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  className="text-gray-400 hover:text-white transition-colors duration-150"
+                >
+                  {item.name}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };

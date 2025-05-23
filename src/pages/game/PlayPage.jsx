@@ -8,20 +8,17 @@ const PlayPage = () => {
     {
       title: '6-Max Cash',
       description: 'Fast-paced 6-player table. Great for practicing range reading and aggression.',
-      href: '/cash-game',
-      icon: '♠️'
+      href: '/cash-game'
     },
     {
       title: 'Heads-Up Cash',
       description: 'One-on-one matches to sharpen your postflop tactics and reads.',
-      href: '/heads-up',
-      icon: '🃏'
+      href: '/heads-up'
     },
     {
       title: 'Deep Stack',
       description: 'Play with 200bb and focus on deep strategic play and multi-street planning.',
-      href: '/deep-stack',
-      icon: '💰'
+      href: '/deep-stack'
     }
   ];
 
@@ -29,20 +26,17 @@ const PlayPage = () => {
     {
       title: 'Turbo Tournament',
       description: 'High blinds and quick action. Perfect for ICM and shove/fold training.',
-      href: '/tournament',
-      icon: '⚡'
+      href: '/tournament'
     },
     {
       title: 'Sit & Go',
       description: 'Single table tournaments. Great for practicing final table play.',
-      href: '/sng',
-      icon: '🎯'
+      href: '/sng'
     },
     {
       title: 'MTT',
       description: 'Multi-table tournaments with varying stack depths.',
-      href: '/mtt',
-      icon: '🏆'
+      href: '/mtt'
     }
   ];
 
@@ -52,7 +46,7 @@ const PlayPage = () => {
         <Link 
           key={index}
           to={game.href}
-          className="bg-gradient-to-br from-gray-700 to-gray-800 rounded-xl p-8 transform transition-all duration-200 hover:scale-105 hover:from-gray-600 hover:to-gray-700 shadow-lg text-center"
+          className="bg-white/5 rounded-2xl p-8 hover:bg-white/10 transition-all duration-200 hover:-translate-y-1 shadow-lg text-center"
         >
           <h2 className="text-2xl font-bold mb-3">{game.title}</h2>
           <p className="text-gray-300">{game.description}</p>
@@ -61,7 +55,7 @@ const PlayPage = () => {
       <div className="lg:col-start-2">
         <button 
           onClick={() => setGameType(null)}
-          className="w-full bg-gradient-to-r from-indigo-500 to-indigo-700 rounded-xl p-8 transform transition-all duration-200 hover:scale-105 hover:from-indigo-600 hover:to-indigo-800 shadow-lg flex items-center justify-center"
+          className="w-full bg-gradient-to-r from-indigo-500 to-indigo-700 rounded-2xl p-8 transition-all duration-200 hover:-translate-y-1 hover:from-indigo-600 hover:to-indigo-800 shadow-lg flex items-center justify-center"
         >
           <span className="text-2xl font-bold">Back to Game Types</span>
         </button>
@@ -70,20 +64,20 @@ const PlayPage = () => {
   );
 
   return (
-    <div className="min-h-screen bg-black text-white py-12 px-6">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-12">
+    <div className="min-h-screen bg-[#0F1115] text-white font-inter">
+      {/* Navigation */}
+      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-[#0F1115]/80 backdrop-blur-xl">
+        <div className="flex items-center justify-between px-6 md:px-12 h-20">
           <div className="flex gap-8">
             <Link 
               to="/play"
-              className="text-2xl font-bold hover:text-indigo-400 transition-colors duration-200"
+              className="text-xl font-semibold tracking-tight hover:text-indigo-400 transition-colors duration-200"
             >
               Play Now
             </Link>
             <Link 
               to="/learn"
-              className="text-2xl font-bold text-gray-400 hover:text-white transition-colors duration-200"
+              className="text-xl font-semibold tracking-tight text-gray-400 hover:text-white transition-colors duration-200"
             >
               Learn
             </Link>
@@ -103,37 +97,42 @@ const PlayPage = () => {
             </Link>
           </div>
         </div>
+      </nav>
 
-        {/* Game Type Selection */}
-        {!gameType ? (
-          <div>
-            <h1 className="text-4xl font-extrabold text-center mb-12">Choose Your Game Type</h1>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-3xl mx-auto">
-              <button
-                onClick={() => setGameType('cash')}
-                className="bg-gradient-to-br from-gray-700 to-gray-800 rounded-xl p-8 transform transition-all duration-200 hover:scale-105 hover:from-gray-600 hover:to-gray-700 shadow-lg"
-              >
-                <h2 className="text-2xl font-bold mb-3">Cash Games</h2>
-                <p className="text-gray-300">Practice with play money in various cash game formats</p>
-              </button>
-              <button
-                onClick={() => setGameType('tournament')}
-                className="bg-gradient-to-br from-gray-700 to-gray-800 rounded-xl p-8 transform transition-all duration-200 hover:scale-105 hover:from-gray-600 hover:to-gray-700 shadow-lg"
-              >
-                <h2 className="text-2xl font-bold mb-3">Tournaments</h2>
-                <p className="text-gray-300">Compete in various tournament formats and structures</p>
-              </button>
+      {/* Main Content */}
+      <main className="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          {/* Game Type Selection */}
+          {!gameType ? (
+            <div>
+              <h1 className="text-5xl sm:text-6xl font-bold tracking-tight text-center mb-12">Choose Your Game Type</h1>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-3xl mx-auto">
+                <button
+                  onClick={() => setGameType('cash')}
+                  className="bg-white/5 rounded-2xl p-8 hover:bg-white/10 transition-all duration-200 hover:-translate-y-1 shadow-lg text-center"
+                >
+                  <h2 className="text-2xl font-bold mb-3">Cash Games</h2>
+                  <p className="text-gray-300">Practice with play money in various cash game formats</p>
+                </button>
+                <button
+                  onClick={() => setGameType('tournament')}
+                  className="bg-white/5 rounded-2xl p-8 hover:bg-white/10 transition-all duration-200 hover:-translate-y-1 shadow-lg text-center"
+                >
+                  <h2 className="text-2xl font-bold mb-3">Tournaments</h2>
+                  <p className="text-gray-300">Compete in various tournament formats and structures</p>
+                </button>
+              </div>
             </div>
-          </div>
-        ) : (
-          <div>
-            <h1 className="text-4xl font-extrabold text-center mb-12">
-              {gameType === 'cash' ? 'Choose Your Cash Game Format' : 'Choose Your Tournament Format'}
-            </h1>
-            {gameType === 'cash' ? renderGameOptions(cashGames) : renderGameOptions(tournamentGames)}
-          </div>
-        )}
-      </div>
+          ) : (
+            <div>
+              <h1 className="text-5xl sm:text-6xl font-bold tracking-tight text-center mb-12">
+                {gameType === 'cash' ? 'Choose Your Cash Game Format' : 'Choose Your Tournament Format'}
+              </h1>
+              {gameType === 'cash' ? renderGameOptions(cashGames) : renderGameOptions(tournamentGames)}
+            </div>
+          )}
+        </div>
+      </main>
     </div>
   );
 };

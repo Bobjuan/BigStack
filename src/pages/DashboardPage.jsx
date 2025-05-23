@@ -66,7 +66,7 @@ const DashboardPage = () => {
         <nav className="flex-1 p-4">
           <Link 
             to="/play" 
-            className={`flex items-center ${isSidebarOpen ? 'justify-start' : 'justify-center'} mb-6 py-3 px-4 rounded-lg hover:bg-gray-800 transition-colors text-xl font-bold`}
+            className={`flex items-center ${isSidebarOpen ? 'justify-start' : 'justify-center'} mb-6 py-3 px-4 rounded-lg hover:bg-gray-800 transition-colors text-xl font-bold border-2 border-white`}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
@@ -141,7 +141,7 @@ const DashboardPage = () => {
 
         {/* Dashboard Header */}
         <div className="bg-black py-8 px-8 border-b-2 border-white">
-          <h2 className="text-3xl font-bold text-white">
+          <h2 className="text-3xl font-bold text-white mt-4 -mb-4">
             {profile?.username || 'Anonymous Player'}'s {!isSidebarOpen && 'BigStack '}Dashboard
           </h2>
         </div>
