@@ -17,7 +17,12 @@ import LearnPage from './pages/learn/LearnPage';
 import LessonCategoryPage from './pages/learn/LessonCategoryPage';
 import LessonPage from './pages/learn/LessonPage';
 import ProfilePage from './pages/ProfilePage';
+import ContactPage from './pages/ContactPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
+import PricingPage from './pages/PricingPage';
+import ProductPage from './pages/ProductPage';
+import ResourcesPage from './pages/ResourcesPage';
+import CustomersPage from './pages/CustomersPage';
 
 function App() {
   return (
@@ -27,6 +32,10 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/pricing" element={<PricingPage />} />
+          <Route path="/product" element={<ProductPage />} />
+          <Route path="/resources" element={<ResourcesPage />} />
           <Route
             path="/dashboard"
             element={
@@ -131,6 +140,7 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/customers" element={<CustomersPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>
