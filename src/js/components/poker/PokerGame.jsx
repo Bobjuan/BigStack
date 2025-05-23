@@ -140,21 +140,24 @@ const initialGameState = {
     numPlayers: 6,
 };
 
-function PokerGame() {
-    const [numPlayers, setNumPlayers] = useState(initialGameState.numPlayers);
+function PokerGame({ initialNumPlayers, showPlayerCountControls = true }) {
+    const [numPlayers, setNumPlayers] = useState(initialNumPlayers || initialGameState.numPlayers);
     const [gameState, setGameState] = useState(() => {
         let state = JSON.parse(JSON.stringify(initialGameState));
-        state.numPlayers = numPlayers;
+        state.numPlayers = initialNumPlayers || numPlayers;
         return startNewHand(state);
     });
     const [isTestMode, setIsTestMode] = useState(false);
     const [showAllCards, setShowAllCards] = useState(false);
 
     function startNewHand(currentState) {
-        if (currentState.players.length !== currentState.numPlayers) {
+        const effectiveNumPlayers = currentState.numPlayers || numPlayers;
+
+        if (currentState.players.length !== effectiveNumPlayers || currentState.numPlayers !== effectiveNumPlayers) {
             currentState.players = [];
-            for(let i = 1; i <= currentState.numPlayers; i++) {
-                currentState.players.push(initializePlayer(`player${i}`, `Player ${i}`, 1000)); 
+            currentState.numPlayers = effectiveNumPlayers;
+            for(let i = 1; i <= effectiveNumPlayers; i++) {
+                currentState.players.push(initializePlayer(`player${i}`, `Player ${i}`, 1000));
             }
         } else {
              currentState.players.forEach(p => {
@@ -677,22 +680,23 @@ function PokerGame() {
     const handleSetNumPlayers = (newCount) => {
         setNumPlayers(newCount);
         setGameState(prevState => {
-            let baseState = JSON.parse(JSON.stringify(initialGameState)); 
+            let baseState = JSON.parse(JSON.stringify(initialGameState));
             baseState.numPlayers = newCount;
             baseState.players = [];
             baseState.dealerIndex = prevState.dealerIndex;
             
-            return startNewHand(baseState); 
+            return startNewHand(baseState);
         });
     };
 
     // --- Player Positioning Logic ---
     const getPlayerPosition = (index, totalPlayers) => {
         const angle = (index / totalPlayers) * 2 * Math.PI;
-        const tableWidth = 1200;
-        const tableHeight = 675;
-        const horizontalRadius = tableWidth * 0.46;
-        const verticalRadius = tableHeight * 0.38;
+        // Use viewport dimensions instead of fixed table size
+        const tableWidth = window.innerWidth;
+        const tableHeight = window.innerHeight;
+        const horizontalRadius = tableWidth * 0.35; // Reduced from 0.46 to account for full screen
+        const verticalRadius = tableHeight * 0.30; // Reduced from 0.38 to account for full screen
         const infoWidth = 140;
         const infoHeight = 60;
         const cardWidth = 100;
@@ -779,12 +783,10 @@ function PokerGame() {
 
     return (
         <div
-            className="poker-table relative mx-auto bg-gray-900" // Added bg color fallback
+            className="poker-table relative bg-gray-900 w-full h-full" // Ensuring w-full and h-full, and no mx-auto
             style={{
-                width: `${1200}px`, // Use template literal for clarity
-                height: `${675}px`,
                 backgroundImage: `url(${tableBg})`,
-                backgroundSize: '80%', // Changed from 'cover' to 90%
+                backgroundSize: 'cover', 
                 backgroundRepeat: 'no-repeat',
                 backgroundPosition: 'center',
             }}
@@ -815,18 +817,20 @@ function PokerGame() {
                     )}
                  </div>
                  {/* Player Count Selection */}
-                 <div className="flex space-x-1 items-center">
-                    <span className="text-xs text-gray-400 mr-1">Players:</span>
-                    {[2, 6, 9].map(count => (
-                        <button
-                            key={count}
-                            onClick={() => handleSetNumPlayers(count)}
-                            className={`px-2 py-0.5 text-xs rounded ${numPlayers === count ? 'bg-green-700' : 'bg-gray-600'} hover:bg-gray-500 text-white`}
-                        >
-                            {count}
-                        </button>
-                    ))}
-                 </div>
+                 {showPlayerCountControls && (
+                    <div className="flex space-x-1 items-center">
+                        <span className="text-xs text-gray-400 mr-1">Players:</span>
+                        {[2, 6, 9].map(count => (
+                            <button
+                                key={count}
+                                onClick={() => handleSetNumPlayers(count)}
+                                className={`px-2 py-0.5 text-xs rounded ${numPlayers === count ? 'bg-green-700' : 'bg-gray-600'} hover:bg-gray-500 text-white`}
+                            >
+                                {count}
+                            </button>
+                        ))}
+                    </div>
+                 )}
             </div>
 
             {/* Central Area for Community Cards & Pot */}

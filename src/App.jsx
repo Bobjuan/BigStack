@@ -11,7 +11,11 @@ import CashGamePage from './pages/game/CashGamePage';
 import HeadsUpPage from './pages/game/HeadsUpPage';
 import GTOTrainerPage from './pages/game/GTOTrainerPage';
 import TournamentPage from './pages/game/TournamentPage';
+import DeepStackPage from './pages/game/DeepStackPage';
 import QuizPage from './pages/learn/QuizPage';
+import LearnPage from './pages/learn/LearnPage';
+import LessonCategoryPage from './pages/learn/LessonCategoryPage';
+import LessonPage from './pages/learn/LessonPage';
 import ProfilePage from './pages/ProfilePage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
@@ -64,6 +68,14 @@ function App() {
             }
           />
           <Route
+            path="/deep-stack"
+            element={
+              <ProtectedRoute>
+                <DeepStackPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/gto-trainer"
             element={
               <ProtectedRoute>
@@ -76,6 +88,30 @@ function App() {
             element={
               <ProtectedRoute>
                 <TournamentPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/learn"
+            element={
+              <ProtectedRoute>
+                <LearnPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/learn/:categoryName"
+            element={
+              <ProtectedRoute>
+                <LessonCategoryPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/learn/:categoryName/:lessonId"
+            element={
+              <ProtectedRoute>
+                <LessonPage />
               </ProtectedRoute>
             }
           />

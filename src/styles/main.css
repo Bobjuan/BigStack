@@ -3,8 +3,11 @@
 @tailwind utilities;
 
 @layer base {
+  html, body, #root {
+    @apply h-full m-0 p-0;
+  }
   body {
-    @apply bg-[#1b1f2b] text-white min-h-screen;
+    @apply bg-[#1b1f2b] text-white; /* min-h-screen is implicitly covered by h-full on html/body/#root */
   }
 }
 

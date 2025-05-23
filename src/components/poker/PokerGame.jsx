@@ -779,12 +779,10 @@ function PokerGame() {
 
     return (
         <div
-            className="poker-table relative mx-auto bg-gray-900" // Added bg color fallback
+            className="poker-table relative bg-gray-900 w-full h-full" // Full-screen table
             style={{
-                width: `${1200}px`, // Use template literal for clarity
-                height: `${675}px`,
                 backgroundImage: `url(${tableBg})`,
-                backgroundSize: '80%', // Changed from 'cover' to 90%
+                backgroundSize: 'cover',
                 backgroundRepeat: 'no-repeat',
                 backgroundPosition: 'center',
             }}
