@@ -53,7 +53,7 @@ function App() {
             }
           />
           <Route
-            path="/friends"
+            path="/play-with-friends"
             element={
               <ProtectedRoute>
                 <PlayWithFriendsPage />

@@ -121,20 +121,29 @@ const LandingPage = () => {
       <main className="flex flex-col items-center justify-start min-h-screen px-4 sm:px-6 lg:px-8 pt-40 relative z-20">
         <div className="max-w-4xl mx-auto text-center relative z-30">
           <h1 className="text-5xl sm:text-6xl font-bold tracking-tight mb-8 text-white relative z-30 leading-relaxed py-1">
-            BigStake: Dynamic Poker Training
+            BigStack: Dynamic Poker Training
           </h1>
           <div className={`transform transition-all duration-1000 ease-out ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'} relative z-30`}>
             <p className="text-xl text-gray-400 mb-12 max-w-2xl mx-auto leading-relaxed">
               Live Play, Interactive Lessons, and AI Review to provide all the training you need to go all-in.
             </p>
             <div className="relative z-30">
-              <button
-                onClick={handleStartLearning}
-                className="relative z-30 inline-block cursor-pointer px-8 py-4 text-lg font-medium text-[#0F1115] bg-white rounded-full hover:bg-gray-100 transition-all duration-150 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-white/10"
-                aria-label="Start Learning for Free"
-              >
-                Start Learning for Free
-              </button>
+              <div className="flex gap-4 justify-center">
+                <Link
+                  to="/login"
+                  className="relative z-30 inline-block cursor-pointer px-8 py-4 text-lg font-medium text-[#0F1115] bg-white rounded-full hover:bg-gray-100 transition-all duration-150 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-white/10"
+                  aria-label="Play Now"
+                >
+                  Play Now
+                </Link>
+                <button
+                  onClick={handleStartLearning}
+                  className="relative z-30 inline-block cursor-pointer px-8 py-4 text-lg font-medium text-[#0F1115] bg-white rounded-full hover:bg-gray-100 transition-all duration-150 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-white/10"
+                  aria-label="Start Learning"
+                >
+                  Start Learning
+                </button>
+              </div>
             </div>
           </div>
         </div>

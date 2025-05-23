@@ -87,15 +87,15 @@ const CustomersPage = () => {
               Our Customers
             </h1>
             <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-              From university poker clubs to individual players, we're helping everyone improve their game.
+              From individual players to university poker clubs, we're helping everyone improve their game.
             </p>
           </div>
 
-          {/* Institutional Clients Section */}
+          {/* Individual Clients Section */}
           <div className="mb-32">
-            <h2 className="text-3xl font-bold mb-12 text-center">Institutional Clients</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {institutionalClients.map((client, index) => (
+            <h2 className="text-3xl font-bold mb-12 text-center">Individual Players</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {individualClients.map((client, index) => (
                 <div key={index} className="bg-white/5 rounded-2xl p-8 hover:bg-white/10 transition-colors duration-150">
                   <div className="text-white mb-4">
                     {client.icon}
@@ -107,11 +107,11 @@ const CustomersPage = () => {
             </div>
           </div>
 
-          {/* Individual Clients Section */}
+          {/* Institutional Clients Section */}
           <div className="mb-20">
-            <h2 className="text-3xl font-bold mb-12 text-center">Individual Players</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {individualClients.map((client, index) => (
+            <h2 className="text-3xl font-bold mb-12 text-center">Institutional Clients</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {institutionalClients.map((client, index) => (
                 <div key={index} className="bg-white/5 rounded-2xl p-8 hover:bg-white/10 transition-colors duration-150">
                   <div className="text-white mb-4">
                     {client.icon}

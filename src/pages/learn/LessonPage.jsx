@@ -6,6 +6,446 @@ import PageLayout from '../../components/layout/PageLayout';
 const getLessonDetails = (categoryName, lessonId) => {
   // For now, just return some placeholder data based on IDs
   const allLessons = {
+    'fundamentals': {
+      'what-is-texas-holdem': {
+        title: 'What is Texas Hold\'em?',
+        icon: '🎮',
+        content: `Texas Hold'em is the most popular form of poker today. Each player receives two private cards (hole cards) and shares five community cards to make the best five-card hand.
+
+The game consists of four betting rounds:
+1. Preflop: After receiving your hole cards
+2. Flop: After the first three community cards
+3. Turn: After the fourth community card
+4. River: After the fifth and final community card
+
+The goal is simple: make the best five-card poker hand using any combination of your two hole cards and the five community cards. The player with the best hand at showdown wins the pot.
+
+Key concepts to understand:
+- Blinds: Forced bets that drive the action
+- Position: Where you sit relative to the dealer button
+- Betting rounds: When and how you can bet
+- Showdown: Revealing hands to determine the winner`,
+        keyCharacteristics: [
+          "Two private cards dealt to each player",
+          "Five community cards shared by all players",
+          "Four betting rounds: preflop, flop, turn, and river",
+          "Best five-card hand wins the pot"
+        ],
+        howToExploit: [
+          "Learn the basic rules thoroughly before diving into strategy",
+          "Pay attention to position and its impact on your decisions",
+          "Understand the betting structure and when you can act",
+          "Practice hand reading by observing community cards"
+        ],
+        interactiveSection: '/learn/fundamentals/what-is-texas-holdem/interactive'
+      },
+      'hand-rankings': {
+        title: 'Hand Rankings',
+        icon: '🃏',
+        content: `Understanding hand rankings is fundamental to poker success. Here's the complete hierarchy from highest to lowest:
+
+1. Royal Flush: A, K, Q, J, 10 of the same suit
+2. Straight Flush: Five consecutive cards of the same suit
+3. Four of a Kind: Four cards of the same rank
+4. Full House: Three of a kind plus a pair
+5. Flush: Five cards of the same suit
+6. Straight: Five consecutive cards of any suit
+7. Three of a Kind: Three cards of the same rank
+8. Two Pair: Two different pairs
+9. One Pair: Two cards of the same rank
+10. High Card: Highest card when no other hand is made
+
+Remember these key points:
+- Suits are equal in value (no suit is higher than another)
+- Aces can be high or low in straights
+- The highest card breaks ties when hands are equal`,
+        keyCharacteristics: [
+          "Ten distinct hand rankings from royal flush to high card",
+          "Suits are equal in value",
+          "Aces can be high or low in straights",
+          "Highest card breaks ties"
+        ],
+        howToExploit: [
+          "Memorize the rankings in order",
+          "Practice identifying winning hands quickly",
+          "Learn to count outs for drawing hands",
+          "Understand the relative strength of different hands"
+        ],
+        interactiveSection: '/learn/fundamentals/hand-rankings/interactive'
+      },
+      'positions-and-blinds': {
+        title: 'Positions and Blinds',
+        icon: '🎯',
+        content: `Position is one of the most important concepts in poker. It determines when you act in each betting round and significantly impacts your strategy.
+
+Key positions (from earliest to latest):
+1. Small Blind (SB)
+2. Big Blind (BB)
+3. Under the Gun (UTG)
+4. UTG+1
+5. Middle Position (MP)
+6. Hijack (HJ)
+7. Cutoff (CO)
+8. Button (BTN)
+
+The blinds are forced bets that drive the action:
+- Small Blind: Half the minimum bet
+- Big Blind: Full minimum bet
+
+Positional advantages:
+- Later positions have more information
+- Earlier positions must act with less information
+- The button is the most profitable position
+- The blinds are the least profitable positions`,
+        keyCharacteristics: [
+          "Eight distinct positions at a full table",
+          "Blinds rotate clockwise each hand",
+          "Later positions have more information",
+          "Button is the most profitable position"
+        ],
+        howToExploit: [
+          "Play tighter from early positions",
+          "Play wider from late positions",
+          "Defend your blinds appropriately",
+          "Use position to control pot size"
+        ],
+        interactiveSection: '/learn/fundamentals/positions-and-blinds/interactive'
+      },
+      'basic-strategy': {
+        title: 'Basic Strategy',
+        icon: '📚',
+        content: `Mastering basic strategy is the foundation of winning poker. Here are the key concepts every player should understand:
+
+1. Starting Hand Selection
+- Play fewer hands, but play them aggressively
+- Position matters: play tighter in early position
+- Premium hands (AA, KK, QQ, AK) are always playable
+- Suited connectors and small pairs need proper odds
+
+2. Betting Strategy
+- Bet for value when you have a strong hand
+- Use position to control the pot size
+- Don't chase draws without proper odds
+- Fold when you're likely behind
+
+3. Bankroll Management
+- Buy in for 100 big blinds in cash games
+- Don't risk more than 5% of your bankroll in a session
+- Move down in stakes if you lose 20% of your bankroll
+- Keep records of your results`,
+        keyCharacteristics: [
+          "Tight-aggressive play is most profitable",
+          "Position determines hand selection",
+          "Proper bankroll management is crucial",
+          "Value betting is key to winning"
+        ],
+        howToExploit: [
+          "Start with a tight range and expand as you learn",
+          "Focus on value betting strong hands",
+          "Avoid fancy plays until you master basics",
+          "Keep detailed records of your play"
+        ],
+        interactiveSection: '/learn/fundamentals/basic-strategy/interactive'
+      }
+    },
+    'advanced': {
+      'preflop-strategy': {
+        title: 'Preflop Strategy',
+        icon: '🎲',
+        content: `Advanced preflop strategy involves understanding ranges, position, and stack sizes. Here's a comprehensive guide:
+
+1. Opening Ranges
+- UTG: 15% of hands (AA-99, AK-AQ, KQ)
+- MP: 20% of hands (add 88-77, AJ, KQ)
+- CO: 30% of hands (add suited connectors, small pairs)
+- BTN: 40% of hands (add suited aces, suited kings)
+- SB: 25% of hands (position vs BB matters)
+- BB: Defend 40% vs BTN, 30% vs CO
+
+2. 3-Betting Strategy
+- Value: QQ+, AK (vs early position)
+- Bluff: A5s-A2s, 76s-54s (in position)
+- Size: 3x vs early position, 2.5x vs late position
+
+3. 4-Betting Strategy
+- Value: KK+, AK (vs tight players)
+- Bluff: A5s, 76s (vs aggressive players)
+- Size: 2.2x the 3-bet size`,
+        keyCharacteristics: [
+          "Position determines opening ranges",
+          "Stack sizes affect strategy",
+          "Player types influence decisions",
+          "Board texture matters postflop"
+        ],
+        howToExploit: [
+          "Adjust ranges based on position",
+          "Consider stack sizes when 3-betting",
+          "Exploit player tendencies",
+          "Plan postflop play before acting"
+        ],
+        interactiveSection: '/learn/advanced/preflop-strategy/interactive'
+      },
+      'postflop-play': {
+        title: 'Postflop Play',
+        icon: '🎯',
+        content: `Postflop play is where the real money is made. Here's how to approach different situations:
+
+1. Continuation Betting
+- C-bet 75% on dry boards
+- C-bet 50% on wet boards
+- Size: 33% pot on dry, 75% on wet
+- Check back with weak hands on scary boards
+
+2. Board Texture
+- Dry boards: T72 rainbow
+- Wet boards: 987 two-tone
+- Paired boards: 772
+- Connected boards: 876
+
+3. Turn Play
+- Double barrel on good turn cards
+- Check back on bad turn cards
+- Consider pot control with medium strength
+- Use position to control pot size`,
+        keyCharacteristics: [
+          "Board texture determines strategy",
+          "Position is crucial for control",
+          "Bet sizing varies by situation",
+          "Player tendencies matter"
+        ],
+        howToExploit: [
+          "Adjust c-bet frequency by board",
+          "Use position to control pot size",
+          "Consider player tendencies",
+          "Plan multiple streets ahead"
+        ],
+        interactiveSection: '/learn/advanced/postflop-play/interactive'
+      },
+      'bet-sizing': {
+        title: 'Bet Sizing',
+        icon: '💰',
+        content: `Proper bet sizing is crucial for maximizing value and minimizing losses. Here's a comprehensive guide:
+
+1. Value Betting
+- Strong hands: 75% pot
+- Medium strength: 50% pot
+- Thin value: 33% pot
+- Consider opponent's calling range
+
+2. Bluffing
+- Pure bluffs: 75% pot
+- Semi-bluffs: 50% pot
+- Blocking bets: 25% pot
+- Consider fold equity
+
+3. Pot Control
+- Check-call with medium strength
+- Small bets to control pot size
+- Consider stack-to-pot ratio
+- Use position to control pot`,
+        keyCharacteristics: [
+          "Bet size varies by hand strength",
+          "Position affects sizing",
+          "Stack sizes matter",
+          "Player tendencies influence sizing"
+        ],
+        howToExploit: [
+          "Size bets for maximum value",
+          "Consider fold equity when bluffing",
+          "Use pot control when appropriate",
+          "Adjust sizing based on opponent"
+        ],
+        interactiveSection: '/learn/advanced/bet-sizing/interactive'
+      },
+      'board-texture': {
+        title: 'Board Texture',
+        icon: '🎨',
+        content: `Understanding board texture is key to making good postflop decisions. Here's how to analyze different board types:
+
+1. Dry Boards
+- Example: T72 rainbow
+- Characteristics: No flush draws, no straight draws
+- Strategy: C-bet wider, value bet thinner
+- Bluff more frequently
+
+2. Wet Boards
+- Example: 987 two-tone
+- Characteristics: Many draws, connected cards
+- Strategy: C-bet less, value bet bigger
+- Bluff less frequently
+
+3. Paired Boards
+- Example: 772
+- Characteristics: Reduced straight possibilities
+- Strategy: Value bet bigger, bluff less
+- Consider full house possibilities
+
+4. Connected Boards
+- Example: 876
+- Characteristics: Many straight possibilities
+- Strategy: C-bet less, value bet bigger
+- Consider straight draws`,
+        keyCharacteristics: [
+          "Board texture affects strategy",
+          "Draws influence betting",
+          "Connectedness matters",
+          "Paired boards change dynamics"
+        ],
+        howToExploit: [
+          "Adjust c-bet frequency by texture",
+          "Size bets appropriately",
+          "Consider draw possibilities",
+          "Use position to control pot"
+        ],
+        interactiveSection: '/learn/advanced/board-texture/interactive'
+      }
+    },
+    'game-theory': {
+      'what-is-gto': {
+        title: 'What is GTO?',
+        icon: '🧮',
+        content: `Game Theory Optimal (GTO) poker is a balanced strategy that cannot be exploited. Here's what you need to know:
+
+1. Core Concepts
+- Balanced ranges: Mix of value and bluffs
+- Unexploitable play: Cannot be taken advantage of
+- Mathematical approach: Based on game theory
+- Solver-based: Uses computer analysis
+
+2. Key Principles
+- Always include some bluffs
+- Balance bet sizing
+- Consider all possible actions
+- Think in terms of ranges
+
+3. When to Use GTO
+- Against strong opponents
+- In high-stakes games
+- When you have no reads
+- As a baseline strategy`,
+        keyCharacteristics: [
+          "Balanced ranges of hands",
+          "Mathematical approach",
+          "Unexploitable strategy",
+          "Solver-based solutions"
+        ],
+        howToExploit: [
+          "Use as a baseline strategy",
+          "Deviate based on reads",
+          "Study solver outputs",
+          "Practice balanced play"
+        ],
+        interactiveSection: '/learn/game-theory/what-is-gto/interactive'
+      },
+      'range-construction': {
+        title: 'Range Construction',
+        icon: '📊',
+        content: `Building balanced ranges is fundamental to GTO play. Here's how to construct effective ranges:
+
+1. Preflop Ranges
+- Position-based opening ranges
+- 3-betting ranges
+- 4-betting ranges
+- Defending ranges
+
+2. Postflop Ranges
+- C-betting ranges
+- Check-raising ranges
+- Bluff-catching ranges
+- Value betting ranges
+
+3. Range Construction Principles
+- Include both value and bluffs
+- Consider blockers
+- Think in terms of combos
+- Balance frequencies`,
+        keyCharacteristics: [
+          "Position determines ranges",
+          "Include value and bluffs",
+          "Consider blockers",
+          "Balance frequencies"
+        ],
+        howToExploit: [
+          "Study solver outputs",
+          "Practice range visualization",
+          "Consider blockers",
+          "Balance your ranges"
+        ],
+        interactiveSection: '/learn/game-theory/range-construction/interactive'
+      },
+      'equity-realization': {
+        title: 'Equity Realization',
+        icon: '📈',
+        content: `Equity realization is how much of your hand's equity you actually win. Here's how to maximize it:
+
+1. Factors Affecting Realization
+- Position
+- Stack sizes
+- Player tendencies
+- Board texture
+
+2. Maximizing Realization
+- Play in position
+- Have initiative
+- Control pot size
+- Use proper bet sizing
+
+3. Common Mistakes
+- Overplaying weak hands
+- Underplaying strong hands
+- Ignoring position
+- Poor bet sizing`,
+        keyCharacteristics: [
+          "Position is crucial",
+          "Initiative matters",
+          "Stack sizes affect realization",
+          "Player tendencies influence decisions"
+        ],
+        howToExploit: [
+          "Play more hands in position",
+          "Control pot size appropriately",
+          "Consider stack sizes",
+          "Adjust to player tendencies"
+        ],
+        interactiveSection: '/learn/game-theory/equity-realization/interactive'
+      },
+      'icm-considerations': {
+        title: 'ICM Considerations',
+        icon: '🎯',
+        content: `Independent Chip Model (ICM) is crucial for tournament play. Here's how to use it:
+
+1. ICM Basics
+- Chips have different values at different stages
+- Survival becomes more important near the money
+- Stack sizes affect decisions
+- Position matters more
+
+2. Key Concepts
+- Bubble play
+- Final table dynamics
+- Pay jump considerations
+- Stack preservation
+
+3. Common Mistakes
+- Ignoring ICM pressure
+- Overvaluing chips
+- Underestimating survival
+- Poor bubble play`,
+        keyCharacteristics: [
+          "Chips have different values",
+          "Survival becomes important",
+          "Stack sizes matter",
+          "Position is crucial"
+        ],
+        howToExploit: [
+          "Apply ICM pressure",
+          "Preserve stack when needed",
+          "Consider pay jumps",
+          "Adjust to tournament stage"
+        ],
+        interactiveSection: '/learn/game-theory/icm-considerations/interactive'
+      }
+    },
     'player-profiling': {
       'straightforward-loose-passive': {
         title: 'Straightforward Loose Passive',
@@ -174,10 +614,16 @@ const LessonPage = () => {
   if (!lesson) {
     return (
       <PageLayout>
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-white mb-4">Lesson Not Found</h1>
-          <p className="text-gray-400 mb-6">Sorry, we couldn't find the lesson you're looking for.</p>
-          <Link to={`/learn/${categoryName || ''}`} className="text-indigo-400 hover:text-indigo-300">
+        <div className="text-center py-12">
+          <h1 className="text-4xl font-bold text-white mb-4">Lesson Not Found</h1>
+          <p className="text-gray-400 mb-8">Sorry, we couldn't find the lesson you're looking for.</p>
+          <Link 
+            to={`/learn/${categoryName || ''}`} 
+            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-full transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-500/20"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
             Back to {categoryName ? categoryName.replace('-', ' ').toUpperCase() : 'Lessons'}
           </Link>
         </div>
@@ -192,65 +638,84 @@ const LessonPage = () => {
 
   return (
     <PageLayout>
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="mb-8">
-          <Link to={`/learn/${categoryName}`} className="text-sm text-indigo-400 hover:text-indigo-300 flex items-center mb-2">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <Link 
+            to={`/learn/${categoryName}`} 
+            className="inline-flex items-center text-gray-300 hover:text-white transition-colors duration-200 mb-4"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
             Back to {formattedCategoryName}
           </Link>
-          <h1 className="text-4xl font-extrabold text-white mb-2">{lesson.title}</h1>
-          {/* Optional: Add author, date, difficulty etc. here */}
+          <div className="flex items-center mb-6">
+            <span className="text-4xl mr-4">{lesson.icon}</span>
+            <h1 className="text-4xl font-bold text-white">{lesson.title}</h1>
+          </div>
         </div>
 
         {lesson.videoUrl && (
-          <div className="mb-8 rounded-lg overflow-hidden shadow-xl">
+          <div className="mb-12 rounded-2xl overflow-hidden shadow-xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02]">
             <iframe 
               width="100%" 
-              height="400" // Adjust height as needed
+              height="400"
               src={lesson.videoUrl} 
               title={lesson.title}
               frameBorder="0" 
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
               allowFullScreen
+              className="w-full"
             ></iframe>
           </div>
         )}
 
-        <article className="prose prose-lg prose-invert max-w-none text-gray-300 leading-relaxed">
-          {/* Render lesson content. This could be Markdown, or structured JSON, etc. */}
-          <h2 className="text-2xl font-semibold text-white mt-6 mb-3">Teaching</h2>
-          {lesson.content.split('\n\n').map((paragraph, index) => (
-            <p key={index}>{paragraph.trim()}</p>
-          ))}
-          {/* Example of more structured content */}
-          <h2 className="text-2xl font-semibold text-white mt-6 mb-3">Key Characteristics</h2>
-          <ul className="list-disc list-inside space-y-1">
-            {lesson.keyCharacteristics && lesson.keyCharacteristics.map((characteristic, index) => (
-              <li key={index}>{characteristic}</li>
-            ))}
-          </ul>
-          <h2 className="text-2xl font-semibold text-white mt-6 mb-3">How to Exploit</h2>
-          {lesson.howToExploit && (
-            <ul className="list-disc list-inside space-y-1">
-              {lesson.howToExploit.map((item, index) => (
-                <li key={index}>{item}</li>
+        <article className="space-y-8">
+          <section className="bg-gradient-to-br from-white/5 to-white/[0.02] rounded-2xl p-8 border border-white/10">
+            <h2 className="text-2xl font-bold text-white mb-6">Teaching</h2>
+            <div className="prose prose-lg prose-invert max-w-none text-gray-300 leading-relaxed">
+              {lesson.content.split('\n\n').map((paragraph, index) => (
+                <p key={index} className="mb-4">{paragraph.trim()}</p>
+              ))}
+            </div>
+          </section>
+
+          <section className="bg-gradient-to-br from-white/5 to-white/[0.02] rounded-2xl p-8 border border-white/10">
+            <h2 className="text-2xl font-bold text-white mb-6">Key Characteristics</h2>
+            <ul className="space-y-4">
+              {lesson.keyCharacteristics && lesson.keyCharacteristics.map((characteristic, index) => (
+                <li key={index} className="flex items-start">
+                  <span className="text-indigo-400 mr-3">•</span>
+                  <span className="text-gray-300">{characteristic}</span>
+                </li>
               ))}
             </ul>
-          )}
-          {/* Add more sections: Hand Examples, Quizzes, etc. */}
+          </section>
+
+          <section className="bg-gradient-to-br from-white/5 to-white/[0.02] rounded-2xl p-8 border border-white/10">
+            <h2 className="text-2xl font-bold text-white mb-6">How to Exploit</h2>
+            <ul className="space-y-4">
+              {lesson.howToExploit && lesson.howToExploit.map((item, index) => (
+                <li key={index} className="flex items-start">
+                  <span className="text-indigo-400 mr-3">•</span>
+                  <span className="text-gray-300">{item}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
         </article>
         
         <div className="mt-12 text-center">
-            <Link 
-              to={lesson.interactiveSection}
-              className="inline-block px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg"
-            >
-                Interactive Section
-            </Link>
+          <Link 
+            to={lesson.interactiveSection}
+            className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-full transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-500/20 text-lg font-medium"
+          >
+            Start Interactive Section
+            <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
         </div>
-
       </div>
     </PageLayout>
   );

@@ -2,23 +2,23 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 const PlayPage = () => {
-  const [gameType, setGameType] = useState(null);
+  const [gameType, setGameType] = useState('cash'); // Default to cash games
 
   const cashGames = [
     {
-      title: '6-Max Cash',
-      description: 'Fast-paced 6-player table. Great for practicing range reading and aggression.',
-      href: '/cash-game'
-    },
-    {
-      title: 'Heads-Up Cash',
+      title: 'Heads Up',
       description: 'One-on-one matches to sharpen your postflop tactics and reads.',
       href: '/heads-up'
     },
     {
-      title: 'Deep Stack',
-      description: 'Play with 200bb and focus on deep strategic play and multi-street planning.',
-      href: '/deep-stack'
+      title: '6-Max',
+      description: 'Fast-paced 6-player table. Great for practicing range reading and aggression.',
+      href: '/cash-game'
+    },
+    {
+      title: '9-Max',
+      description: 'Full ring games with more players and complex dynamics.',
+      href: '/nine-max'
     }
   ];
 
@@ -41,25 +41,17 @@ const PlayPage = () => {
   ];
 
   const renderGameOptions = (games) => (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
       {games.map((game, index) => (
         <Link 
           key={index}
           to={game.href}
-          className="bg-white/5 rounded-2xl p-8 hover:bg-white/10 transition-all duration-200 hover:-translate-y-1 shadow-lg text-center"
+          className="bg-white/5 rounded-xl p-6 hover:bg-white/10 transition-all duration-200 hover:-translate-y-1 shadow-lg"
         >
-          <h2 className="text-2xl font-bold mb-3">{game.title}</h2>
-          <p className="text-gray-300">{game.description}</p>
+          <h2 className="text-xl font-bold mb-2">{game.title}</h2>
+          <p className="text-sm text-gray-300">{game.description}</p>
         </Link>
       ))}
-      <div className="lg:col-start-2">
-        <button 
-          onClick={() => setGameType(null)}
-          className="w-full bg-gradient-to-r from-indigo-500 to-indigo-700 rounded-2xl p-8 transition-all duration-200 hover:-translate-y-1 hover:from-indigo-600 hover:to-indigo-800 shadow-lg flex items-center justify-center"
-        >
-          <span className="text-2xl font-bold">Back to Game Types</span>
-        </button>
-      </div>
     </div>
   );
 
@@ -73,13 +65,19 @@ const PlayPage = () => {
               to="/play"
               className="text-xl font-semibold tracking-tight hover:text-indigo-400 transition-colors duration-200"
             >
-              Play Now
+              Play
             </Link>
             <Link 
               to="/learn"
               className="text-xl font-semibold tracking-tight text-gray-400 hover:text-white transition-colors duration-200"
             >
               Learn
+            </Link>
+            <Link 
+              to="/quiz"
+              className="text-xl font-semibold tracking-tight text-gray-400 hover:text-white transition-colors duration-200"
+            >
+              Quiz
             </Link>
           </div>
           <div className="flex gap-4">
@@ -102,35 +100,45 @@ const PlayPage = () => {
       {/* Main Content */}
       <main className="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          {/* Game Type Selection */}
-          {!gameType ? (
-            <div>
-              <h1 className="text-5xl sm:text-6xl font-bold tracking-tight text-center mb-12">Choose Your Game Type</h1>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-3xl mx-auto">
-                <button
-                  onClick={() => setGameType('cash')}
-                  className="bg-white/5 rounded-2xl p-8 hover:bg-white/10 transition-all duration-200 hover:-translate-y-1 shadow-lg text-center"
-                >
-                  <h2 className="text-2xl font-bold mb-3">Cash Games</h2>
-                  <p className="text-gray-300">Practice with play money in various cash game formats</p>
-                </button>
-                <button
-                  onClick={() => setGameType('tournament')}
-                  className="bg-white/5 rounded-2xl p-8 hover:bg-white/10 transition-all duration-200 hover:-translate-y-1 shadow-lg text-center"
-                >
-                  <h2 className="text-2xl font-bold mb-3">Tournaments</h2>
-                  <p className="text-gray-300">Compete in various tournament formats and structures</p>
-                </button>
-              </div>
+          {/* Game Type Toggle */}
+          <div className="flex justify-center mb-8">
+            <div className="bg-white/5 rounded-full p-1 inline-flex">
+              <button
+                onClick={() => setGameType('cash')}
+                className={`px-6 py-2 rounded-full text-base font-semibold transition-all duration-200 ${
+                  gameType === 'cash'
+                    ? 'bg-indigo-600 text-white'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                Cash Games
+              </button>
+              <button
+                onClick={() => setGameType('tournament')}
+                className={`px-6 py-2 rounded-full text-base font-semibold transition-all duration-200 ${
+                  gameType === 'tournament'
+                    ? 'bg-indigo-600 text-white'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                Tournaments
+              </button>
+              <Link
+                to="/play-with-friends"
+                className="px-6 py-2 rounded-full text-base font-semibold text-gray-400 hover:text-white transition-all duration-200"
+              >
+                Play with Friends
+              </Link>
             </div>
-          ) : (
-            <div>
-              <h1 className="text-5xl sm:text-6xl font-bold tracking-tight text-center mb-12">
-                {gameType === 'cash' ? 'Choose Your Cash Game Format' : 'Choose Your Tournament Format'}
-              </h1>
-              {gameType === 'cash' ? renderGameOptions(cashGames) : renderGameOptions(tournamentGames)}
-            </div>
-          )}
+          </div>
+
+          {/* Game Options */}
+          <div className="max-w-4xl mx-auto">
+            <h1 className="text-3xl font-bold tracking-tight text-center mb-8">
+              {gameType === 'cash' ? 'Choose Your Cash Game Format' : 'Choose Your Tournament Format'}
+            </h1>
+            {gameType === 'cash' ? renderGameOptions(cashGames) : renderGameOptions(tournamentGames)}
+          </div>
         </div>
       </main>
     </div>

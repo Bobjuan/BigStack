@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import PageLayout from '../../components/layout/PageLayout';
 
 const LearnPage = () => {
   const categories = [
@@ -36,75 +37,42 @@ const LearnPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0F1115] text-white font-inter">
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-[#0F1115]/80 backdrop-blur-xl">
-        <div className="flex items-center justify-between px-6 md:px-12 h-20">
-          <Link to="/" className="text-xl font-semibold tracking-tight flex-shrink-0">
-            BigStack Poker
-          </Link>
-          <div className="flex items-center space-x-4">
-            <Link
-              to="/login"
-              className="text-base text-gray-300 hover:text-white transition-colors duration-150 px-4 py-3 leading-normal rounded-full hover:bg-white/5 whitespace-nowrap"
-            >
-              Log In
-            </Link>
-            <Link
-              to="/signup"
-              className="text-base bg-white text-[#0F1115] px-6 py-3 leading-normal rounded-full hover:bg-gray-100 transition-all duration-150 hover:-translate-y-0.5 whitespace-nowrap"
-            >
-              Sign Up
-            </Link>
-          </div>
-        </div>
-      </nav>
-
-      {/* Main Content */}
-      <main className="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          {/* Header */}
-          <div className="text-center mb-20">
-            <h1 className="text-5xl sm:text-6xl font-bold tracking-tight mb-6">
-              Learn Poker
-            </h1>
-            <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-              From beginner basics to advanced strategies, we've got everything you need to improve your game.
+    <PageLayout showProfile={true} showNavigation={true}>
+      <div className="min-h-screen bg-[#0F1115] text-white font-inter">
+        <div className="max-w-6xl mx-auto px-4 py-12">
+          <div className="text-center mb-16">
+            <h1 className="text-5xl font-bold tracking-tight mb-6 text-white">Learn Poker</h1>
+            <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+              Master the game through our comprehensive learning modules, from basic concepts to advanced strategies.
             </p>
           </div>
 
-          {/* Categories Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-20">
-            {categories.map((category, index) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {categories.map((category) => (
               <Link
-                key={index}
+                key={category.title}
                 to={category.link}
-                className="bg-white/5 rounded-2xl p-8 hover:bg-white/10 transition-colors duration-150"
+                className="group bg-black rounded-2xl p-8 border border-white/10 hover:border-white/20 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-white/10"
               >
-                <div className="text-white mb-4">
-                  {category.icon}
+                <div className="flex items-start mb-4">
+                  <span className="text-white mr-4">{category.icon}</span>
+                  <div>
+                    <h2 className="text-2xl font-bold text-white group-hover:text-indigo-400 transition-colors duration-200">{category.title}</h2>
+                    <p className="text-gray-300 mt-2 group-hover:text-gray-200 transition-colors duration-200">{category.description}</p>
+                  </div>
                 </div>
-                <h3 className="text-2xl font-bold mb-4">{category.title}</h3>
-                <p className="text-gray-300 leading-relaxed">{category.description}</p>
+                <div className="mt-6 flex items-center text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  <span className="text-sm font-medium">Start Learning</span>
+                  <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
               </Link>
             ))}
           </div>
-
-          {/* CTA Section */}
-          <div className="text-center">
-            <Link
-              to="/signup"
-              className="inline-flex items-center px-8 py-4 bg-white text-[#0F1115] rounded-full hover:bg-gray-100 transition-all duration-150 hover:-translate-y-0.5 text-lg font-medium"
-            >
-              Start Learning for Free
-              <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </Link>
-          </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </PageLayout>
   );
 };
 
