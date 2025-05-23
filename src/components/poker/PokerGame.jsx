@@ -149,6 +149,8 @@ function PokerGame() {
     });
     const [isTestMode, setIsTestMode] = useState(false);
     const [showAllCards, setShowAllCards] = useState(false);
+    const [showSettings, setShowSettings] = useState(false);
+    const [tableTheme, setTableTheme] = useState('dark'); // 'dark', 'light', or 'classic'
 
     function startNewHand(currentState) {
         if (currentState.players.length !== currentState.numPlayers) {
@@ -693,16 +695,19 @@ function PokerGame() {
         const tableHeight = 675;
         const horizontalRadius = tableWidth * 0.46;
         const verticalRadius = tableHeight * 0.38;
-        const infoWidth = 140;
-        const infoHeight = 60;
-        const cardWidth = 100;
-        const cardHeight = 72;
+        
+        // Make card dimensions relative to table size
+        const cardWidth = Math.min(tableWidth * 0.08, 80); // 8% of table width, max 80px
+        const cardHeight = cardWidth * 0.72; // Maintain card aspect ratio
+        const infoWidth = cardWidth * 1.4; // Info box slightly wider than cards
+        const infoHeight = cardHeight * 0.8; // Info box height relative to card height
+        
         const centerX = tableWidth / 2;
         const centerY = tableHeight / 2;
         let baseX = centerX + horizontalRadius * Math.cos(angle - Math.PI / 2);
         let baseY = centerY + verticalRadius * Math.sin(angle - Math.PI / 2);
 
-        // --- Calculate Info Box Position --- 
+        // Calculate Info Box Position 
         let infoX = baseX - infoWidth / 2;
         let infoY = baseY - infoHeight / 2;
         const infoLeftPercent = (infoX / tableWidth) * 100;
@@ -715,7 +720,7 @@ function PokerGame() {
             zIndex: 10,
         };
 
-        // --- Calculate Card Hand Position --- 
+        // Calculate Card Hand Position 
         let cardX = baseX - cardWidth / 2;
         let cardY = infoY - cardHeight * 0.8;
         const cardLeftPercent = (cardX / tableWidth) * 100;
@@ -728,32 +733,29 @@ function PokerGame() {
             zIndex: 5,
         };
         
-        // --- Calculate Bet Amount Position ---
-        // Position it closer to the table center than the player info
-        const betPositionFactor = 0.75; // How far from center (0=center, 1=player base)
+        // Calculate Bet Amount Position
+        const betPositionFactor = 0.75;
         let betX = centerX + betPositionFactor * (baseX - centerX);
         let betY = centerY + betPositionFactor * (baseY - centerY);
 
-        // --- Overlap Check for Bottom Players ---
+        // Overlap Check for Bottom Players
         const cardBottomY = cardY + cardHeight;
-        const playerAngle = (index / totalPlayers) * 2 * Math.PI; // Calculate player's angle
+        const playerAngle = (index / totalPlayers) * 2 * Math.PI;
         const bottomAngle = Math.PI;
-        const angleTolerance = 0.2; // Radians (approx 11 degrees tolerance)
+        const angleTolerance = 0.2;
 
-        // Apply adjustment only if player is near the bottom AND bet overlaps cards
         if (Math.abs(playerAngle - bottomAngle) < angleTolerance && betY < cardBottomY) {
-             betY = cardBottomY + -100; // Position bet 5px below cards
+             betY = cardBottomY + -100;
         }
-        // --- End Overlap Check ---
 
         const betLeftPercent = (betX / tableWidth) * 100;
         const betTopPercent = (betY / tableHeight) * 100;
-         const betStyle = {
+        const betStyle = {
             position: 'absolute',
             left: `${betLeftPercent}%`,
             top: `${betTopPercent}%`,
-            transform: 'translateX(-50%) translateY(-50%)', // Center the element precisely
-            zIndex: 15, // Above info box, below potential overlays
+            transform: 'translateX(-50%) translateY(-50%)',
+            zIndex: 15,
         };
 
         return { infoStyle, cardStyle, betStyle };
@@ -777,20 +779,52 @@ function PokerGame() {
 
     const getPlayerId = (index) => `player${index + 1}`;
 
+    const getTableStyle = () => {
+        const baseStyle = {
+            minHeight: '100vh',
+            width: '100%',
+            position: 'relative',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden',
+            backgroundImage: `url(${tableBg})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat'
+        };
+
+        switch (tableTheme) {
+            case 'light':
+                return {
+                    ...baseStyle,
+                    backgroundColor: '#f0f0f0',
+                    filter: 'brightness(1.5) contrast(0.8)'
+                };
+            case 'classic':
+                return {
+                    ...baseStyle,
+                    backgroundColor: '#2d5a27',
+                    filter: 'hue-rotate(120deg) saturate(1.5)'
+                };
+            default: // dark
+                return {
+                    ...baseStyle,
+                    backgroundColor: '#1a1a1a'
+                };
+        }
+    };
+
     return (
         <div
-            className="poker-table relative bg-gray-900 w-full h-full" // Full-screen table
-            style={{
-                backgroundImage: `url(${tableBg})`,
-                backgroundSize: 'cover',
-                backgroundRepeat: 'no-repeat',
-                backgroundPosition: 'center',
-            }}
+            className="poker-table relative w-full h-full overflow-hidden"
+            style={getTableStyle()}
         >
             {/* Game Info - Top Left */}
             <div className="absolute top-4 left-4 z-20 text-left max-w-xs">
-                 <h2 className="text-sm font-bold text-gray-200">{`Round: ${gameState.currentBettingRound}`}</h2>
-                 <p className="text-xs text-yellow-300 h-auto">{gameState.message || ' '}</p>
+                 <h2 className={`text-sm font-bold ${tableTheme === 'light' ? 'text-gray-800' : 'text-gray-200'}`}>{`Round: ${gameState.currentBettingRound}`}</h2>
+                 <p className={`text-xs ${tableTheme === 'light' ? 'text-gray-800' : 'text-yellow-300'} h-auto`}>{gameState.message || ' '}</p>
             </div>
 
             {/* Test Mode / Player Count Controls - Top Right */}
@@ -814,7 +848,7 @@ function PokerGame() {
                  </div>
                  {/* Player Count Selection */}
                  <div className="flex space-x-1 items-center">
-                    <span className="text-xs text-gray-400 mr-1">Players:</span>
+                    <span className={`text-xs ${tableTheme === 'light' ? 'text-gray-800' : 'text-gray-400'} mr-1`}>Players:</span>
                     {[2, 6, 9].map(count => (
                         <button
                             key={count}
@@ -857,7 +891,7 @@ function PokerGame() {
                         'player-info-container relative p-1 border rounded',
                         'transition-all duration-300',
                         player.isTurn ? 'border-yellow-400 ring-4 ring-yellow-300 ring-opacity-50' : 'border-gray-700 bg-gray-900 bg-opacity-80',
-                        // Removed folded/allin style here, apply overlay instead
+                        tableTheme === 'light' ? 'text-black bg-white bg-opacity-90' : 'text-white'
                     ].filter(Boolean).join(' ');
 
                     return (
@@ -866,7 +900,7 @@ function PokerGame() {
                             <div style={cardStyle} className={`${player.isFolded ? 'opacity-30 grayscale' : ''}`}>
                                 <PlayerHand 
                                     cards={player.cards} 
-                                    showAll={player.id === 'player1' || (isTestMode && showAllCards)} 
+                                    showAll={player.id === 'player1' || (isTestMode && showAllCards)}
                                 />
                             </div>
 
@@ -886,7 +920,7 @@ function PokerGame() {
                                     <img
                                         src={dealerChip}
                                         alt="Dealer Button"
-                                        className="absolute -top-3 -right-3 w-6 h-6 z-30" // Adjusted size/pos
+                                        className="absolute -top-3 -right-3 w-6 h-6 z-30"
                                     />
                                 )}
                                 
@@ -895,8 +929,7 @@ function PokerGame() {
                                     name={player.name}
                                     stack={player.stack}
                                     currentBet={player.currentBet}
-                                    isTurn={player.isTurn} // Pass turn status for potential internal styling 
-                                    // Removed dealer/sb/bb props as they are handled by chip/overlays
+                                    isTurn={player.isTurn}
                                 />
                             </div>
                             
@@ -914,7 +947,19 @@ function PokerGame() {
             </div>
 
             {/* Action Buttons Container - Bottom Right */}
-             <div className="absolute bottom-4 right-4 z-20 flex flex-col items-end">
+             <div className="absolute bottom-4 right-4 z-20 flex flex-col items-end space-y-2">
+                 {/* Settings Button */}
+                 <button
+                     onClick={() => setShowSettings(true)}
+                     className="bg-[#2f3542] text-white p-2 rounded-lg hover:bg-[#3a4052] transition-colors duration-200 flex items-center space-x-2"
+                 >
+                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                         <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+                         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                     </svg>
+                     <span>Settings</span>
+                 </button>
+
                  {currentPlayer && (isTestMode || currentPlayer.id === 'player1') && gameState.currentBettingRound !== GamePhase.HAND_OVER && (
                      <ActionButtons
                         onCheck={handleCheck} 
@@ -933,7 +978,9 @@ function PokerGame() {
 
                  {/* Waiting Message - Below Buttons in Bottom Right */}
                  {currentPlayer && currentPlayer.id !== 'player1' && !isTestMode && gameState.currentBettingRound !== GamePhase.HAND_OVER && (
-                     <p className="text-right text-gray-400 text-xs mt-1">Waiting for {currentPlayer.name}'s action...</p>
+                     <p className={`text-right text-xs mt-1 ${tableTheme === 'light' ? 'text-gray-800' : 'text-gray-400'}`}>
+                         Waiting for {currentPlayer.name}'s action...
+                     </p>
                  )}
 
                  {/* Start Next Hand Button - Below Buttons in Bottom Right */}
@@ -949,6 +996,55 @@ function PokerGame() {
                  )}
             </div>
 
+            {/* Settings Modal */}
+            {showSettings && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+                    <div className="bg-[#2f3542] rounded-lg p-6 w-96">
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-xl font-semibold text-white">Table Settings</h2>
+                            <button onClick={() => setShowSettings(false)} className="text-gray-400 hover:text-white">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        {/* Theme Options */}
+                        <div className="space-y-4">
+                            <h3 className="text-lg font-medium text-gray-300 mb-3">Table Theme</h3>
+                            <div className="space-y-3">
+                                <button
+                                    onClick={() => setTableTheme('dark')}
+                                    className={`w-full p-3 rounded-lg bg-[#1b1f2b] hover:bg-[#2a2f3d] transition-colors flex items-center justify-between ${
+                                        tableTheme === 'dark' ? 'ring-2 ring-indigo-500' : ''
+                                    }`}
+                                >
+                                    <span className="text-white">Dark Mode</span>
+                                    <div className={`w-6 h-6 rounded-full border-2 ${tableTheme === 'dark' ? 'bg-indigo-500 border-indigo-500' : 'border-gray-400'}`}></div>
+                                </button>
+                                <button
+                                    onClick={() => setTableTheme('light')}
+                                    className={`w-full p-3 rounded-lg bg-white text-black hover:bg-gray-100 transition-colors flex items-center justify-between ${
+                                        tableTheme === 'light' ? 'ring-2 ring-indigo-500' : ''
+                                    }`}
+                                >
+                                    <span>Light Mode</span>
+                                    <div className={`w-6 h-6 rounded-full border-2 ${tableTheme === 'light' ? 'bg-indigo-500 border-indigo-500' : 'border-gray-400'}`}></div>
+                                </button>
+                                <button
+                                    onClick={() => setTableTheme('classic')}
+                                    className={`w-full p-3 rounded-lg bg-gradient-to-br from-green-700 to-green-900 hover:from-green-600 hover:to-green-800 transition-colors flex items-center justify-between ${
+                                        tableTheme === 'classic' ? 'ring-2 ring-indigo-500' : ''
+                                    }`}
+                                >
+                                    <span className="text-white">Classic (Green Felt)</span>
+                                    <div className={`w-6 h-6 rounded-full border-2 ${tableTheme === 'classic' ? 'bg-indigo-500 border-indigo-500' : 'border-gray-400'}`}></div>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
