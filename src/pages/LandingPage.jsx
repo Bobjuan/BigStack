@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import image1 from '../assets/images/image1.png';
 import image2 from '../assets/images/image2.png';
@@ -11,6 +11,8 @@ const LandingPage = () => {
   const [showImage1, setShowImage1] = useState(false);
   const [showImage2, setShowImage2] = useState(false);
   const [showImage3, setShowImage3] = useState(false);
+  const [activeDropdown, setActiveDropdown] = useState(null);
+  const dropdownTimeoutRef = useRef(null);
 
   useEffect(() => {
     setIsVisible(true);
@@ -30,13 +32,55 @@ const LandingPage = () => {
     }
   };
 
+  const productMenuItems = [
+    {
+      section: 'Product',
+      items: [
+        { name: 'Live Play', href: '/play', description: 'Practice with real players in a competitive environment' },
+        { name: 'Interactive Lessons', href: '/learn', description: 'Learn poker strategy through hands-on lessons' },
+        { name: 'AI Review', href: '/ai-review', description: 'Get personalized feedback on your gameplay' },
+      ],
+    },
+  ];
+
+  const resourcesMenuItems = [
+    {
+      section: 'Company',
+      items: [
+        { name: 'About', href: '/about', description: 'Meet the team' },
+        { name: 'Careers', href: '/careers', description: "We're hiring" },
+      ],
+    },
+    {
+      section: 'Explore',
+      items: [
+        { name: 'Blog', href: '/blog', description: 'Latest articles and strategy guides' },
+        { name: 'Documentation', href: '/docs', description: 'Detailed guides and API references' },
+        { name: 'Community', href: '/community', description: 'Join our growing poker community' },
+      ],
+    },
+  ];
+
   const navItems = [
-    { name: 'Product', href: '/product' },
-    { name: 'Resources', href: '/resources' },
+    { name: 'Product', href: '/product', hasDropdown: true, items: productMenuItems },
+    { name: 'Resources', href: '/resources', hasDropdown: true, items: resourcesMenuItems },
     { name: 'Pricing', href: '/pricing' },
     { name: 'Customers', href: '/customers' },
     { name: 'Contact', href: '/contact' },
   ];
+
+  const handleDropdownEnter = (itemName) => {
+    if (dropdownTimeoutRef.current) {
+      clearTimeout(dropdownTimeoutRef.current);
+    }
+    setActiveDropdown(itemName);
+  };
+
+  const handleDropdownLeave = () => {
+    dropdownTimeoutRef.current = setTimeout(() => {
+      setActiveDropdown(null);
+    }, 200); // 200ms delay before closing
+  };
 
   return (
     <div className="min-h-screen bg-[#0F1115] text-white font-inter">
@@ -52,13 +96,78 @@ const LandingPage = () => {
           <div className="hidden md:flex items-center justify-center">
             <div className="flex space-x-4">
               {navItems.map((item) => (
-                <Link
+                <div
                   key={item.name}
-                  to={item.href}
-                  className="text-base text-gray-300 hover:text-white transition-colors duration-150 px-4 py-3 leading-normal rounded-full hover:bg-white/5"
+                  className="relative"
+                  onMouseEnter={() => item.hasDropdown && handleDropdownEnter(item.name)}
+                  onMouseLeave={() => item.hasDropdown && handleDropdownLeave()}
                 >
-                  {item.name}
-                </Link>
+                  <Link
+                    to={item.href}
+                    className="text-base text-gray-300 hover:text-white transition-colors duration-150 px-4 py-3 leading-normal rounded-full hover:bg-white/5 flex items-center"
+                  >
+                    {item.name}
+                    {item.hasDropdown && (
+                      <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    )}
+                  </Link>
+
+                  {/* Dropdown Menu */}
+                  {item.hasDropdown && item.name === 'Resources' && activeDropdown === item.name && (
+                    <div
+                      className="absolute left-0 mt-2 w-[600px] rounded-2xl bg-[#181A1B] border border-white/10 shadow-2xl p-6 flex text-left z-50"
+                      onMouseEnter={() => handleDropdownEnter(item.name)}
+                      onMouseLeave={() => handleDropdownLeave()}
+                      style={{ minHeight: '220px' }}
+                    >
+                      {resourcesMenuItems.map((section, idx) => (
+                        <div key={section.section} className={idx === 0 ? 'w-1/3 pr-8 border-r border-white/10' : 'w-2/3 pl-8'}>
+                          <div className="text-gray-500 text-sm font-semibold mb-4 tracking-wide">{section.section}</div>
+                          <div className="space-y-6">
+                            {section.items.map((subItem) => (
+                              <Link
+                                key={subItem.name}
+                                to={subItem.href}
+                                className="block group"
+                              >
+                                <div className="font-semibold text-white group-hover:underline text-base mb-0.5">{subItem.name}</div>
+                                <div className="text-gray-400 text-sm leading-tight">{subItem.description}</div>
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {item.hasDropdown && item.name === 'Product' && activeDropdown === item.name && (
+                    <div
+                      className="absolute left-0 mt-2 w-[400px] rounded-2xl bg-[#181A1B] border border-white/10 shadow-2xl p-6 flex text-left z-50"
+                      onMouseEnter={() => handleDropdownEnter(item.name)}
+                      onMouseLeave={() => handleDropdownLeave()}
+                      style={{ minHeight: '180px' }}
+                    >
+                      {productMenuItems.map((section) => (
+                        <div key={section.section} className="w-full">
+                          <div className="text-gray-500 text-sm font-semibold mb-4 tracking-wide">{section.section}</div>
+                          <div className="space-y-6">
+                            {section.items.map((subItem) => (
+                              <Link
+                                key={subItem.name}
+                                to={subItem.href}
+                                className="block group"
+                              >
+                                <div className="font-semibold text-white group-hover:underline text-base mb-0.5">{subItem.name}</div>
+                                <div className="text-gray-400 text-sm leading-tight">{subItem.description}</div>
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           </div>
@@ -104,13 +213,27 @@ const LandingPage = () => {
           <div className="md:hidden border-t border-white/10">
             <div className="px-2 pt-2 pb-3 space-y-1">
               {navItems.map((item) => (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className="block text-gray-300 hover:text-white hover:bg-white/5 px-3 py-3 leading-normal rounded-md text-lg font-medium transition-colors duration-150"
-                >
-                  {item.name}
-                </Link>
+                <div key={item.name}>
+                  <Link
+                    to={item.href}
+                    className="block text-gray-300 hover:text-white hover:bg-white/5 px-3 py-3 leading-normal rounded-md text-lg font-medium transition-colors duration-150"
+                  >
+                    {item.name}
+                  </Link>
+                  {item.hasDropdown && (
+                    <div className="pl-4 space-y-1">
+                      {item.items.map((subItem) => (
+                        <Link
+                          key={subItem.name}
+                          to={subItem.href}
+                          className="block text-gray-400 hover:text-white hover:bg-white/5 px-3 py-2 rounded-md text-base transition-colors duration-150"
+                        >
+                          {subItem.name}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           </div>

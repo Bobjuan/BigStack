@@ -7,9 +7,80 @@
   <link rel="stylesheet" href="/src/index.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <script type="module" src="/src/poker-entry.jsx" defer></script>
+  <style>
+    .settings-button {
+      position: fixed;
+      top: 20px;
+      right: 80px;
+      z-index: 1000;
+      background: #2f3542;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .settings-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1001;
+    }
+    .settings-content {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #2f3542;
+      padding: 20px;
+      border-radius: 8px;
+      width: 300px;
+    }
+    .theme-option {
+      width: 100%;
+      padding: 10px;
+      margin: 5px 0;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      color: white;
+      text-align: left;
+    }
+    .theme-dark { background: #1b1f2b; }
+    .theme-light { background: white; color: black; }
+    .theme-classic { background: linear-gradient(to bottom right, #2d5a27, #1a3d17); }
+  </style>
 </head>
 <body class="bg-[#1b1f2b] text-white min-h-screen">
-  <!-- Profile Icon (Top Right) -->
+  <!-- Settings Button -->
+  <button id="settingsButton" class="settings-button">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
+  </button>
+
+  <!-- Settings Modal -->
+  <div id="settingsModal" class="settings-modal">
+    <div class="settings-content">
+      <h2 class="text-xl font-bold mb-4">Table Settings</h2>
+      <div class="space-y-2">
+        <button class="theme-option theme-dark" data-theme="dark">Dark Mode</button>
+        <button class="theme-option theme-light" data-theme="light">Light Mode</button>
+        <button class="theme-option theme-classic" data-theme="classic">Classic (Green Felt)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profile Icon -->
   <div class="absolute top-6 right-6 z-10">
     <a href="/profile.html" class="group">
       <div class="w-10 h-10 rounded-full bg-[#2f3542] flex items-center justify-center hover:bg-[#3a4052] transition-colors duration-200">
@@ -31,5 +102,32 @@
       Try a Quiz
     </a>
   </div>
+
+  <script>
+    // Settings Modal Functionality
+    const settingsButton = document.getElementById('settingsButton');
+    const settingsModal = document.getElementById('settingsModal');
+    const themeOptions = document.querySelectorAll('.theme-option');
+
+    settingsButton.addEventListener('click', () => {
+      settingsModal.style.display = 'block';
+    });
+
+    settingsModal.addEventListener('click', (e) => {
+      if (e.target === settingsModal) {
+        settingsModal.style.display = 'none';
+      }
+    });
+
+    themeOptions.forEach(option => {
+      option.addEventListener('click', () => {
+        const theme = option.dataset.theme;
+        // Dispatch custom event for theme change
+        const event = new CustomEvent('themeChange', { detail: { theme } });
+        document.dispatchEvent(event);
+        settingsModal.style.display = 'none';
+      });
+    });
+  </script>
 </body>
 </html> 
