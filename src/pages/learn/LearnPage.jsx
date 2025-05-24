@@ -9,120 +9,173 @@ const LearnPage = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [profile, setProfile] = useState(null);
   const [expandedSection, setExpandedSection] = useState('beginner');
+  const [expandedSubcategories, setExpandedSubcategories] = useState({});
   const [selectedLesson, setSelectedLesson] = useState(null);
   const [skillLevel, setSkillLevel] = useState('beginner');
   const [lessonPlan, setLessonPlan] = useState([
     {
       id: 'beginner',
       title: 'Beginner',
-      lessons: [
-        { 
-          id: 'what-is-texas-holdem', 
-          title: "What is Texas Hold'em?", 
-          completed: false,
-          content: "Texas Hold'em is a community card poker game where each player is dealt two private cards and five community cards are dealt face-up in the center of the table. Players make the best possible five-card hand using any combination of their two private cards and the five community cards."
+      subcategories: [
+        {
+          title: 'Poker Basics',
+          lessons: [
+            { 
+              id: 'what-is-texas-holdem', 
+              title: "What is Texas Hold'em?", 
+              completed: false,
+              content: "Texas Hold'em is a community card poker game where each player is dealt two private cards and five community cards are dealt face-up in the center of the table. Players make the best possible five-card hand using any combination of their two private cards and the five community cards."
+            },
+            { 
+              id: 'hand-rankings', 
+              title: 'Hand Rankings', 
+              completed: false,
+              content: "Poker hand rankings from highest to lowest: Royal Flush, Straight Flush, Four of a Kind, Full House, Flush, Straight, Three of a Kind, Two Pair, One Pair, High Card."
+            }
+          ]
         },
-        { 
-          id: 'hand-rankings', 
-          title: 'Hand Rankings', 
-          completed: false,
-          content: "Poker hand rankings from highest to lowest: Royal Flush, Straight Flush, Four of a Kind, Full House, Flush, Straight, Three of a Kind, Two Pair, One Pair, High Card."
-        },
-        { 
-          id: 'positions-and-blinds', 
-          title: 'Positions and Blinds', 
-          completed: false,
-          content: "The positions in poker are: Small Blind (SB), Big Blind (BB), Under the Gun (UTG), Middle Position (MP), Cutoff (CO), and Button (BTN). The blinds are forced bets that rotate around the table to ensure action."
-        },
-        { 
-          id: 'basic-strategy', 
-          title: 'Basic Strategy', 
-          completed: false,
-          content: "Basic poker strategy involves understanding position, starting hand selection, pot odds, and basic betting patterns. Always consider your position relative to the blinds and other players when making decisions."
+        {
+          title: 'Game Structure',
+          lessons: [
+            { 
+              id: 'positions-and-blinds', 
+              title: 'Positions and Blinds', 
+              completed: false,
+              content: "The positions in poker are: Small Blind (SB), Big Blind (BB), Under the Gun (UTG), Middle Position (MP), Cutoff (CO), and Button (BTN). The blinds are forced bets that rotate around the table to ensure action."
+            },
+            { 
+              id: 'basic-strategy', 
+              title: 'Basic Strategy', 
+              completed: false,
+              content: "Basic poker strategy involves understanding position, starting hand selection, pot odds, and basic betting patterns. Always consider your position relative to the blinds and other players when making decisions."
+            }
+          ]
         }
       ]
     },
     {
       id: 'intermediate',
       title: 'Intermediate',
-      lessons: [
-        { 
-          id: 'starting-hands', 
-          title: 'Starting Hand Selection', 
-          completed: false,
-          content: "Starting hand selection is crucial in poker. Premium hands like AA, KK, QQ, AK should be played aggressively. Suited connectors and small pairs can be played in position with proper stack sizes."
+      subcategories: [
+        {
+          title: 'Core Concepts',
+          lessons: [
+            { 
+              id: 'starting-hands', 
+              title: 'Starting Hand Selection', 
+              completed: false,
+              content: "Starting hand selection is crucial in poker. Premium hands like AA, KK, QQ, AK should be played aggressively. Suited connectors and small pairs can be played in position with proper stack sizes."
+            },
+            { 
+              id: 'position-play', 
+              title: 'Position-Based Play', 
+              completed: false,
+              content: "Position is power in poker. Play more hands in late position and fewer in early position. Use your position to control the size of the pot and extract value from your opponents."
+            },
+            { 
+              id: 'stack-sizes', 
+              title: 'Stack Size Considerations', 
+              completed: false,
+              content: "Stack sizes affect how you should play your hands. Deep stacks allow for more post-flop play, while short stacks require more preflop action. Adjust your strategy based on effective stack sizes."
+            }
+          ]
         },
-        { 
-          id: 'position-play', 
-          title: 'Position-Based Play', 
-          completed: false,
-          content: "Position is power in poker. Play more hands in late position and fewer in early position. Use your position to control the size of the pot and extract value from your opponents."
+        {
+          title: 'Player Profiling',
+          lessons: [
+            {
+              id: 'straightforward-loose-passive',
+              title: 'Straightforward Loose Passive',
+              completed: false,
+              content: 'Identify and exploit players who call too often and rarely bet or raise.'
+            },
+            {
+              id: 'maniacal-loose-aggressive',
+              title: 'Maniacal Loose Aggressive (LAG)',
+              completed: false,
+              content: 'Learn to counter players who play many hands aggressively.'
+            },
+            {
+              id: 'weak-tight-passive',
+              title: 'Weak Tight Passive (Nit)',
+              completed: false,
+              content: 'Understand how to play against overly cautious and passive opponents.'
+            }
+          ]
         },
-        { 
-          id: 'stack-sizes', 
-          title: 'Stack Size Considerations', 
-          completed: false,
-          content: "Stack sizes affect how you should play your hands. Deep stacks allow for more post-flop play, while short stacks require more preflop action. Adjust your strategy based on effective stack sizes."
-        },
-        { 
-          id: 'board-texture', 
-          title: 'Board Texture Analysis', 
-          completed: false,
-          content: "Board texture refers to the characteristics of the community cards. Consider factors like connectedness, flush potential, and paired boards when making decisions. Adjust your strategy based on how the board interacts with your range."
-        },
-        { 
-          id: 'bet-sizing', 
-          title: 'Bet Sizing', 
-          completed: false,
-          content: "Bet sizing is crucial for maximizing value and protecting your hand. Use larger bets for value with strong hands and smaller bets for draws and bluffs. Consider pot size, stack sizes, and opponent tendencies."
+        {
+          title: 'Advanced Concepts',
+          lessons: [
+            { 
+              id: 'board-texture', 
+              title: 'Board Texture Analysis', 
+              completed: false,
+              content: "Board texture refers to the characteristics of the community cards. Consider factors like connectedness, flush potential, and paired boards when making decisions. Adjust your strategy based on how the board interacts with your range."
+            },
+            { 
+              id: 'bet-sizing', 
+              title: 'Bet Sizing', 
+              completed: false,
+              content: "Bet sizing is crucial for maximizing value and protecting your hand. Use larger bets for value with strong hands and smaller bets for draws and bluffs. Consider pot size, stack sizes, and opponent tendencies."
+            }
+          ]
         }
       ]
     },
     {
       id: 'advanced',
       title: 'Advanced',
-      lessons: [
-        { 
-          id: '3bet-strategy', 
-          title: '3-Bet Strategy', 
-          completed: false,
-          content: "3-bets are re-raising after an initial raise. Use 3-bets to build pots with strong hands, protect your range, and apply pressure. Consider position, stack sizes, and opponent tendencies when 3-betting."
+      subcategories: [
+        {
+          title: 'Advanced Strategy',
+          lessons: [
+            { 
+              id: '3bet-strategy', 
+              title: '3-Bet Strategy', 
+              completed: false,
+              content: "3-bets are re-raising after an initial raise. Use 3-bets to build pots with strong hands, protect your range, and apply pressure. Consider position, stack sizes, and opponent tendencies when 3-betting."
+            },
+            { 
+              id: 'pot-control', 
+              title: 'Pot Control', 
+              completed: false,
+              content: "Pot control involves managing the size of the pot based on your hand strength and position. Use check-calls and smaller bets to keep pots small with medium-strength hands. Build larger pots with strong hands."
+            }
+          ]
         },
-        { 
-          id: 'pot-control', 
-          title: 'Pot Control', 
-          completed: false,
-          content: "Pot control involves managing the size of the pot based on your hand strength and position. Use check-calls and smaller bets to keep pots small with medium-strength hands. Build larger pots with strong hands."
+        {
+          title: 'GTO Concepts',
+          lessons: [
+            { 
+              id: 'gto-basics', 
+              title: 'GTO Fundamentals', 
+              completed: false,
+              content: "Game Theory Optimal (GTO) play involves making unexploitable decisions. Understand basic GTO concepts like balanced ranges, mixed strategies, and optimal frequencies. Use GTO as a baseline and adjust based on opponent tendencies."
+            },
+            { 
+              id: 'range-construction', 
+              title: 'Range Construction', 
+              completed: false,
+              content: "Range construction involves selecting hands to play in different situations. Build ranges based on position, stack sizes, and opponent tendencies. Consider how your range interacts with the board and your opponent's range."
+            }
+          ]
         },
-        { 
-          id: 'bluffing', 
-          title: 'Bluffing and Semi-Bluffing', 
-          completed: false,
-          content: "Bluffing is betting with a weak hand to make opponents fold. Semi-bluffing is betting with a drawing hand that can improve. Choose good spots to bluff based on board texture, position, and opponent tendencies."
-        },
-        { 
-          id: 'gto-basics', 
-          title: 'GTO Fundamentals', 
-          completed: false,
-          content: "Game Theory Optimal (GTO) play involves making unexploitable decisions. Understand basic GTO concepts like balanced ranges, mixed strategies, and optimal frequencies. Use GTO as a baseline and adjust based on opponent tendencies."
-        },
-        { 
-          id: 'range-construction', 
-          title: 'Range Construction', 
-          completed: false,
-          content: "Range construction involves selecting hands to play in different situations. Build ranges based on position, stack sizes, and opponent tendencies. Consider how your range interacts with the board and your opponent's range."
-        },
-        { 
-          id: 'equity-realization', 
-          title: 'Equity Realization', 
-          completed: false,
-          content: "Equity realization is the ability to win your fair share of the pot. Consider factors like position, stack sizes, and opponent tendencies when calculating equity realization. Play hands that can realize their equity effectively."
-        },
-        { 
-          id: 'icm', 
-          title: 'ICM Considerations', 
-          completed: false,
-          content: "Independent Chip Model (ICM) is a mathematical model used in tournament poker. Understand how ICM affects your decisions in different tournament situations. Adjust your strategy based on payout structures and stack sizes."
+        {
+          title: 'Tournament Strategy',
+          lessons: [
+            { 
+              id: 'equity-realization', 
+              title: 'Equity Realization', 
+              completed: false,
+              content: "Equity realization is the ability to win your fair share of the pot. Consider factors like position, stack sizes, and opponent tendencies when calculating equity realization. Play hands that can realize their equity effectively."
+            },
+            { 
+              id: 'icm', 
+              title: 'ICM Considerations', 
+              completed: false,
+              content: "Independent Chip Model (ICM) is a mathematical model used in tournament poker. Understand how ICM affects your decisions in different tournament situations. Adjust your strategy based on payout structures and stack sizes."
+            }
+          ]
         }
       ]
     }
@@ -170,22 +223,26 @@ const LearnPage = () => {
 
   const getCurrentLessonIndex = () => {
     const section = getCurrentSection();
-    return section.lessons.findIndex(lesson => lesson.id === selectedLesson?.id);
+    return section.subcategories.findIndex(subcategory => subcategory.lessons.findIndex(lesson => lesson.id === selectedLesson?.id) !== -1);
   };
 
   const handlePreviousLesson = () => {
     const section = getCurrentSection();
     const currentIndex = getCurrentLessonIndex();
     if (currentIndex > 0) {
-      setSelectedLesson(section.lessons[currentIndex - 1]);
+      const subcategoryIndex = Math.floor(currentIndex / section.subcategories[0].lessons.length);
+      const lessonIndex = currentIndex % section.subcategories[0].lessons.length;
+      setSelectedLesson(section.subcategories[subcategoryIndex].lessons[lessonIndex]);
     }
   };
 
   const handleNextLesson = () => {
     const section = getCurrentSection();
     const currentIndex = getCurrentLessonIndex();
-    if (currentIndex < section.lessons.length - 1) {
-      setSelectedLesson(section.lessons[currentIndex + 1]);
+    if (currentIndex < section.subcategories.length * section.subcategories[0].lessons.length - 1) {
+      const subcategoryIndex = Math.floor(currentIndex / section.subcategories[0].lessons.length);
+      const lessonIndex = currentIndex % section.subcategories[0].lessons.length;
+      setSelectedLesson(section.subcategories[subcategoryIndex].lessons[lessonIndex]);
     }
   };
 
@@ -198,32 +255,56 @@ const LearnPage = () => {
     setSelectedLesson(updatedLesson);
     
     // Update the lesson in the lessonPlan
-    const updatedLessons = [...section.lessons];
-    updatedLessons[currentIndex] = updatedLesson;
+    const updatedSubcategories = section.subcategories.map(subcategory => ({
+      ...subcategory,
+      lessons: subcategory.lessons.map((lesson, index) =>
+        index === currentIndex % subcategory.lessons.length ? updatedLesson : lesson
+      )
+    }));
     
     // Find the section index and update it
     const sectionIndex = lessonPlan.findIndex(s => s.id === skillLevel);
     const updatedLessonPlan = [...lessonPlan];
     updatedLessonPlan[sectionIndex] = {
       ...section,
-      lessons: updatedLessons
+      subcategories: updatedSubcategories
     };
     
     // Update the lessonPlan state
     setLessonPlan(updatedLessonPlan);
     
     // If there's a next lesson, navigate to it
-    if (currentIndex < section.lessons.length - 1) {
+    if (currentIndex < section.subcategories.length * section.subcategories[0].lessons.length - 1) {
       setTimeout(() => {
-        setSelectedLesson(section.lessons[currentIndex + 1]);
+        const nextIndex = (currentIndex + 1) % (section.subcategories.length * section.subcategories[0].lessons.length);
+        setSelectedLesson(section.subcategories[Math.floor(nextIndex / section.subcategories[0].lessons.length)].lessons[nextIndex % section.subcategories[0].lessons.length]);
       }, 500); // Small delay to show completion
     }
   };
 
   const getProgressPercentage = () => {
     const section = getCurrentSection();
-    const completedLessons = section.lessons.filter(lesson => lesson.completed).length;
-    return (completedLessons / section.lessons.length) * 100;
+    if (!section) return 0;
+    
+    let totalLessons = 0;
+    let completedLessons = 0;
+    
+    section.subcategories.forEach(subcategory => {
+      subcategory.lessons.forEach(lesson => {
+        totalLessons++;
+        if (lesson.completed) completedLessons++;
+      });
+    });
+    
+    return totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
+  };
+
+  // Add function to handle subcategory expansion
+  const toggleSubcategory = (subcategoryTitle) => {
+    setExpandedSubcategories(prev => ({
+      ...prev,
+      [subcategoryTitle]: !prev[subcategoryTitle]
+    }));
   };
 
   return (
@@ -313,23 +394,47 @@ const LearnPage = () => {
                 
                 {expandedSection === section.id && isSidebarOpen && (
                   <div className="space-y-1 pl-4">
-                    {section.lessons.map((lesson) => (
-                      <button
-                        key={lesson.id}
-                        onClick={() => handleLessonClick(lesson)}
-                        className={`w-full flex items-center justify-between py-2 px-3 rounded-lg hover:bg-gray-100 transition-colors ${
-                          selectedLesson?.id === lesson.id ? 'bg-indigo-50 text-indigo-600' : 'text-gray-700'
-                        }`}
-                      >
-                        <span>{lesson.title}</span>
-                        <div className="flex items-center">
-                          {lesson.completed ? (
-                            <div className="w-4 h-4 rounded-full bg-gradient-to-r from-indigo-500 to-indigo-700" />
-                          ) : (
-                            <div className="w-4 h-4 rounded-full border-2 border-gray-300" />
-                          )}
-                        </div>
-                      </button>
+                    {section.subcategories.map((subcategory) => (
+                      <div key={subcategory.title} className="mb-2">
+                        <button
+                          onClick={() => toggleSubcategory(subcategory.title)}
+                          className="w-full flex items-center justify-between text-left mb-1"
+                        >
+                          <div className="text-xs font-bold text-gray-500 uppercase pl-1">{subcategory.title}</div>
+                          <svg
+                            className={`w-4 h-4 transform transition-transform ${
+                              expandedSubcategories[subcategory.title] ? 'rotate-180' : ''
+                            }`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                        {expandedSubcategories[subcategory.title] && (
+                          <div className="pl-2">
+                            {subcategory.lessons.map((lesson) => (
+                              <button
+                                key={lesson.id}
+                                onClick={() => handleLessonClick(lesson)}
+                                className={`w-full flex items-center justify-between py-2 px-3 rounded-lg hover:bg-gray-100 transition-colors ${
+                                  selectedLesson?.id === lesson.id ? 'bg-indigo-50 text-indigo-600' : 'text-gray-700'
+                                }`}
+                              >
+                                <span className="text-left flex-1">{lesson.title}</span>
+                                <div className="flex items-center ml-2">
+                                  {lesson.completed ? (
+                                    <div className="w-4 h-4 rounded-full bg-gradient-to-r from-indigo-500 to-indigo-700" />
+                                  ) : (
+                                    <div className="w-4 h-4 rounded-full border-2 border-gray-300" />
+                                  )}
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     ))}
                   </div>
                 )}
