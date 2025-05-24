@@ -1,12 +1,17 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Hand } from 'pokersolver';
 import PlayerHand from './PlayerHand';
 import CommunityCards from './CommunityCards';
 import PlayerInfo from './PlayerInfo';
 import PotDisplay from './PotDisplay';
 import ActionButtons from './ActionButtons';
-import tableBg from '/src/assets/table.png'; // Import the table background
+import tableBg from '/src/assets/blacktable.png'; // Re-add this import
 import dealerChip from '/src/assets/dealer.png'; // Import dealer chip asset
+
+// Assuming these SVG files exist in /src/assets/
+// import feltDark from '/src/assets/felt_dark.svg'; // Remove this
+// import feltGreen from '/src/assets/felt_green.svg'; // Remove this
+// import feltPurple from '/src/assets/felt_purple.svg'; // If a purple theme is added
 
 const SUITS = ['h', 'd', 'c', 's'];
 const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
@@ -20,61 +25,6 @@ const GamePhase = {
   RIVER: 'RIVER',
   SHOWDOWN: 'SHOWDOWN',
   HAND_OVER: 'HAND_OVER',
-};
-
-const createDeck = () => {
-  const deck = [];
-  for (const suit of SUITS) {
-    for (const rank of RANKS) {
-      deck.push(rank + suit);
-    }
-  }
-  return deck;
-};
-
-const shuffleDeck = (deck) => {
-  let shuffledDeck = [...deck];
-  for (let i = shuffledDeck.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffledDeck[i], shuffledDeck[j]] = [shuffledDeck[j], shuffledDeck[i]];
-  }
-  return shuffledDeck;
-};
-
-// TODO: Refactor to handle edge cases better
-const getNextPlayerIndex = (currentIndex, players) => {
-    let nextIndex = (currentIndex + 1) % players.length;
-    let loopGuard = 0;
-    while (players[nextIndex].isFolded || (players[nextIndex].isAllIn && players[nextIndex].currentBet === 0)) {
-        nextIndex = (nextIndex + 1) % players.length;
-        loopGuard++;
-        if (loopGuard > players.length * 2) return -1;
-    }
-    return nextIndex;
-};
-
-const findFirstActivePlayerIndex = (startIndex, players) => {
-    let currentIndex = startIndex % players.length;
-    let loopGuard = 0;
-    while(players[currentIndex].isFolded || players[currentIndex].isAllIn) {
-        currentIndex = (currentIndex + 1) % players.length;
-        loopGuard++;
-        if (loopGuard > players.length * 2) return -1;
-    }
-    return currentIndex;
-};
-
-const evaluateHand = (holeCards, communityCards) => {
-    const sevenCards = [...holeCards, ...communityCards];
-    if (sevenCards.length < 5) {
-        return { rank: -1, name: 'Invalid', descr: 'Not enough cards', cards: [] };
-    }
-    try {
-        return Hand.solve(sevenCards);
-    } catch (error) {
-        console.error("Error evaluating hand:", sevenCards, error);
-        return { rank: -1, name: 'Error', descr: 'Evaluation Error', cards: [] };
-    }
 };
 
 const POSITIONS_9MAX = ['BTN', 'SB', 'BB', 'UTG', 'UTG+1', 'MP', 'LJ', 'HJ', 'CO'];
@@ -140,6 +90,64 @@ const initialGameState = {
     numPlayers: 6,
 };
 
+const createDeck = () => {
+  const deck = [];
+  for (const suit of SUITS) {
+    for (const rank of RANKS) {
+      deck.push(rank + suit);
+    }
+  }
+  return deck;
+};
+
+const shuffleDeck = (deck) => {
+  let shuffledDeck = [...deck];
+  for (let i = shuffledDeck.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffledDeck[i], shuffledDeck[j]] = [shuffledDeck[j], shuffledDeck[i]];
+  }
+  return shuffledDeck;
+};
+
+// TODO: Refactor to handle edge cases better
+const getNextPlayerIndex = (currentIndex, players) => {
+    let nextIndex = (currentIndex + 1) % players.length;
+    let loopGuard = 0;
+    // Ensure players exists and players[nextIndex] is valid before accessing its properties
+    while (players && players[nextIndex] && (players[nextIndex].isFolded || (players[nextIndex].isAllIn && players[nextIndex].currentBet === 0))) {
+        nextIndex = (nextIndex + 1) % players.length;
+        loopGuard++;
+        if (loopGuard > players.length * 2) return -1;
+    }
+    if (!players || !players[nextIndex]) return -1; // Check if player still valid after loop
+    return nextIndex;
+};
+
+const findFirstActivePlayerIndex = (startIndex, players) => {
+    if (!players || players.length === 0) return -1;
+    let currentIndex = startIndex % players.length;
+    let loopGuard = 0;
+    while(players[currentIndex].isFolded || players[currentIndex].isAllIn) {
+        currentIndex = (currentIndex + 1) % players.length;
+        loopGuard++;
+        if (loopGuard > players.length * 2) return -1;
+    }
+    return currentIndex;
+};
+
+const evaluateHand = (holeCards, communityCards) => {
+    const sevenCards = [...holeCards, ...communityCards];
+    if (sevenCards.length < 5) {
+        return { rank: -1, name: 'Invalid', descr: 'Not enough cards', cards: [] };
+    }
+    try {
+        return Hand.solve(sevenCards);
+    } catch (error) {
+        console.error("Error evaluating hand:", sevenCards, error);
+        return { rank: -1, name: 'Error', descr: 'Evaluation Error', cards: [] };
+    }
+};
+
 function PokerGame() {
     const [numPlayers, setNumPlayers] = useState(initialGameState.numPlayers);
     const [gameState, setGameState] = useState(() => {
@@ -151,6 +159,32 @@ function PokerGame() {
     const [showAllCards, setShowAllCards] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
     const [tableTheme, setTableTheme] = useState('dark'); // 'dark', 'light', or 'classic'
+    const tableRef = useRef(null);
+    const [tableDimensions, setTableDimensions] = useState({ width: 0, height: 0 });
+
+    useEffect(() => {
+        const tableElement = tableRef.current;
+        if (!tableElement) return;
+
+        const observer = new ResizeObserver(entries => {
+            for (let entry of entries) {
+                const { width, height } = entry.contentRect;
+                setTableDimensions({ width, height });
+            }
+        });
+
+        observer.observe(tableElement);
+        // Set initial dimensions correctly after mount
+        const rect = tableElement.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) { // Ensure valid initial dimensions
+             setTableDimensions({ width: rect.width, height: rect.height });
+        }
+
+
+        return () => {
+            observer.unobserve(tableElement);
+        };
+    }, []);
 
     function startNewHand(currentState) {
         if (currentState.players.length !== currentState.numPlayers) {
@@ -689,15 +723,22 @@ function PokerGame() {
     };
 
     // --- Player Positioning Logic ---
-    const getPlayerPosition = (index, totalPlayers) => {
+    const getPlayerPosition = (index, totalPlayers, currentTableWidth, currentTableHeight) => {
+        if (currentTableWidth === 0 || currentTableHeight === 0) {
+            const defaultStyle = { position: 'absolute', left: '0%', top: '0%', width: '0px', height: '0px', opacity: 0, zIndex: 0 };
+            return { infoStyle: defaultStyle, cardStyle: defaultStyle, betStyle: defaultStyle, cardWidth: 0 };
+        }
+
+        // Calculate the polar angle for this player's seat (0 at top, clockwise)
         const angle = (index / totalPlayers) * 2 * Math.PI;
-        const tableWidth = 1200;
-        const tableHeight = 675;
+
+        const tableWidth = currentTableWidth;
+        const tableHeight = currentTableHeight;
         const horizontalRadius = tableWidth * 0.46;
         const verticalRadius = tableHeight * 0.38;
         
         // Make card dimensions relative to table size
-        const cardWidth = Math.min(tableWidth * 0.08, 80); // 8% of table width, max 80px
+        const cardWidth = Math.min(tableWidth * 0.10, 180); // Increased from 0.08, 90px for ~2x size
         const cardHeight = cardWidth * 0.72; // Maintain card aspect ratio
         const infoWidth = cardWidth * 1.4; // Info box slightly wider than cards
         const infoHeight = cardHeight * 0.8; // Info box height relative to card height
@@ -706,6 +747,9 @@ function PokerGame() {
         const centerY = tableHeight / 2;
         let baseX = centerX + horizontalRadius * Math.cos(angle - Math.PI / 2);
         let baseY = centerY + verticalRadius * Math.sin(angle - Math.PI / 2);
+
+        // Shift everything slightly downward to prevent top clipping
+        baseY += tableHeight * 0.05;
 
         // Calculate Info Box Position 
         let infoX = baseX - infoWidth / 2;
@@ -730,17 +774,18 @@ function PokerGame() {
             left: `${cardLeftPercent}%`,
             top: `${cardTopPercent}%`,
             width: `${cardWidth}px`,
+            height: `${cardHeight}px`,
             zIndex: 5,
         };
         
         // Calculate Bet Amount Position
-        const betPositionFactor = 0.75;
+        const betPositionFactor = 0.8;
         let betX = centerX + betPositionFactor * (baseX - centerX);
         let betY = centerY + betPositionFactor * (baseY - centerY);
 
         // Overlap Check for Bottom Players
         const cardBottomY = cardY + cardHeight;
-        const playerAngle = (index / totalPlayers) * 2 * Math.PI;
+        const playerAngle = angle; // Reuse computed angle
         const bottomAngle = Math.PI;
         const angleTolerance = 0.2;
 
@@ -758,7 +803,7 @@ function PokerGame() {
             zIndex: 15,
         };
 
-        return { infoStyle, cardStyle, betStyle };
+        return { infoStyle, cardStyle, betStyle, cardWidth };
     };
     // --- End Player Positioning ---
 
@@ -779,48 +824,51 @@ function PokerGame() {
 
     const getPlayerId = (index) => `player${index + 1}`;
 
+    // const bgMap = {
+    //     dark: feltDark,
+    //     classic: feltGreen,
+    //     // light: lightFeltSvg, // Add if a light SVG exists
+    // };
+
     const getTableStyle = () => {
-        const baseStyle = {
-            minHeight: '100vh',
-            width: '100%',
-            position: 'relative',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            overflow: 'hidden',
-            backgroundImage: `url(${tableBg})`,
+        const style = {
+            width: '180vmin', // Increased from 90vmin to make the game area larger
+            aspectRatio: '16/9',
             backgroundSize: 'cover',
             backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat'
+            backgroundRepeat: 'no-repeat',
+            position: 'relative',
+            overflow: 'visible',
         };
+
+        // Always use tableBg for now
+        style.backgroundImage = `url(${tableBg})`;
 
         switch (tableTheme) {
             case 'light':
-                return {
-                    ...baseStyle,
-                    backgroundColor: '#f0f0f0',
-                    filter: 'brightness(1.5) contrast(0.8)'
-                };
+                style.backgroundColor = '#f0f0f0'; // Light background for light theme letterbox
+                style.filter = 'brightness(1.2) contrast(0.9)'; 
+                break;
             case 'classic':
-                return {
-                    ...baseStyle,
-                    backgroundColor: '#2d5a27',
-                    filter: 'hue-rotate(120deg) saturate(1.5)'
-                };
-            default: // dark
-                return {
-                    ...baseStyle,
-                    backgroundColor: '#1a1a1a'
-                };
+                style.backgroundColor = 'transparent';
+                style.filter = 'hue-rotate(100deg) saturate(1.3)'; 
+                break;
+            case 'dark':
+            default:
+                style.backgroundColor = 'transparent';
+                // No filter for dark, use the PNG as is, on the #111111 background
+                break;
         }
+        return style;
     };
 
     return (
-        <div
-            className="poker-table relative w-full h-full overflow-hidden"
+        <div className="poker-wrapper w-full h-full fixed inset-0" style={{backgroundColor:'#111111',display:'flex',alignItems:'center',justifyContent:'center'}}>
+          <div
+            ref={tableRef}
+            className="poker-table relative overflow-hidden"
             style={getTableStyle()}
-        >
+          >
             {/* Game Info - Top Left */}
             <div className="absolute top-4 left-4 z-20 text-left max-w-xs">
                  <h2 className={`text-sm font-bold ${tableTheme === 'light' ? 'text-gray-800' : 'text-gray-200'}`}>{`Round: ${gameState.currentBettingRound}`}</h2>
@@ -884,7 +932,7 @@ function PokerGame() {
             {/* Players Area - Render Player Info and Hand separately */}
              <div className="players-area absolute inset-0 w-full h-full z-0">
                 {gameState.players.map((player, index) => {
-                    const { infoStyle, cardStyle, betStyle } = getPlayerPosition(index, gameState.players.length);
+                    const { infoStyle, cardStyle, betStyle, cardWidth: currentPlayerCardWidth } = getPlayerPosition(index, gameState.players.length, tableDimensions.width, tableDimensions.height);
 
                     // Determine combined classes for styling the info box
                     const infoClasses = [
@@ -916,19 +964,29 @@ function PokerGame() {
                                 )}
                                 
                                 {/* Dealer Chip - Position relative to info container */}
-                                {player.isDealer && (
-                                    <img
-                                        src={dealerChip}
-                                        alt="Dealer Button"
-                                        className="absolute -top-3 -right-3 w-6 h-6 z-30"
-                                    />
-                                )}
+                                {player.isDealer && (() => {
+                                    const dealerChipSize = currentPlayerCardWidth * 0.4; // Example: 40% of card width
+                                    const dealerChipOffset = dealerChipSize * 0.4;    // Example: offset by 40% of its own size
+                                    return (
+                                        <img
+                                            src={dealerChip}
+                                            alt="Dealer Button"
+                                            style={{
+                                                position: 'absolute',
+                                                width: `${dealerChipSize}px`,
+                                                height: `${dealerChipSize}px`,
+                                                top: `-${dealerChipOffset}px`,
+                                                right: `-${dealerChipOffset}px`,
+                                                zIndex: 30,
+                                            }}
+                                        />
+                                    );
+                                })()}
                                 
                                 {/* Actual Player Info Component */}
                                 <PlayerInfo
-                                    name={player.name}
+                                    position={player.positionName}
                                     stack={player.stack}
-                                    currentBet={player.currentBet}
                                     isTurn={player.isTurn}
                                 />
                             </div>
@@ -998,8 +1056,8 @@ function PokerGame() {
 
             {/* Settings Modal */}
             {showSettings && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-                    <div className="bg-[#2f3542] rounded-lg p-6 w-96">
+                <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"> {/* Added p-4 for some spacing on small screens */}
+                    <div className="bg-[#2f3542] rounded-lg p-6 w-[90vw] max-w-sm"> {/* Responsive width */}
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-xl font-semibold text-white">Table Settings</h2>
                             <button onClick={() => setShowSettings(false)} className="text-gray-400 hover:text-white">
@@ -1045,6 +1103,7 @@ function PokerGame() {
                     </div>
                 </div>
             )}
+          </div>
         </div>
     );
 }

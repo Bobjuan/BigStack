@@ -52,7 +52,8 @@ function Card({ card, show }) {
     <img
       src={svgSrc}
       alt={show ? card : 'Card Back'}
-      className="h-18 w-auto inline-block mx-[-5px] shadow-sm" // Increased height from h-16
+      className="w-auto inline-block mx-[-4px] shadow-md rounded-sm" // Removed h-18
+      style={{ transition: 'transform 0.15s ease-out', height: '100%' }} // Added height: 100% to fill parent
     />
   );
 }
@@ -66,11 +67,16 @@ function PlayerHand({ cards = [], showAll = false }) {
   ];
 
   return (
-    <div className="player-hand mt-1 h-[72px]"> {/* Increased height from h-[64px] */}
+    <div className="player-hand mt-1 h-full"> {/* Changed h-[72px] to h-full */}
       {/* Removed <p>Hand:</p> */}
-      <div className="flex justify-center items-center">
+      <div className="flex justify-center items-center h-full"> {/* Added h-full here too */}
         {displayCards.map((card, index) => (
-          <Card key={index} card={card} show={showAll} />
+          <div
+            key={index}
+            style={{ transform: `rotate(${index === 0 ? -8 : 8}deg)` }}
+          >
+            <Card card={card} show={showAll} />
+          </div>
         ))}
       </div>
     </div>
