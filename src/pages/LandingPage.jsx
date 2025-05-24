@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import image1 from '../assets/images/image1.png';
 import image2 from '../assets/images/image2.png';
@@ -11,6 +11,11 @@ const LandingPage = () => {
   const [showImage1, setShowImage1] = useState(false);
   const [showImage2, setShowImage2] = useState(false);
   const [showImage3, setShowImage3] = useState(false);
+  const [isProductDropdownOpen, setIsProductDropdownOpen] = useState(false);
+  const [isResourcesDropdownOpen, setIsResourcesDropdownOpen] = useState(false);
+
+  const productDropdownTimeout = useRef();
+  const resourcesDropdownTimeout = useRef();
 
   useEffect(() => {
     setIsVisible(true);
@@ -38,6 +43,44 @@ const LandingPage = () => {
     { name: 'Contact', href: '/contact' },
   ];
 
+  // Dropdown content for Product
+  const productDropdown = [
+    {
+      title: "Live Play",
+      description: "Practice your skills in real-time against other players.",
+      link: "/play"
+    },
+    {
+      title: "Interactive Lessons",
+      description: "Learn poker fundamentals and advanced strategies through our comprehensive lesson library.",
+      link: "/learn"
+    },
+    {
+      title: "AI Review",
+      description: "Get instant feedback on your play with our advanced AI analysis.",
+      link: "/gto-trainer"
+    }
+  ];
+
+  // Dropdown content for Resources
+  const resourcesDropdown = [
+    {
+      title: "Poker Strategy Guides",
+      description: "Comprehensive guides covering everything from basic rules to advanced strategies.",
+      link: "/learn"
+    },
+    {
+      title: "Hand Analysis Tools",
+      description: "Use our AI-powered tools to analyze your play and improve your game.",
+      link: "/gto-trainer"
+    },
+    {
+      title: "Practice Games",
+      description: "Test your skills in various game formats and scenarios.",
+      link: "/play"
+    }
+  ];
+
   return (
     <div className="min-h-screen bg-[#0F1115] text-white font-inter">
       {/* Navigation */}
@@ -52,13 +95,82 @@ const LandingPage = () => {
           <div className="hidden lg:flex items-center justify-center flex-1">
             <div className="flex space-x-2 max-w-xl mx-auto">
               {navItems.map((item) => (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className="text-sm text-gray-300 hover:text-white hover:bg-indigo-600 transition-colors duration-150 px-3 py-2 leading-normal rounded-full"
-                >
-                  {item.name}
-                </Link>
+                <div key={item.name} className="relative">
+                  <Link
+                    to={item.href}
+                    className="text-sm text-gray-300 hover:text-white hover:bg-indigo-600 transition-colors duration-150 px-3 py-2 leading-normal rounded-full"
+                    onMouseEnter={() => {
+                      if (item.name === 'Product') {
+                        clearTimeout(productDropdownTimeout.current);
+                        setIsProductDropdownOpen(true);
+                      }
+                      if (item.name === 'Resources') {
+                        clearTimeout(resourcesDropdownTimeout.current);
+                        setIsResourcesDropdownOpen(true);
+                      }
+                    }}
+                    onMouseLeave={() => {
+                      if (item.name === 'Product') {
+                        productDropdownTimeout.current = setTimeout(() => setIsProductDropdownOpen(false), 120);
+                      }
+                      if (item.name === 'Resources') {
+                        resourcesDropdownTimeout.current = setTimeout(() => setIsResourcesDropdownOpen(false), 120);
+                      }
+                    }}
+                  >
+                    {item.name}
+                  </Link>
+                  {/* Product Dropdown */}
+                  {item.name === 'Product' && isProductDropdownOpen && (
+                    <div
+                      className="absolute top-full left-1/2 -translate-x-1/2 mt-4 w-[540px] max-w-[90vw] bg-[#181A1B] border border-white/10 rounded-2xl shadow-2xl z-50 p-6 flex justify-between overflow-hidden"
+                      style={{minWidth: 400}}
+                      onMouseEnter={() => {
+                        clearTimeout(productDropdownTimeout.current);
+                        setIsProductDropdownOpen(true);
+                      }}
+                      onMouseLeave={() => {
+                        productDropdownTimeout.current = setTimeout(() => setIsProductDropdownOpen(false), 120);
+                      }}
+                    >
+                      {productDropdown.map((feature, idx) => (
+                        <Link
+                          key={feature.title}
+                          to={feature.link}
+                          className="flex-1 min-w-[0] max-w-[180px] px-3 py-2 rounded-lg hover:bg-white/5 transition-colors duration-150"
+                        >
+                          <div className="mb-1 text-base font-semibold text-white whitespace-normal break-words">{feature.title}</div>
+                          <div className="text-gray-400 text-xs leading-snug whitespace-normal break-words">{feature.description}</div>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                  {/* Resources Dropdown */}
+                  {item.name === 'Resources' && isResourcesDropdownOpen && (
+                    <div
+                      className="absolute top-full left-1/2 -translate-x-1/2 mt-4 w-[540px] max-w-[90vw] bg-[#181A1B] border border-white/10 rounded-2xl shadow-2xl z-50 p-6 flex justify-between overflow-hidden"
+                      style={{minWidth: 400}}
+                      onMouseEnter={() => {
+                        clearTimeout(resourcesDropdownTimeout.current);
+                        setIsResourcesDropdownOpen(true);
+                      }}
+                      onMouseLeave={() => {
+                        resourcesDropdownTimeout.current = setTimeout(() => setIsResourcesDropdownOpen(false), 120);
+                      }}
+                    >
+                      {resourcesDropdown.map((resource, idx) => (
+                        <Link
+                          key={resource.title}
+                          to={resource.link}
+                          className="flex-1 min-w-[0] max-w-[180px] px-3 py-2 rounded-lg hover:bg-white/5 transition-colors duration-150"
+                        >
+                          <div className="mb-1 text-base font-semibold text-white whitespace-normal break-words">{resource.title}</div>
+                          <div className="text-gray-400 text-xs leading-snug whitespace-normal break-words">{resource.description}</div>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           </div>
@@ -67,13 +179,13 @@ const LandingPage = () => {
           <div className="flex items-center space-x-4">
             <Link
               to="/login"
-              className="text-sm text-gray-300 transition-colors duration-150 px-3 py-2 leading-normal rounded-full hover:bg-gradient-to-r hover:from-indigo-500 hover:via-purple-500 hover:to-indigo-600 hover:text-white hover:ring-2 hover:ring-indigo-400/70 hover:shadow-lg hover:shadow-indigo-500/30 hover:bg-white/5 whitespace-nowrap"
+              className="text-sm text-gray-300 transition-colors duration-150 px-3 py-2 leading-normal rounded-full hover:bg-gray-800 hover:text-white whitespace-nowrap"
             >
               Log In
             </Link>
             <Link
               to="/signup"
-              className="text-sm bg-white text-[#0F1115] px-4 py-2 leading-normal rounded-full transition-all duration-150 hover:-translate-y-0.5 hover:bg-gradient-to-r hover:from-indigo-500 hover:via-purple-500 hover:to-indigo-600 hover:text-white hover:ring-2 hover:ring-indigo-400/70 hover:shadow-lg hover:shadow-indigo-500/30 whitespace-nowrap"
+              className="text-sm bg-white text-[#0F1115] px-4 py-2 leading-normal rounded-full transition-all duration-150 hover:-translate-y-0.5 hover:bg-gray-200 hover:text-[#0F1115] whitespace-nowrap"
             >
               Sign Up
             </Link>
@@ -121,14 +233,14 @@ const LandingPage = () => {
               <div className="flex gap-4 justify-center">
                 <Link
                   to="/login"
-                  className="relative z-30 inline-block cursor-pointer px-8 py-4 text-lg font-medium text-[#0F1115] bg-white rounded-full transition-all duration-150 hover:-translate-y-0.5 hover:bg-gradient-to-r hover:from-indigo-500 hover:via-purple-500 hover:to-indigo-600 hover:text-white hover:ring-2 hover:ring-indigo-400/70 hover:shadow-lg hover:shadow-indigo-500/30"
+                  className="relative z-30 inline-block cursor-pointer px-8 py-4 text-lg font-medium text-[#0F1115] bg-white rounded-full transition-all duration-150 hover:-translate-y-0.5 hover:bg-gray-200 hover:text-[#0F1115] hover:shadow-2xl hover:shadow-indigo-500/80"
                   aria-label="Play Now"
                 >
                   Play Now
                 </Link>
                 <button
                   onClick={handleStartLearning}
-                  className="relative z-30 inline-block cursor-pointer px-8 py-4 text-lg font-medium text-[#0F1115] bg-white rounded-full transition-all duration-150 hover:-translate-y-0.5 hover:bg-gradient-to-r hover:from-indigo-500 hover:via-purple-500 hover:to-indigo-600 hover:text-white hover:ring-2 hover:ring-indigo-400/70 hover:shadow-lg hover:shadow-indigo-500/30"
+                  className="relative z-30 inline-block cursor-pointer px-8 py-4 text-lg font-medium text-[#0F1115] bg-white rounded-full transition-all duration-150 hover:-translate-y-0.5 hover:bg-gray-200 hover:text-[#0F1115] hover:shadow-2xl hover:shadow-indigo-500/80"
                   aria-label="Start Learning"
                 >
                   Start Learning

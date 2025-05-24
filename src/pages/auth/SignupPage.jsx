@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../../config/supabase';
+import LoginImage from '../../assets/images/ChatGPT Image May 23, 2025, 08_09_53 PM.png';
 
 const SignupPage = () => {
   const [username, setUsername] = useState('');
@@ -59,25 +60,31 @@ const SignupPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black p-6 relative overflow-hidden">
-      {/* Background decoration */}
-      <div className="absolute top-0 left-0 w-full h-full">
+    <div
+      className="min-h-screen flex items-center justify-center bg-black p-6 relative overflow-hidden"
+      style={{
+        backgroundImage: `url(${LoginImage})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}
+    >
+      {/* Background decoration (no overlay) */}
+      <div className="absolute top-0 left-0 w-full h-full z-20">
         <div className="absolute top-[10%] left-[5%] w-[40rem] h-[40rem] bg-white/5 rounded-full blur-3xl"></div>
         <div className="absolute bottom-[10%] right-[5%] w-[30rem] h-[30rem] bg-white/5 rounded-full blur-3xl"></div>
       </div>
 
       {/* Auth card */}
       <div className="w-full max-w-md relative z-30">
-        {/* Card header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold tracking-tight mb-4 text-white leading-relaxed py-1">
-            Create Your Account
-          </h1>
-          <p className="text-lg text-gray-400">Start your poker journey today</p>
-        </div>
-
-        {/* Auth card body */}
         <div className="bg-white rounded-2xl shadow-2xl shadow-black/30 p-8 lg:p-10">
+          {/* Card header at the very top inside the box */}
+          <div className="text-center mb-4 mt-0">
+            <h1 className="text-3xl font-extrabold tracking-tight mb-2 bg-gradient-to-r from-purple-900 via-purple-700 to-purple-800 bg-clip-text text-transparent leading-relaxed py-1 whitespace-nowrap">
+              Create Your Account
+            </h1>
+          </div>
+
+          {/* Auth card body */}
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg mb-6 text-sm">
               {error}
@@ -152,15 +159,14 @@ const SignupPage = () => {
               )}
             </button>
           </form>
+          {/* Footer inside the box */}
+          <p className="mt-8 text-center text-gray-400">
+            Already have an account?{' '}
+            <Link to="/login" className="text-indigo-600 font-medium hover:text-indigo-400 transition-colors duration-150">
+              Sign in
+            </Link>
+          </p>
         </div>
-
-        {/* Footer */}
-        <p className="mt-8 text-center text-gray-400">
-          Already have an account?{' '}
-          <Link to="/login" className="text-white font-medium hover:text-gray-300 transition-colors duration-150">
-            Sign in
-          </Link>
-        </p>
       </div>
     </div>
   );
