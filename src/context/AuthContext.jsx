@@ -7,36 +7,49 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    try {
+      // Get initial session
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
+      }).catch(err => {
+        console.error('Error getting session:', err);
+        setError(err);
+        setLoading(false);
+      });
+
+      // Listen for auth changes
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+      });
+
+      return () => subscription.unsubscribe();
+    } catch (err) {
+      console.error('Error in auth setup:', err);
+      setError(err);
       setLoading(false);
-    });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
+    }
   }, []);
 
   const value = {
     session,
     user,
     loading,
+    error,
     signIn: (data) => supabase.auth.signInWithPassword(data),
     signUp: (data) => supabase.auth.signUp(data),
     signOut: () => supabase.auth.signOut(),
   };
 
+  // Always render children, even if there's an error
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 };

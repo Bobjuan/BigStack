@@ -1,101 +1,204 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { supabase } from '../../config/supabase';
 
 const LearnPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [isSidebarOpen, setSidebarOpen] = useState(true);
-  const [profile, setProfile] = useState(null);
-  const [dailyChallenge, setDailyChallenge] = useState({
-    title: "Position Play Challenge",
-    description: "You're in the cutoff with A♠K♦. UTG raises 3x. What's your best play?",
-    options: ["Fold", "Call", "3-bet", "All-in"],
-    completed: false
-  });
-  const [learningGoals, setLearningGoals] = useState({
-    weekly: { target: 5, completed: 2, description: "Complete 5 lessons this week" },
-    monthly: { target: 20, completed: 8, description: "Master 20 concepts this month" }
+  const [learningGoals] = useState({
+    weekly: { target: 5, completed: 0, description: "Complete 5 lessons this week" },
+    monthly: { target: 20, completed: 0, description: "Master 20 concepts this month" }
   });
 
-  // Course structure
-  const [courses, setCourses] = useState([
+  // Course structure with lessons
+  const [courses] = useState([
     {
-      id: 'fundamentals',
-      title: 'Poker Fundamentals',
-      level: 'Beginner',
-      description: 'Master the basics of Texas Hold\'em',
-      progress: 65,
-      totalLessons: 12,
-      completedLessons: 8,
-      estimatedTime: '2-3 hours',
-      color: 'from-green-500 to-green-700'
-    },
-    {
-      id: 'position-play',
-      title: 'Position-Based Strategy',
-      level: 'Intermediate',
-      description: 'Learn how position affects every decision',
-      progress: 30,
-      totalLessons: 8,
-      completedLessons: 2,
-      estimatedTime: '1-2 hours',
-      color: 'from-blue-500 to-blue-700'
-    },
-    {
-      id: 'player-profiling',
-      title: 'Player Profiling',
-      level: 'Intermediate',
-      description: 'Identify and exploit opponent tendencies',
-      progress: 0,
-      totalLessons: 6,
+      id: 'cash-game-foundations',
+      title: 'Foundations for Winning Cash Games',
+      level: 'Beginner to Intermediate',
+      description: 'Master the essential concepts and strategies needed to become a winning cash game player. This comprehensive course covers everything from basic fundamentals to advanced concepts.',
+      totalLessons: 27,
       completedLessons: 0,
-      estimatedTime: '1 hour',
-      color: 'from-purple-500 to-purple-700'
-    },
-    {
-      id: 'gto-concepts',
-      title: 'GTO Fundamentals',
-      level: 'Advanced',
-      description: 'Game theory optimal play concepts',
-      progress: 10,
-      totalLessons: 10,
-      completedLessons: 1,
-      estimatedTime: '3-4 hours',
-      color: 'from-red-500 to-red-700'
+      estimatedTime: '8-10 hours',
+      color: 'from-blue-500 to-blue-700',
+      modules: [
+        {
+          id: 'module-0',
+          title: 'Foundations for Winning Poker',
+          description: 'Build a strong foundation for your poker journey with essential concepts and mindset',
+          lessons: [
+            {
+              id: 'found-0-1',
+              title: 'Course Introduction & Your Poker Development',
+              content: `Target Audience & Course Goals:
+• This course is designed for players with some poker experience who want to improve their small stakes cash game results
+• Primary aim: Develop skills to beat small stakes cash games and progress to middle stakes
+• Focus on practical strategies that work in real games
+
+The Core Philosophy - How You Win in Small Stakes:
+• Profit comes from exploiting opponents' mistakes
+• Small stakes games are highly profitable due to weak average players
+• Focus on exploitative play rather than GTO strategies
+
+Unlearning Bad Habits & Adopting Effective Strategies:
+• Move beyond overly tight play
+• Learn to adapt your strategy based on opponents
+• Example: A-J on the button
+  - Against tight players: Fold
+  - Against active players: Call
+  - Against wild players: Reraise for value`,
+              completed: false
+            },
+            {
+              id: 'found-0-2',
+              title: 'Self-Assessment: Your Current Cash Game Understanding',
+              content: `Purpose of Self-Assessment:
+• Quick evaluation of your current knowledge
+• Identify areas needing improvement
+• Track progress throughout the course
+
+Interactive Quiz Features:
+• 10 questions covering key concepts
+• Immediate feedback on answers
+• Links to relevant course sections
+• Topics include:
+  - Opponent categorization
+  - Preflop strategy
+  - Postflop play
+  - Bankroll management
+  - Mental game
+
+Take the quiz before starting the course and retake it after completion to measure your improvement.`,
+              completed: false
+            },
+            {
+              id: 'found-0-3',
+              title: 'Essential Mindset & Bankroll Prerequisites',
+              content: `Bankroll Requirements:
+• Minimum 2,500 big blinds for stability
+• Example: $5,000 for $1/$2 games
+• Proper bankroll management is crucial for long-term success
+
+The Critical Role of Mindset:
+• Develop a strong mental game
+• Handle variance and bad beats
+• Maintain focus and discipline
+
+Source of Profit:
+• Primary profit comes from exploiting opponents' mistakes
+• "If you ever hear someone say 'I would win if my opponents would stop making bad plays,' they are clearly unaware of this most basic concept."
+• Focus on identifying and capitalizing on opponent errors`,
+              completed: false
+            }
+          ]
+        },
+        {
+          id: 'module-1',
+          title: 'Cash Game Fundamentals',
+          description: 'Learn the core concepts that separate winning players from losing ones',
+          lessons: [
+            {
+              id: 'fund-1',
+              title: 'Understanding Cash Games vs Tournaments',
+              content: 'Learn the key differences between cash games and tournaments, and why cash games require a different mindset...',
+              completed: false
+            },
+            {
+              id: 'fund-2',
+              title: 'Bankroll Management',
+              content: 'Master proper bankroll management techniques to ensure long-term success...',
+              completed: false
+            },
+            {
+              id: 'fund-3',
+              title: 'Table Selection',
+              content: 'Learn how to identify profitable tables and avoid tough games...',
+              completed: false
+            }
+          ]
+        },
+        {
+          id: 'module-2',
+          title: 'Preflop Strategy',
+          description: 'Develop a solid preflop game plan',
+          lessons: [
+            {
+              id: 'pre-1',
+              title: 'Starting Hand Selection',
+              content: 'Learn which hands to play from different positions...',
+              completed: false
+            },
+            {
+              id: 'pre-2',
+              title: 'Position and Hand Ranges',
+              content: 'Understand how position affects your hand ranges...',
+              completed: false
+            },
+            {
+              id: 'pre-3',
+              title: '3-Betting Strategy',
+              content: 'Master the art of 3-betting for value and as a bluff...',
+              completed: false
+            }
+          ]
+        },
+        {
+          id: 'module-3',
+          title: 'Postflop Play',
+          description: 'Learn to navigate complex postflop situations',
+          lessons: [
+            {
+              id: 'post-1',
+              title: 'Board Texture Analysis',
+              content: 'Learn to read board textures and their implications...',
+              completed: false
+            },
+            {
+              id: 'post-2',
+              title: 'Bet Sizing',
+              content: 'Master optimal bet sizing for different situations...',
+              completed: false
+            },
+            {
+              id: 'post-3',
+              title: 'Hand Reading',
+              content: 'Develop your hand reading skills to make better decisions...',
+              completed: false
+            }
+          ]
+        },
+        {
+          id: 'module-4',
+          title: 'Advanced Concepts',
+          description: 'Take your game to the next level',
+          lessons: [
+            {
+              id: 'adv-1',
+              title: 'Exploitative Play',
+              content: 'Learn to identify and exploit opponent weaknesses...',
+              completed: false
+            },
+            {
+              id: 'adv-2',
+              title: 'Multi-Street Planning',
+              content: 'Develop strategies that span multiple betting rounds...',
+              completed: false
+            },
+            {
+              id: 'adv-3',
+              title: 'Mental Game',
+              content: 'Master the psychological aspects of poker...',
+              completed: false
+            }
+          ]
+        }
+      ]
     }
   ]);
 
-  useEffect(() => {
-    const getProfile = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('username')
-          .eq('id', user.id)
-          .single();
-
-        if (error) throw error;
-        setProfile(data);
-      } catch (error) {
-        console.error('Error fetching profile:', error);
-      }
-    };
-
-    if (user) {
-      getProfile();
-    }
-  }, [user]);
-
   const handleCourseClick = (course) => {
-    console.log('Navigating to course:', course.id);
-    console.log('Full course object:', course);
     navigate(`/learn/course/${course.id}`);
-  };
-
-  const completeDailyChallenge = () => {
-    setDailyChallenge(prev => ({ ...prev, completed: true }));
   };
 
   const getLevelColor = (level) => {
@@ -103,17 +206,14 @@ const LearnPage = () => {
       case 'Beginner': return 'text-green-400 bg-green-900/20';
       case 'Intermediate': return 'text-blue-400 bg-blue-900/20';
       case 'Advanced': return 'text-red-400 bg-red-900/20';
+      case 'Beginner to Intermediate': return 'text-blue-400 bg-blue-900/20';
       default: return 'text-gray-400 bg-gray-900/20';
     }
   };
 
-  const handleLogout = () => {
-    navigate('/');
-  };
-
   return (
     <div className="min-h-screen bg-black text-white flex">
-      {/* Collapsible Sidebar - EXACT SAME as Dashboard */}
+      {/* Sidebar */}
       <div className={`bg-[#1a1a1a] transition-all duration-300 ease-in-out ${isSidebarOpen ? 'w-64' : 'w-20'} min-h-screen flex flex-col fixed left-0 top-0`}>
         <div className="pt-10">
           <div className={`px-4 ${!isSidebarOpen && 'flex justify-center'}`}>
@@ -192,123 +292,66 @@ const LearnPage = () => {
             </svg>
             <span className={`ml-3 ${!isSidebarOpen && 'hidden'}`}>Profile</span>
           </Link>
-
-          <button
-            onClick={handleLogout}
-            className={`flex items-center ${isSidebarOpen ? 'justify-start w-full' : 'justify-center w-full'} py-3 px-4 rounded-lg hover:bg-gray-800 transition-colors text-xl font-bold hover:shadow-lg hover:shadow-indigo-500/40`}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-            <span className={`ml-3 ${!isSidebarOpen && 'hidden'}`}>Logout</span>
-          </button>
         </div>
       </div>
 
       {/* Main Content */}
       <div className={`flex-1 transition-all duration-300 ${isSidebarOpen ? 'ml-64' : 'ml-20'}`}>
-        {/* Top Right Menu (visible when sidebar is collapsed) */}
-        {!isSidebarOpen && (
-          <div className="fixed top-4 right-4 flex items-center space-x-4">
-            <Link
-              to="/profile"
-              className="bg-white text-black px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors hover:shadow-lg hover:shadow-indigo-500/40"
-            >
-              Profile
-            </Link>
-            <button
-              onClick={handleLogout}
-              className="bg-white text-black px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors hover:shadow-lg hover:shadow-indigo-500/40"
-            >
-              Logout
-            </button>
-          </div>
-        )}
-
         {/* Dashboard Header */}
         <div className="bg-black py-8 px-8 border-b-2 border-white">
           <h2 className="text-3xl font-bold text-white mt-4 -mb-4">
-            {profile?.username || 'Anonymous Player'}'s {!isSidebarOpen && 'BigStack '}Learning Dashboard
+            Learning Dashboard
           </h2>
         </div>
 
         <div className="py-8 px-6 md:px-12">
           <div className="max-w-7xl mx-auto">
-            {/* Daily Challenge & Learning Goals Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
-              {/* Daily Challenge */}
-              <div className="bg-[#1F2127] rounded-xl p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-bold text-white flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                    Daily Challenge
-                  </h3>
-                  {dailyChallenge.completed && (
-                    <span className="text-green-400 text-sm font-medium">✓ Completed</span>
-                  )}
-                </div>
-                <h4 className="text-lg font-semibold text-indigo-300 mb-2">{dailyChallenge.title}</h4>
-                <p className="text-gray-300 mb-4">{dailyChallenge.description}</p>
-                <div className="space-y-2 mb-4">
-                  {dailyChallenge.options.map((option, index) => (
-                    <button
-                      key={index}
-                      className="w-full text-left p-3 rounded-lg bg-[#2a2d36] hover:bg-gray-700 transition-colors text-gray-300"
-                      disabled={dailyChallenge.completed}
-                    >
-                      {option}
-                    </button>
-                  ))}
-                </div>
-                {!dailyChallenge.completed && (
-                  <button
-                    onClick={completeDailyChallenge}
-                    className="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition-colors"
-                  >
-                    Submit Answer
-                  </button>
-                )}
-              </div>
-
-              {/* Learning Goals */}
-              <div className="bg-[#1F2127] rounded-xl p-6">
-                <h3 className="text-xl font-bold text-white mb-4 flex items-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            {/* Learning Goals Section */}
+            <div className="mb-8">
+              <div className="bg-[#1F2127] rounded-xl p-4">
+                <h3 className="text-lg font-bold text-white mb-3 flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
                   </svg>
                   Learning Goals
                 </h3>
                 
-                {/* Weekly Goal */}
-                <div className="mb-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-gray-300">Weekly Goal</span>
-                    <span className="text-sm text-gray-400">{learningGoals.weekly.completed}/{learningGoals.weekly.target}</span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Weekly Goal */}
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-gray-300 text-sm">Weekly Goal</span>
+                      <span className="text-xs text-gray-400">{learningGoals.weekly.completed}/{learningGoals.weekly.target}</span>
+                    </div>
+                    <div className="h-2 bg-[#2a2d36] rounded-full overflow-hidden border border-gray-700">
+                      <div 
+                        className="h-full bg-gradient-to-r from-indigo-500 to-indigo-700 transition-all duration-500"
+                        style={{ width: `${(learningGoals.weekly.completed / learningGoals.weekly.target) * 100}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1 mb-2">{learningGoals.weekly.description}</p>
+                    {learningGoals.weekly.completed >= learningGoals.weekly.target && (
+                      <span className="text-green-400 text-xs font-medium">✓ Weekly Goal Completed!</span>
+                    )}
                   </div>
-                  <div className="h-3 bg-[#2a2d36] rounded-full overflow-hidden border border-gray-700">
-                    <div 
-                      className="h-full bg-gradient-to-r from-indigo-500 to-indigo-700 transition-all duration-500"
-                      style={{ width: `${(learningGoals.weekly.completed / learningGoals.weekly.target) * 100}%` }}
-                    />
-                  </div>
-                  <p className="text-sm text-gray-400 mt-1">{learningGoals.weekly.description}</p>
-                </div>
 
-                {/* Monthly Goal */}
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-gray-300">Monthly Goal</span>
-                    <span className="text-sm text-gray-400">{learningGoals.monthly.completed}/{learningGoals.monthly.target}</span>
+                  {/* Monthly Goal */}
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-gray-300 text-sm">Monthly Goal</span>
+                      <span className="text-xs text-gray-400">{learningGoals.monthly.completed}/{learningGoals.monthly.target}</span>
+                    </div>
+                    <div className="h-2 bg-[#2a2d36] rounded-full overflow-hidden border border-gray-700">
+                      <div 
+                        className="h-full bg-gradient-to-r from-purple-500 to-purple-700 transition-all duration-500"
+                        style={{ width: `${(learningGoals.monthly.completed / learningGoals.monthly.target) * 100}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1 mb-2">{learningGoals.monthly.description}</p>
+                    {learningGoals.monthly.completed >= learningGoals.monthly.target && (
+                      <span className="text-green-400 text-xs font-medium">✓ Monthly Goal Completed!</span>
+                    )}
                   </div>
-                  <div className="h-3 bg-[#2a2d36] rounded-full overflow-hidden border border-gray-700">
-                    <div 
-                      className="h-full bg-gradient-to-r from-purple-500 to-purple-700 transition-all duration-500"
-                      style={{ width: `${(learningGoals.monthly.completed / learningGoals.monthly.target) * 100}%` }}
-                    />
-                  </div>
-                  <p className="text-sm text-gray-400 mt-1">{learningGoals.monthly.description}</p>
                 </div>
               </div>
             </div>
@@ -317,42 +360,50 @@ const LearnPage = () => {
             <div className="mb-12">
               <h2 className="text-2xl font-bold mb-6">Poker Courses</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {courses.map((course) => (
-                  <div
-                    key={course.id}
-                    onClick={() => handleCourseClick(course)}
-                    className="bg-[#1F2127] rounded-xl p-6 hover:bg-[#252831] transition-all cursor-pointer transform hover:scale-105"
-                  >
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <h4 className="text-xl font-bold text-white mb-2">{course.title}</h4>
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getLevelColor(course.level)}`}>
-                          {course.level}
-                        </span>
+                {courses.map((course) => {
+                  const totalLessons = course.modules.reduce((sum, module) => sum + module.lessons.length, 0);
+                  const completedLessons = course.modules.reduce((sum, module) => 
+                    sum + module.lessons.filter(lesson => lesson.completed).length, 0
+                  );
+                  const progress = Math.round((completedLessons / totalLessons) * 100) || 0;
+
+                  return (
+                    <div
+                      key={course.id}
+                      onClick={() => handleCourseClick(course)}
+                      className="bg-[#1F2127] rounded-xl p-6 hover:bg-[#252831] transition-all cursor-pointer transform hover:scale-105"
+                    >
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <h4 className="text-xl font-bold text-white mb-2">{course.title}</h4>
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${getLevelColor(course.level)}`}>
+                            {course.level}
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-2xl font-bold text-white">{progress}%</div>
+                          <div className="text-sm text-gray-400">Complete</div>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-2xl font-bold text-white">{course.progress}%</div>
-                        <div className="text-sm text-gray-400">Complete</div>
+                      
+                      <p className="text-gray-300 mb-4">{course.description}</p>
+                      
+                      <div className="mb-4">
+                        <div className="h-2 bg-[#2a2d36] rounded-full overflow-hidden border border-gray-700">
+                          <div 
+                            className={`h-full bg-gradient-to-r ${course.color} transition-all duration-500`}
+                            style={{ width: `${progress}%` }}
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-between text-sm text-gray-400">
+                        <span>{completedLessons}/{totalLessons} lessons</span>
+                        <span>{course.estimatedTime}</span>
                       </div>
                     </div>
-                    
-                    <p className="text-gray-300 mb-4">{course.description}</p>
-                    
-                    <div className="mb-4">
-                      <div className="h-2 bg-[#2a2d36] rounded-full overflow-hidden border border-gray-700">
-                        <div 
-                          className={`h-full bg-gradient-to-r ${course.color} transition-all duration-500`}
-                          style={{ width: `${course.progress}%` }}
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="flex justify-between text-sm text-gray-400">
-                      <span>{course.completedLessons}/{course.totalLessons} lessons</span>
-                      <span>{course.estimatedTime}</span>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>

@@ -15,7 +15,7 @@ import DeepStackPage from './pages/game/DeepStackPage';
 import QuizPage from './pages/learn/QuizPage';
 import LearnPage from './pages/learn/LearnPage';
 import CoursePage from './pages/learn/CoursePage';
-import LessonCategoryPage from './pages/learn/LessonCategoryPage';
+import ModulesPage from './pages/learn/ModulesPage';
 import LessonPage from './pages/learn/LessonPage';
 import ProfilePage from './pages/ProfilePage';
 import ContactPage from './pages/ContactPage';
@@ -113,20 +113,20 @@ function App() {
             path="/learn/course/:courseId"
             element={
               <ProtectedRoute>
+                <ModulesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/learn/course/:courseId/module/:moduleId"
+            element={
+              <ProtectedRoute>
                 <CoursePage />
               </ProtectedRoute>
             }
           />
           <Route
-            path="/learn/:categoryName"
-            element={
-              <ProtectedRoute>
-                <LessonCategoryPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/learn/:categoryName/:lessonId"
+            path="/learn/course/:courseId/module/:moduleId/lesson/:lessonId"
             element={
               <ProtectedRoute>
                 <LessonPage />

@@ -12,6 +12,12 @@ const QuizPage = () => {
   const [score, setScore] = useState(0);
   const [showResult, setShowResult] = useState(false);
   const [selectedQuiz, setSelectedQuiz] = useState(null);
+  const [dailyChallenge, setDailyChallenge] = useState({
+    title: "Position Play Challenge",
+    description: "You're in the cutoff with A♠K♦. UTG raises 3x. What's your best play?",
+    options: ["Fold", "Call", "3-bet", "All-in"],
+    completed: false
+  });
 
   const quizzes = [
     {
@@ -137,6 +143,10 @@ const QuizPage = () => {
     setCurrentQuestion(0);
     setScore(0);
     setShowResult(false);
+  };
+
+  const completeDailyChallenge = () => {
+    setDailyChallenge(prev => ({ ...prev, completed: true }));
   };
 
   const getLevelColor = (level) => {
@@ -513,6 +523,44 @@ const QuizPage = () => {
 
         <div className="py-8 px-6 md:px-12">
           <div className="max-w-7xl mx-auto">
+            {/* Daily Challenge Section */}
+            <div className="mb-8">
+              <div className="bg-[#1F2127] rounded-xl p-4 max-w-2xl mx-auto">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-bold text-white flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    Daily Challenge
+                  </h3>
+                  {dailyChallenge.completed && (
+                    <span className="text-green-400 text-sm font-medium">✓ Completed</span>
+                  )}
+                </div>
+                <h4 className="text-base font-semibold text-indigo-300 mb-2">{dailyChallenge.title}</h4>
+                <p className="text-gray-300 mb-3 text-sm">{dailyChallenge.description}</p>
+                <div className="space-y-2 mb-3">
+                  {dailyChallenge.options.map((option, index) => (
+                    <button
+                      key={index}
+                      className="w-full text-left p-2 rounded-lg bg-[#2a2d36] hover:bg-gray-700 transition-colors text-gray-300 text-sm"
+                      disabled={dailyChallenge.completed}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+                {!dailyChallenge.completed && (
+                  <button
+                    onClick={completeDailyChallenge}
+                    className="bg-yellow-600 text-white px-3 py-2 rounded-lg hover:bg-yellow-700 transition-colors text-sm"
+                  >
+                    Submit Answer
+                  </button>
+                )}
+              </div>
+            </div>
+
             {/* Quiz Selection */}
             <div className="mb-12">
               <h2 className="text-2xl font-bold mb-6">Available Quizzes</h2>

@@ -1223,25 +1223,38 @@ Thank you for taking this course. Stay focused, keep learning, and enjoy the jou
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {course.modules.map((module) => (
-            <div
-              key={module.id}
-              onClick={() => handleModuleClick(module)}
-              className="bg-[#1F2127] rounded-xl p-6 hover:bg-[#252831] transition-all cursor-pointer transform hover:scale-105"
-            >
-              <h3 className="text-xl font-bold text-white mb-2">{module.title}</h3>
-              <p className="text-gray-400 mb-4">{module.description}</p>
-              <div className="flex justify-between items-center text-sm text-gray-400">
-                <span>{module.lessons.length} lessons</span>
-                <div className="flex items-center">
-                  <span className="mr-2">View Module</span>
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
+          {course.modules.map((module) => {
+            const completed = module.lessons.filter(l => l.completed).length;
+            const total = module.lessons.length;
+            const percent = Math.round((completed / total) * 100);
+            return (
+              <div
+                key={module.id}
+                onClick={() => handleModuleClick(module)}
+                className="bg-[#1F2127] rounded-xl p-6 hover:bg-[#252831] transition-all cursor-pointer transform hover:scale-105"
+              >
+                <h3 className="text-xl font-bold text-white mb-2">{module.title}</h3>
+                <p className="text-gray-400 mb-4">{module.description}</p>
+                <div className="flex justify-between items-center text-sm text-gray-400 mb-2">
+                  <span>{module.lessons.length} lessons</span>
+                  <div className="flex items-center">
+                    <span className="mr-2">View Module</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
                 </div>
+                {/* Progress Bar */}
+                <div className="h-2 bg-[#2a2d36] rounded-full overflow-hidden mb-2">
+                  <div
+                    className="h-full bg-gradient-to-r from-blue-500 to-blue-700 transition-all duration-500"
+                    style={{ width: `${percent}%` }}
+                  />
+                </div>
+                <div className="text-xs text-gray-400">{percent}% complete</div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
