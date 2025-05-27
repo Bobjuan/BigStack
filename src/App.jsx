@@ -14,6 +14,7 @@ import TournamentPage from './pages/game/TournamentPage';
 import DeepStackPage from './pages/game/DeepStackPage';
 import QuizPage from './pages/learn/QuizPage';
 import LearnPage from './pages/learn/LearnPage';
+import CoursePage from './pages/learn/CoursePage';
 import LessonCategoryPage from './pages/learn/LessonCategoryPage';
 import LessonPage from './pages/learn/LessonPage';
 import ProfilePage from './pages/ProfilePage';
@@ -105,6 +106,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <LearnPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/learn/course/:courseId"
+            element={
+              <ProtectedRoute>
+                <CoursePage />
               </ProtectedRoute>
             }
           />

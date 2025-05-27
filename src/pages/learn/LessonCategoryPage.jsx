@@ -117,7 +117,7 @@ const getLessonsForCategory = (categoryName) => {
     case 'game-theory':
       return gameTheoryLessons;
     case 'player-profiling':
-      return playerProfilingLessons;
+    return playerProfilingLessons;
     default:
       return [];
   }
@@ -137,27 +137,27 @@ const LessonCategoryPage = () => {
         <div className="mb-8">
           <Link to="/learn" className="text-gray-400 hover:text-white transition-colors duration-200 flex items-center">
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to Lesson Library
-          </Link>
-        </div>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Back to Lesson Library
+        </Link>
+      </div>
 
         <div className="text-center mb-12">
           <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-4 text-white">{formatCategoryName(categoryName)}</h1>
           <p className="text-lg sm:text-xl text-gray-300 max-w-3xl mx-auto">
             Master the essential concepts and strategies to improve your game.
           </p>
-        </div>
+      </div>
 
-        {lessons.length > 0 ? (
+      {lessons.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {lessons.map((lesson) => (
-              <Link
-                key={lesson.id}
-                to={`/learn/${categoryName}/${lesson.id}`}
+            <Link
+              key={lesson.id}
+              to={`/learn/${categoryName}/${lesson.id}`}
                 className="group bg-white rounded-xl p-5 sm:p-6 border border-white/10 hover:border-indigo-400/20 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-400/10"
-              >
+            >
                 <div className="flex items-start mb-3">
                   <span className="text-[#0F1115] mr-3">{lesson.icon}</span>
                   <div>
@@ -170,17 +170,17 @@ const LessonCategoryPage = () => {
                   <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
-                </div>
-              </Link>
-            ))}
-          </div>
-        ) : (
+              </div>
+            </Link>
+          ))}
+        </div>
+      ) : (
           <div className="text-center py-12">
             <div className="text-4xl mb-4">🚧</div>
             <h2 className="text-2xl font-bold text-white mb-2">Coming Soon!</h2>
             <p className="text-gray-400">We're working hard to bring you more lessons. Check back soon!</p>
-          </div>
-        )}
+        </div>
+      )}
       </div>
     </div>
   );

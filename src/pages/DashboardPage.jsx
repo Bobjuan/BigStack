@@ -120,10 +120,10 @@ const DashboardPage = () => {
       </div>
 
       {/* Main Content */}
-      <div className={`flex-1 transition-all duration-300 ${isSidebarOpen ? 'ml-64' : 'ml-20'}`}>
+      <div className={`flex-1 transition-all duration-300 ${isSidebarOpen ? 'ml-64' : 'ml-20'} flex flex-col h-screen`}>
         {/* Top Right Menu (visible when sidebar is collapsed) */}
         {!isSidebarOpen && (
-          <div className="fixed top-4 right-4 flex items-center space-x-4">
+          <div className="fixed top-4 right-4 flex items-center space-x-4 z-10">
             <Link
               to="/profile"
               className="bg-white text-black px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors hover:shadow-lg hover:shadow-indigo-500/40"
@@ -139,14 +139,15 @@ const DashboardPage = () => {
           </div>
         )}
 
-        {/* Dashboard Header */}
-        <div className="bg-black py-8 px-8 border-b-2 border-white">
+        {/* Dashboard Header - Always visible and sticky */}
+        <div className="bg-black py-8 px-8 border-b-2 border-white sticky top-0 z-20">
           <h2 className="text-3xl font-bold text-white mt-4 -mb-4">
             {profile?.username || 'Anonymous Player'}'s {!isSidebarOpen && 'BigStack '}Dashboard
           </h2>
         </div>
 
-        <div className="py-8 px-6 md:px-12">
+        {/* Content Area */}
+        <div className="flex-1 overflow-y-auto py-8 px-6 md:px-12">
           <div className="max-w-7xl mx-auto">
             {/* Upcoming Events Section */}
             <div className="mb-12">
