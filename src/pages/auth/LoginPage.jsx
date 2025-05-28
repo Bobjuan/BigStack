@@ -33,7 +33,7 @@ const LoginPage = () => {
       }
       const { error } = await signIn({ email: loginEmail, password });
       if (error) throw error;
-      navigate('/dashboard');
+      navigate('/play');
     } catch (error) {
       setError(error.message);
     } finally {
