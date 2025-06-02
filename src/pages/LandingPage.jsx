@@ -62,7 +62,7 @@ const LandingPage = () => {
     },
     {
       title: "Poker Solver",
-      description: "Access our powerful WASM-based poker solver for GTO analysis.",
+      description: "Access an open-source, powerful WASM-based poker solver for GTO analysis.",
       link: "https://wasm-postflop.pages.dev/"
     }
   ];
