@@ -59,6 +59,11 @@ const LandingPage = () => {
       title: "AI Review",
       description: "Get instant feedback on your play with our advanced AI analysis.",
       link: "/gto-trainer"
+    },
+    {
+      title: "Poker Solver",
+      description: "Access our powerful WASM-based poker solver for GTO analysis.",
+      link: "https://wasm-postflop.pages.dev/"
     }
   ];
 
@@ -134,14 +139,27 @@ const LandingPage = () => {
                       }}
                     >
                       {productDropdown.map((feature, idx) => (
-                        <Link
-                          key={feature.title}
-                          to={feature.link}
-                          className="flex-1 min-w-[0] max-w-[180px] px-3 py-2 rounded-lg hover:bg-white/5 transition-colors duration-150"
-                        >
-                          <div className="mb-1 text-base font-semibold text-white whitespace-normal break-words">{feature.title}</div>
-                          <div className="text-gray-400 text-xs leading-snug whitespace-normal break-words">{feature.description}</div>
-                        </Link>
+                        feature.link.startsWith('http') ? (
+                          <a
+                            key={feature.title}
+                            href={feature.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-1 min-w-[0] max-w-[180px] px-3 py-2 rounded-lg hover:bg-white/5 transition-colors duration-150"
+                          >
+                            <div className="mb-1 text-base font-semibold text-white whitespace-normal break-words">{feature.title}</div>
+                            <div className="text-gray-400 text-xs leading-snug whitespace-normal break-words">{feature.description}</div>
+                          </a>
+                        ) : (
+                          <Link
+                            key={feature.title}
+                            to={feature.link}
+                            className="flex-1 min-w-[0] max-w-[180px] px-3 py-2 rounded-lg hover:bg-white/5 transition-colors duration-150"
+                          >
+                            <div className="mb-1 text-base font-semibold text-white whitespace-normal break-words">{feature.title}</div>
+                            <div className="text-gray-400 text-xs leading-snug whitespace-normal break-words">{feature.description}</div>
+                          </Link>
+                        )
                       ))}
                     </div>
                   )}

@@ -24,6 +24,7 @@ import PricingPage from './pages/PricingPage';
 import ProductPage from './pages/ProductPage';
 import ResourcesPage from './pages/ResourcesPage';
 import CustomersPage from './pages/CustomersPage';
+import Solver from './pages/Solver';
 
 function App() {
   return (
@@ -37,6 +38,7 @@ function App() {
           <Route path="/pricing" element={<PricingPage />} />
           <Route path="/product" element={<ProductPage />} />
           <Route path="/resources" element={<ResourcesPage />} />
+          <Route path="/solver" element={<Solver />} />
           <Route
             path="/dashboard"
             element={
