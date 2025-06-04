@@ -24,6 +24,8 @@ import PricingPage from './pages/PricingPage';
 import ProductPage from './pages/ProductPage';
 import ResourcesPage from './pages/ResourcesPage';
 import CustomersPage from './pages/CustomersPage';
+import PracticeMenuPage from './pages/learn/practice/PracticeMenuPage';
+import PracticeScenarioPage from './pages/learn/practice/PracticeScenarioPage';
 
 function App() {
   return (
@@ -150,6 +152,8 @@ function App() {
             }
           />
           <Route path="/customers" element={<CustomersPage />} />
+          <Route path="/learn/practice" element={<PracticeMenuPage />} />
+          <Route path="/learn/practice/:scenarioId" element={<PracticeScenarioPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>

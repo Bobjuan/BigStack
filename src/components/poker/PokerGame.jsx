@@ -148,17 +148,17 @@ const evaluateHand = (holeCards, communityCards) => {
     }
 };
 
-function PokerGame() {
+function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = null }) {
     const [numPlayers, setNumPlayers] = useState(initialGameState.numPlayers);
     const [gameState, setGameState] = useState(() => {
         let state = JSON.parse(JSON.stringify(initialGameState));
         state.numPlayers = numPlayers;
         return startNewHand(state);
     });
-    const [isTestMode, setIsTestMode] = useState(false);
-    const [showAllCards, setShowAllCards] = useState(false);
+    const [isTestMode, setIsTestMode] = useState(isPracticeMode);
+    const [showAllCards, setShowAllCards] = useState(isPracticeMode);
     const [showSettings, setShowSettings] = useState(false);
-    const [tableTheme, setTableTheme] = useState('dark'); // 'dark', 'light', or 'classic'
+    const [tableTheme, setTableTheme] = useState('dark');
     const tableRef = useRef(null);
     const [tableDimensions, setTableDimensions] = useState({ width: 0, height: 0 });
 
@@ -185,6 +185,23 @@ function PokerGame() {
             observer.unobserve(tableElement);
         };
     }, []);
+
+    // Initialize game state with scenario setup if in practice mode
+    useEffect(() => {
+        if (isPracticeMode && scenarioSetup) {
+            setGameState(prevState => {
+                const newState = JSON.parse(JSON.stringify(prevState));
+                // Apply all scenario setup properties
+                Object.keys(scenarioSetup).forEach(key => {
+                    newState[key] = scenarioSetup[key];
+                });
+                return newState;
+            });
+            // Ensure test mode is enabled in practice mode
+            setIsTestMode(true);
+            setShowAllCards(true);
+        }
+    }, [isPracticeMode, scenarioSetup]);
 
     function startNewHand(currentState) {
         if (currentState.players.length !== currentState.numPlayers) {
@@ -588,125 +605,145 @@ function PokerGame() {
         return state;
     }
 
-    // ----- Action Handlers -----
+    // Modify action handlers to support practice mode
     const handleAction = useCallback((actionFn) => {
-        setGameState(prevState => {
-            if (prevState.currentBettingRound === GamePhase.HAND_OVER) return prevState;
-            
-            let stateAfterAction = actionFn(JSON.parse(JSON.stringify(prevState)));
+        // Get the action name and amount before executing
+        const actionName = actionFn.name.replace('handle', '').toUpperCase();
+        const amount = actionFn.amount;
 
-            const nonFolded = stateAfterAction.players.filter(p => !p.isFolded);
-            if (nonFolded.length === 1) {
-                return awardPot(stateAfterAction);
-            }
+        // Execute the action to get the new state
+        const newState = actionFn.execute(JSON.parse(JSON.stringify(gameState)));
 
-            if (checkRoundCompletion(stateAfterAction)) {
-                return advanceToNextRound(stateAfterAction);
-            } else {
-                return progressTurn(stateAfterAction);
-            }
-        });
-    }, []);
+        if (isPracticeMode && onAction) {
+            // In practice mode, notify parent component of action
+            onAction(actionName, amount);
+            // Also update the game state to show the action
+            setGameState(newState);
+        } else {
+            // Normal game mode logic
+            setGameState(prevState => {
+                if (prevState.currentBettingRound === GamePhase.HAND_OVER) return prevState;
+                
+                let stateAfterAction = actionFn.execute(JSON.parse(JSON.stringify(prevState)));
+
+                const nonFolded = stateAfterAction.players.filter(p => !p.isFolded);
+                if (nonFolded.length === 1) {
+                    return awardPot(stateAfterAction);
+                }
+
+                if (checkRoundCompletion(stateAfterAction)) {
+                    return advanceToNextRound(stateAfterAction);
+                } else {
+                    return progressTurn(stateAfterAction);
+                }
+            });
+        }
+    }, [isPracticeMode, onAction, gameState]);
 
     const handleCheck = useCallback(() => {
-        handleAction(prevState => {
-            const playerIndex = prevState.currentPlayerIndex;
-            const player = prevState.players[playerIndex];
+        handleAction({
+            name: 'Check',
+            amount: 0,
+            execute: (prevState) => {
+                const playerIndex = prevState.currentPlayerIndex;
+                const player = prevState.players[playerIndex];
 
-            if (player.currentBet < prevState.currentHighestBet) {
-                return { ...prevState, message: "Cannot check, must call, raise, or fold." };
+                if (player.currentBet < prevState.currentHighestBet) {
+                    return { ...prevState, message: "Cannot check, must call, raise, or fold." };
+                }
+                
+                const newState = JSON.parse(JSON.stringify(prevState));
+                newState.players[playerIndex].hasActedThisRound = true;
+                newState.players[playerIndex].isTurn = false;
+                return newState;
             }
-            
-            const newState = JSON.parse(JSON.stringify(prevState));
-            newState.players[playerIndex].hasActedThisRound = true;
-            newState.players[playerIndex].isTurn = false;
-            return newState;
         });
     }, [handleAction]);
 
     const handleCall = useCallback(() => {
-        handleAction(prevState => {
-            const playerIndex = prevState.currentPlayerIndex;
-            const player = prevState.players[playerIndex];
-            const callAmount = prevState.currentHighestBet - player.currentBet;
+        handleAction({
+            name: 'Call',
+            execute: (prevState) => {
+                const playerIndex = prevState.currentPlayerIndex;
+                const player = prevState.players[playerIndex];
+                const callAmount = prevState.currentHighestBet - player.currentBet;
 
-            if (callAmount <= 0) {
-                return { ...prevState, message: "Cannot call, action is to check." };
-            }
+                if (callAmount <= 0) {
+                    return { ...prevState, message: "Cannot call, action is to check." };
+                }
 
-            const newState = JSON.parse(JSON.stringify(prevState));
-            const actualCallAmount = Math.min(callAmount, player.stack);
-            const isAllIn = actualCallAmount === player.stack;
-            
-            newState.players[playerIndex].stack -= actualCallAmount;
-            newState.players[playerIndex].currentBet += actualCallAmount;
-            newState.players[playerIndex].totalBetInHand += actualCallAmount;
-            newState.players[playerIndex].isAllIn = isAllIn;
-            newState.players[playerIndex].hasActedThisRound = true;
-            newState.players[playerIndex].isTurn = false;
-            newState.pot += actualCallAmount;
-            
-            return newState;
+                const newState = JSON.parse(JSON.stringify(prevState));
+                const actualCallAmount = Math.min(callAmount, player.stack);
+                const isAllIn = actualCallAmount === player.stack;
+                
+                newState.players[playerIndex].stack -= actualCallAmount;
+                newState.players[playerIndex].currentBet += actualCallAmount;
+                newState.players[playerIndex].totalBetInHand += actualCallAmount;
+                newState.players[playerIndex].isAllIn = isAllIn;
+                newState.players[playerIndex].hasActedThisRound = true;
+                newState.players[playerIndex].isTurn = false;
+                newState.pot += actualCallAmount;
+                
+                return newState;
+            },
+            amount: gameState.currentHighestBet - (gameState.players[gameState.currentPlayerIndex]?.currentBet || 0)
         });
-    }, [handleAction]);
+    }, [handleAction, gameState]);
 
     const handleBet = useCallback((amount) => {
-        handleAction(prevState => {
-            const playerIndex = prevState.currentPlayerIndex;
-            const player = prevState.players[playerIndex];
-            const currentBet = player.currentBet || 0;
-            const totalBetAmount = currentBet + amount;
-            const raiseAmount = totalBetAmount - prevState.currentHighestBet;
+        handleAction({
+            name: 'Raise',
+            amount,
+            execute: (prevState) => {
+                const playerIndex = prevState.currentPlayerIndex;
+                const player = prevState.players[playerIndex];
+                const currentBet = player.currentBet || 0;
+                const totalBetAmount = currentBet + amount;
+                const raiseAmount = totalBetAmount - prevState.currentHighestBet;
 
-            if (amount <= 0) return { ...prevState, message: "Bet amount must be positive." };
-            if (amount > player.stack) return { ...prevState, message: "Not enough chips." };
-            
-            const minNewTotalBet = prevState.currentHighestBet + prevState.minRaiseAmount;
-            const minChipsToAdd = Math.max(1, minNewTotalBet - currentBet);
-            const maxChipsToAdd = player.stack;
+                if (amount <= 0) return { ...prevState, message: "Bet amount must be positive." };
+                if (amount > player.stack) return { ...prevState, message: "Not enough chips." };
+                
+                const minNewTotalBet = prevState.currentHighestBet + prevState.minRaiseAmount;
+                const minChipsToAdd = Math.max(1, minNewTotalBet - currentBet);
+                const maxChipsToAdd = player.stack;
 
-            if (amount < minChipsToAdd && amount < maxChipsToAdd) {
-                return { ...prevState, message: `Min bet/raise: add ${minChipsToAdd} chips.` };
+                if (amount < minChipsToAdd && amount < maxChipsToAdd) {
+                    return { ...prevState, message: `Min bet/raise: add ${minChipsToAdd} chips.` };
+                }
+                
+                const newState = JSON.parse(JSON.stringify(prevState));
+                newState.players[playerIndex].stack -= amount;
+                newState.players[playerIndex].currentBet += amount;
+                newState.players[playerIndex].totalBetInHand += amount;
+                newState.players[playerIndex].isAllIn = amount === player.stack;
+                newState.players[playerIndex].hasActedThisRound = true;
+                newState.players[playerIndex].isTurn = false;
+                newState.pot += amount;
+
+                newState.currentHighestBet = totalBetAmount;
+                newState.lastAggressorIndex = playerIndex;
+                if (!newState.players[playerIndex].isAllIn || raiseAmount >= prevState.minRaiseAmount) { 
+                    newState.minRaiseAmount = raiseAmount > 0 ? raiseAmount : prevState.minRaiseAmount;
+                }
+                
+                return newState;
             }
-            
-            const newState = JSON.parse(JSON.stringify(prevState));
-            newState.players[playerIndex].stack -= amount;
-            newState.players[playerIndex].currentBet += amount;
-            newState.players[playerIndex].totalBetInHand += amount;
-            newState.players[playerIndex].isAllIn = amount === player.stack;
-            newState.players[playerIndex].hasActedThisRound = true;
-            newState.players[playerIndex].isTurn = false;
-            newState.pot += amount;
-
-            newState.currentHighestBet = totalBetAmount;
-            newState.lastAggressorIndex = playerIndex;
-            if (!newState.players[playerIndex].isAllIn || raiseAmount >= prevState.minRaiseAmount) { 
-                newState.minRaiseAmount = raiseAmount > 0 ? raiseAmount : prevState.minRaiseAmount;
-            }
-            
-            let closingIdx = (playerIndex - 1 + newState.players.length) % newState.players.length;
-            let guard = 0;
-            while(newState.players[closingIdx].isFolded || newState.players[closingIdx].isAllIn) {
-                closingIdx = (closingIdx - 1 + newState.players.length) % newState.players.length;
-                guard++;
-                if (guard > newState.players.length * 2) break;
-            }
-            newState.actionClosingPlayerIndex = closingIdx;
-
-            return newState;
         });
     }, [handleAction]);
 
     const handleFold = useCallback(() => {
-        handleAction(prevState => {
-            const playerIndex = prevState.currentPlayerIndex;
-            const player = prevState.players[playerIndex];
-
-            const newState = JSON.parse(JSON.stringify(prevState));
-            newState.players[playerIndex].isFolded = true;
-            newState.players[playerIndex].hasActedThisRound = true;
-            newState.players[playerIndex].isTurn = false;
-            return newState;
+        handleAction({
+            name: 'Fold',
+            amount: 0,
+            execute: (prevState) => {
+                const playerIndex = prevState.currentPlayerIndex;
+                const newState = JSON.parse(JSON.stringify(prevState));
+                newState.players[playerIndex].isFolded = true;
+                newState.players[playerIndex].hasActedThisRound = true;
+                newState.players[playerIndex].isTurn = false;
+                return newState;
+            }
         });
     }, [handleAction]);
 
@@ -864,246 +901,253 @@ function PokerGame() {
 
     return (
         <div className="poker-wrapper w-full h-full fixed inset-0" style={{backgroundColor:'#111111',display:'flex',alignItems:'center',justifyContent:'center'}}>
-          <div
-            ref={tableRef}
-            className="poker-table relative overflow-hidden"
-            style={getTableStyle()}
-          >
-            {/* Game Info - Top Left */}
-            <div className="absolute top-4 left-4 z-20 text-left max-w-xs">
-                 <h2 className={`text-sm font-bold ${tableTheme === 'light' ? 'text-gray-800' : 'text-gray-200'}`}>{`Round: ${gameState.currentBettingRound}`}</h2>
-                 <p className={`text-xs ${tableTheme === 'light' ? 'text-gray-800' : 'text-yellow-300'} h-auto`}>{gameState.message || ' '}</p>
-            </div>
+            {/* Add practice mode UI elements if needed */}
+            {isPracticeMode && (
+                <div className="absolute top-0 left-0 z-50 bg-blue-500 text-white px-4 py-2">
+                    Practice Mode
+                </div>
+            )}
+            
+            <div
+                ref={tableRef}
+                className="poker-table relative overflow-hidden"
+                style={getTableStyle()}
+            >
+                {/* Game Info - Top Left */}
+                <div className="absolute top-4 left-4 z-20 text-left max-w-xs">
+                    <h2 className={`text-sm font-bold ${tableTheme === 'light' ? 'text-gray-800' : 'text-gray-200'}`}>{`Round: ${gameState.currentBettingRound}`}</h2>
+                    <p className={`text-xs ${tableTheme === 'light' ? 'text-gray-800' : 'text-yellow-300'} h-auto`}>{gameState.message || ' '}</p>
+                </div>
 
-            {/* Test Mode / Player Count Controls - Top Right */}
-            <div className="absolute top-4 right-4 z-20 flex flex-col items-end space-y-1">
-                 {/* Test Mode Buttons */}
-                <div className="flex space-x-2">
-                    <button
-                        onClick={() => setIsTestMode(prev => !prev)}
-                        className={`px-3 py-1 text-xs rounded ${isTestMode ? 'bg-red-600' : 'bg-gray-600'} hover:bg-gray-500 text-white`}
-                    >
-                        Test Mode: {isTestMode ? 'ON' : 'OFF'}
-                    </button>
-                    {isTestMode && (
+                {/* Test Mode / Player Count Controls - Top Right */}
+                <div className="absolute top-4 right-4 z-20 flex flex-col items-end space-y-1">
+                    {/* Test Mode Buttons */}
+                    <div className="flex space-x-2">
                         <button
-                            onClick={() => setShowAllCards(prev => !prev)}
-                            className={`px-3 py-1 text-xs rounded ${showAllCards ? 'bg-blue-600' : 'bg-gray-600'} hover:bg-gray-500 text-white`}
+                            onClick={() => setIsTestMode(prev => !prev)}
+                            className={`px-3 py-1 text-xs rounded ${isTestMode ? 'bg-red-600' : 'bg-gray-600'} hover:bg-gray-500 text-white`}
                         >
-                            Show Cards: {showAllCards ? 'ON' : 'OFF'}
+                            Test Mode: {isTestMode ? 'ON' : 'OFF'}
                         </button>
-                    )}
-                 </div>
-                 {/* Player Count Selection */}
-                 <div className="flex space-x-1 items-center">
-                    <span className={`text-xs ${tableTheme === 'light' ? 'text-gray-800' : 'text-gray-400'} mr-1`}>Players:</span>
-                    {[2, 6, 9].map(count => (
-                        <button
-                            key={count}
-                            onClick={() => handleSetNumPlayers(count)}
-                            className={`px-2 py-0.5 text-xs rounded ${numPlayers === count ? 'bg-green-700' : 'bg-gray-600'} hover:bg-gray-500 text-white`}
-                        >
-                            {count}
-                        </button>
-                    ))}
-                 </div>
-            </div>
-
-            {/* Central Area for Community Cards & Pot */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none">
-                <CommunityCards cards={gameState.communityCards} />
-                {/* Display Main Pot OR Calculated Pots at Showdown/End */}
-                {gameState.calculatedPots.length === 0 ? (
-                    <PotDisplay amount={gameState.pot} label="Pot" />
-                ) : (
-                    <div className="flex flex-col items-center space-y-1">
-                        {gameState.calculatedPots.map((pot, index) => (
-                             <PotDisplay
-                                key={index}
-                                amount={pot.amount}
-                                label={gameState.calculatedPots.length > 1 && index > 0 ? `Side Pot ${index}` : 'Main Pot'}
-                                subtext={pot.winnerHandDescr}
-                              />
+                        {isTestMode && (
+                            <button
+                                onClick={() => setShowAllCards(prev => !prev)}
+                                className={`px-3 py-1 text-xs rounded ${showAllCards ? 'bg-blue-600' : 'bg-gray-600'} hover:bg-gray-500 text-white`}
+                            >
+                                Show Cards: {showAllCards ? 'ON' : 'OFF'}
+                            </button>
+                        )}
+                    </div>
+                    {/* Player Count Selection */}
+                    <div className="flex space-x-1 items-center">
+                        <span className={`text-xs ${tableTheme === 'light' ? 'text-gray-800' : 'text-gray-400'} mr-1`}>Players:</span>
+                        {[2, 6, 9].map(count => (
+                            <button
+                                key={count}
+                                onClick={() => handleSetNumPlayers(count)}
+                                className={`px-2 py-0.5 text-xs rounded ${numPlayers === count ? 'bg-green-700' : 'bg-gray-600'} hover:bg-gray-500 text-white`}
+                            >
+                                {count}
+                            </button>
                         ))}
                     </div>
-                 )}
-            </div>
+                </div>
 
-            {/* Players Area - Render Player Info and Hand separately */}
-             <div className="players-area absolute inset-0 w-full h-full z-0">
-                {gameState.players.map((player, index) => {
-                    const { infoStyle, cardStyle, betStyle, cardWidth: currentPlayerCardWidth } = getPlayerPosition(index, gameState.players.length, tableDimensions.width, tableDimensions.height);
-
-                    // Determine combined classes for styling the info box
-                    const infoClasses = [
-                        'player-info-container relative p-1 border rounded',
-                        'transition-all duration-300',
-                        player.isTurn ? 'border-yellow-400 ring-4 ring-yellow-300 ring-opacity-50' : 'border-gray-700 bg-gray-900 bg-opacity-80',
-                        tableTheme === 'light' ? 'text-black bg-white bg-opacity-90' : 'text-white'
-                    ].filter(Boolean).join(' ');
-
-                    return (
-                        <React.Fragment key={player.id}>
-                            {/* Player Hand (Cards) - Positioned Separately */}
-                            <div style={cardStyle} className={`${player.isFolded ? 'opacity-30 grayscale' : ''}`}>
-                                <PlayerHand 
-                                    cards={player.cards} 
-                                    showAll={player.id === 'player1' || (isTestMode && showAllCards)}
+                {/* Central Area for Community Cards & Pot */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none">
+                    <CommunityCards cards={gameState.communityCards} />
+                    {/* Display Main Pot OR Calculated Pots at Showdown/End */}
+                    {gameState.calculatedPots.length === 0 ? (
+                        <PotDisplay amount={gameState.pot} label="Pot" />
+                    ) : (
+                        <div className="flex flex-col items-center space-y-1">
+                            {gameState.calculatedPots.map((pot, index) => (
+                                <PotDisplay
+                                    key={index}
+                                    amount={pot.amount}
+                                    label={gameState.calculatedPots.length > 1 && index > 0 ? `Side Pot ${index}` : 'Main Pot'}
+                                    subtext={pot.winnerHandDescr}
                                 />
-                            </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
 
-                            {/* Player Info Box - Positioned Separately */}
-                            <div style={infoStyle} className={infoClasses}>
-                                {/* Status Overlay (Folded / All-In) - Inside info container */}
-                                {(player.isFolded || player.isAllIn) && (
-                                    <div className="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center z-20 rounded">
-                                        <span className={`font-bold text-lg ${player.isAllIn ? 'text-red-500' : 'text-gray-400'}`}>
-                                            {player.isAllIn ? 'ALL-IN' : 'FOLDED'}
+                {/* Players Area - Render Player Info and Hand separately */}
+                <div className="players-area absolute inset-0 w-full h-full z-0">
+                    {gameState.players.map((player, index) => {
+                        const { infoStyle, cardStyle, betStyle, cardWidth: currentPlayerCardWidth } = getPlayerPosition(index, gameState.players.length, tableDimensions.width, tableDimensions.height);
+
+                        // Determine combined classes for styling the info box
+                        const infoClasses = [
+                            'player-info-container relative p-1 border rounded',
+                            'transition-all duration-300',
+                            player.isTurn ? 'border-yellow-400 ring-4 ring-yellow-300 ring-opacity-50' : 'border-gray-700 bg-gray-900 bg-opacity-80',
+                            tableTheme === 'light' ? 'text-black bg-white bg-opacity-90' : 'text-white'
+                        ].filter(Boolean).join(' ');
+
+                        return (
+                            <React.Fragment key={player.id}>
+                                {/* Player Hand (Cards) - Positioned Separately */}
+                                <div style={cardStyle} className={`${player.isFolded ? 'opacity-30 grayscale' : ''}`}>
+                                    <PlayerHand 
+                                        cards={player.cards} 
+                                        showAll={player.id === 'player1' || (isTestMode && showAllCards)}
+                                    />
+                                </div>
+
+                                {/* Player Info Box - Positioned Separately */}
+                                <div style={infoStyle} className={infoClasses}>
+                                    {/* Status Overlay (Folded / All-In) - Inside info container */}
+                                    {(player.isFolded || player.isAllIn) && (
+                                        <div className="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center z-20 rounded">
+                                            <span className={`font-bold text-lg ${player.isAllIn ? 'text-red-500' : 'text-gray-400'}`}>
+                                                {player.isAllIn ? 'ALL-IN' : 'FOLDED'}
+                                            </span>
+                                        </div>
+                                    )}
+                                    
+                                    {/* Dealer Chip - Position relative to info container */}
+                                    {player.isDealer && (() => {
+                                        const dealerChipSize = currentPlayerCardWidth * 0.4; // Example: 40% of card width
+                                        const dealerChipOffset = dealerChipSize * 0.4;    // Example: offset by 40% of its own size
+                                        return (
+                                            <img
+                                                src={dealerChip}
+                                                alt="Dealer Button"
+                                                style={{
+                                                    position: 'absolute',
+                                                    width: `${dealerChipSize}px`,
+                                                    height: `${dealerChipSize}px`,
+                                                    top: `-${dealerChipOffset}px`,
+                                                    right: `-${dealerChipOffset}px`,
+                                                    zIndex: 30,
+                                                }}
+                                            />
+                                        );
+                                    })()}
+                                    
+                                    {/* Actual Player Info Component */}
+                                    <PlayerInfo
+                                        position={player.positionName}
+                                        stack={player.stack}
+                                        isTurn={player.isTurn}
+                                    />
+                                </div>
+                                
+                                {/* Player Bet Amount - Positioned Separately */}
+                                {player.currentBet > 0 && !player.isFolded && (
+                                    <div style={betStyle} className="player-bet-amount">
+                                        <span className="bg-gray-700 text-yellow-300 text-xs font-bold rounded-full px-2 py-0.5 shadow-md border border-yellow-600">
+                                            {player.currentBet}
                                         </span>
                                     </div>
                                 )}
-                                
-                                {/* Dealer Chip - Position relative to info container */}
-                                {player.isDealer && (() => {
-                                    const dealerChipSize = currentPlayerCardWidth * 0.4; // Example: 40% of card width
-                                    const dealerChipOffset = dealerChipSize * 0.4;    // Example: offset by 40% of its own size
-                                    return (
-                                        <img
-                                            src={dealerChip}
-                                            alt="Dealer Button"
-                                            style={{
-                                                position: 'absolute',
-                                                width: `${dealerChipSize}px`,
-                                                height: `${dealerChipSize}px`,
-                                                top: `-${dealerChipOffset}px`,
-                                                right: `-${dealerChipOffset}px`,
-                                                zIndex: 30,
-                                            }}
-                                        />
-                                    );
-                                })()}
-                                
-                                {/* Actual Player Info Component */}
-                                <PlayerInfo
-                                    position={player.positionName}
-                                    stack={player.stack}
-                                    isTurn={player.isTurn}
-                                />
-                            </div>
-                            
-                            {/* Player Bet Amount - Positioned Separately */}
-                            {player.currentBet > 0 && !player.isFolded && (
-                                <div style={betStyle} className="player-bet-amount">
-                                    <span className="bg-gray-700 text-yellow-300 text-xs font-bold rounded-full px-2 py-0.5 shadow-md border border-yellow-600">
-                                        {player.currentBet}
-                                    </span>
-                                </div>
-                            )}
-                        </React.Fragment>
-                    );
-                })}
-            </div>
+                            </React.Fragment>
+                        );
+                    })}
+                </div>
 
-            {/* Action Buttons Container - Bottom Right */}
-             <div className="absolute bottom-4 right-4 z-20 flex flex-col items-end space-y-2">
-                 {/* Settings Button */}
-                 <button
-                     onClick={() => setShowSettings(true)}
-                     className="bg-[#2f3542] text-white p-2 rounded-lg hover:bg-[#3a4052] transition-colors duration-200 flex items-center space-x-2"
-                 >
-                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                         <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
-                         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                     </svg>
-                     <span>Settings</span>
-                 </button>
+                {/* Action Buttons Container - Bottom Right */}
+                <div className="absolute bottom-4 right-4 z-20 flex flex-col items-end space-y-2">
+                    {/* Settings Button */}
+                    <button
+                        onClick={() => setShowSettings(true)}
+                        className="bg-[#2f3542] text-white p-2 rounded-lg hover:bg-[#3a4052] transition-colors duration-200 flex items-center space-x-2"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                        </svg>
+                        <span>Settings</span>
+                    </button>
 
-                 {currentPlayer && (isTestMode || currentPlayer.id === 'player1') && gameState.currentBettingRound !== GamePhase.HAND_OVER && (
-                     <ActionButtons
-                        onCheck={handleCheck} 
-                        onCall={handleCall} 
-                        onBet={handleBet} 
-                        onFold={handleFold} 
-                        canCheck={canCheck}
-                        canCall={canCall}
-                        callAmount={callAmount}
-                        canBet={canBetRender}
-                        minBetAmount={minChipsToAddRender} 
-                        maxBetAmount={maxChipsToAddRender} 
-                        potSize={gameState.pot}
-                     />
-                 )}
+                    {currentPlayer && (isTestMode || currentPlayer.id === 'player1') && gameState.currentBettingRound !== GamePhase.HAND_OVER && (
+                        <ActionButtons
+                            onCheck={handleCheck} 
+                            onCall={handleCall} 
+                            onBet={handleBet} 
+                            onFold={handleFold} 
+                            canCheck={canCheck}
+                            canCall={canCall}
+                            callAmount={callAmount}
+                            canBet={canBetRender}
+                            minBetAmount={minChipsToAddRender} 
+                            maxBetAmount={maxChipsToAddRender} 
+                            potSize={gameState.pot}
+                        />
+                    )}
 
-                 {/* Waiting Message - Below Buttons in Bottom Right */}
-                 {currentPlayer && currentPlayer.id !== 'player1' && !isTestMode && gameState.currentBettingRound !== GamePhase.HAND_OVER && (
-                     <p className={`text-right text-xs mt-1 ${tableTheme === 'light' ? 'text-gray-800' : 'text-gray-400'}`}>
-                         Waiting for {currentPlayer.name}'s action...
-                     </p>
-                 )}
+                    {/* Waiting Message - Below Buttons in Bottom Right */}
+                    {currentPlayer && currentPlayer.id !== 'player1' && !isTestMode && gameState.currentBettingRound !== GamePhase.HAND_OVER && (
+                        <p className={`text-right text-xs mt-1 ${tableTheme === 'light' ? 'text-gray-800' : 'text-gray-400'}`}>
+                            Waiting for {currentPlayer.name}'s action...
+                        </p>
+                    )}
 
-                 {/* Start Next Hand Button - Below Buttons in Bottom Right */}
-                 {gameState.currentBettingRound === GamePhase.HAND_OVER && (
-                     <div>
-                         <button
-                             onClick={() => setGameState(prevState => startNewHand(JSON.parse(JSON.stringify(prevState))))}
-                             className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded mt-2"
-                         >
-                             Start Next Hand
-                         </button>
-                     </div>
-                 )}
-            </div>
-
-            {/* Settings Modal */}
-            {showSettings && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"> {/* Added p-4 for some spacing on small screens */}
-                    <div className="bg-[#2f3542] rounded-lg p-6 w-[90vw] max-w-sm"> {/* Responsive width */}
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-xl font-semibold text-white">Table Settings</h2>
-                            <button onClick={() => setShowSettings(false)} className="text-gray-400 hover:text-white">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                </svg>
+                    {/* Start Next Hand Button - Below Buttons in Bottom Right */}
+                    {gameState.currentBettingRound === GamePhase.HAND_OVER && (
+                        <div>
+                            <button
+                                onClick={() => setGameState(prevState => startNewHand(JSON.parse(JSON.stringify(prevState))))}
+                                className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded mt-2"
+                            >
+                                Start Next Hand
                             </button>
                         </div>
-                        
-                        {/* Theme Options */}
-                        <div className="space-y-4">
-                            <h3 className="text-lg font-medium text-gray-300 mb-3">Table Theme</h3>
-                            <div className="space-y-3">
-                                <button
-                                    onClick={() => setTableTheme('dark')}
-                                    className={`w-full p-3 rounded-lg bg-[#1b1f2b] hover:bg-[#2a2f3d] transition-colors flex items-center justify-between ${
-                                        tableTheme === 'dark' ? 'ring-2 ring-indigo-500' : ''
-                                    }`}
-                                >
-                                    <span className="text-white">Dark Mode</span>
-                                    <div className={`w-6 h-6 rounded-full border-2 ${tableTheme === 'dark' ? 'bg-indigo-500 border-indigo-500' : 'border-gray-400'}`}></div>
+                    )}
+                </div>
+
+                {/* Settings Modal */}
+                {showSettings && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"> {/* Added p-4 for some spacing on small screens */}
+                        <div className="bg-[#2f3542] rounded-lg p-6 w-[90vw] max-w-sm"> {/* Responsive width */}
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-xl font-semibold text-white">Table Settings</h2>
+                                <button onClick={() => setShowSettings(false)} className="text-gray-400 hover:text-white">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
                                 </button>
-                                <button
-                                    onClick={() => setTableTheme('light')}
-                                    className={`w-full p-3 rounded-lg bg-white text-black hover:bg-gray-100 transition-colors flex items-center justify-between ${
-                                        tableTheme === 'light' ? 'ring-2 ring-indigo-500' : ''
-                                    }`}
-                                >
-                                    <span>Light Mode</span>
-                                    <div className={`w-6 h-6 rounded-full border-2 ${tableTheme === 'light' ? 'bg-indigo-500 border-indigo-500' : 'border-gray-400'}`}></div>
-                                </button>
-                                <button
-                                    onClick={() => setTableTheme('classic')}
-                                    className={`w-full p-3 rounded-lg bg-gradient-to-br from-green-700 to-green-900 hover:from-green-600 hover:to-green-800 transition-colors flex items-center justify-between ${
-                                        tableTheme === 'classic' ? 'ring-2 ring-indigo-500' : ''
-                                    }`}
-                                >
-                                    <span className="text-white">Classic (Green Felt)</span>
-                                    <div className={`w-6 h-6 rounded-full border-2 ${tableTheme === 'classic' ? 'bg-indigo-500 border-indigo-500' : 'border-gray-400'}`}></div>
-                                </button>
+                            </div>
+                            
+                            {/* Theme Options */}
+                            <div className="space-y-4">
+                                <h3 className="text-lg font-medium text-gray-300 mb-3">Table Theme</h3>
+                                <div className="space-y-3">
+                                    <button
+                                        onClick={() => setTableTheme('dark')}
+                                        className={`w-full p-3 rounded-lg bg-[#1b1f2b] hover:bg-[#2a2f3d] transition-colors flex items-center justify-between ${
+                                            tableTheme === 'dark' ? 'ring-2 ring-indigo-500' : ''
+                                        }`}
+                                    >
+                                        <span className="text-white">Dark Mode</span>
+                                        <div className={`w-6 h-6 rounded-full border-2 ${tableTheme === 'dark' ? 'bg-indigo-500 border-indigo-500' : 'border-gray-400'}`}></div>
+                                    </button>
+                                    <button
+                                        onClick={() => setTableTheme('light')}
+                                        className={`w-full p-3 rounded-lg bg-white text-black hover:bg-gray-100 transition-colors flex items-center justify-between ${
+                                            tableTheme === 'light' ? 'ring-2 ring-indigo-500' : ''
+                                        }`}
+                                    >
+                                        <span>Light Mode</span>
+                                        <div className={`w-6 h-6 rounded-full border-2 ${tableTheme === 'light' ? 'bg-indigo-500 border-indigo-500' : 'border-gray-400'}`}></div>
+                                    </button>
+                                    <button
+                                        onClick={() => setTableTheme('classic')}
+                                        className={`w-full p-3 rounded-lg bg-gradient-to-br from-green-700 to-green-900 hover:from-green-600 hover:to-green-800 transition-colors flex items-center justify-between ${
+                                            tableTheme === 'classic' ? 'ring-2 ring-indigo-500' : ''
+                                        }`}
+                                    >
+                                        <span className="text-white">Classic (Green Felt)</span>
+                                        <div className={`w-6 h-6 rounded-full border-2 ${tableTheme === 'classic' ? 'bg-indigo-500 border-indigo-500' : 'border-gray-400'}`}></div>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
-          </div>
+                )}
+            </div>
         </div>
     );
 }

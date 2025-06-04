@@ -616,80 +616,94 @@ const LessonPage = () => {
 
   if (!lesson) {
     return (
-      <div className="min-h-screen bg-black text-white p-6">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-2xl font-bold mb-4">Lesson Not Found</h1>
-          <p className="mb-4">The requested lesson could not be found.</p>
-          <button
-            onClick={() => navigate(`/learn/${categoryName}`)}
-            className="bg-white text-black px-4 py-2 rounded-lg hover:bg-indigo-100 transition-colors duration-200"
-          >
-            Back to Category
-          </button>
-        </div>
+      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
+        <div>Lesson not found</div>
       </div>
     );
   }
 
-  const formattedCategoryName = categoryName
-    .split('-')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-
   return (
-    <div className="min-h-screen bg-black text-white p-6">
-      <div className="max-w-4xl mx-auto">
-        <button
-          onClick={() => navigate(`/learn/${categoryName}`)}
-          className="mb-6 flex items-center text-white hover:text-indigo-400 transition-colors duration-200"
-        >
-          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          Back to Lessons
-        </button>
-
-        <h1 className="text-3xl font-bold mb-6">{lesson.title}</h1>
-
-        <div className="bg-white text-black rounded-xl p-6 mb-8">
-          <p className="text-lg mb-6 whitespace-pre-line">{lesson.content}</p>
-          
-          {lesson.keyCharacteristics && (
-            <div className="mb-6">
-              <h2 className="text-xl font-bold mb-3">Key Characteristics</h2>
-              <ul className="list-disc list-inside space-y-2">
-                {lesson.keyCharacteristics.map((characteristic, index) => (
-              <li key={index}>{characteristic}</li>
-            ))}
-          </ul>
-            </div>
-          )}
-
-          {lesson.howToExploit && (
-            <div className="mb-6">
-              <h2 className="text-xl font-bold mb-3">How to Exploit</h2>
-              <ul className="list-disc list-inside space-y-2">
-                {lesson.howToExploit.map((tip, index) => (
-                  <li key={index}>{tip}</li>
-              ))}
-            </ul>
-            </div>
-          )}
+    <div className="min-h-screen bg-gray-900 text-white">
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold mb-4 flex items-center gap-4">
+            <span>{lesson.icon}</span>
+            {lesson.title}
+          </h1>
         </div>
-        
-        <div className="flex justify-between">
-          <button
-            onClick={() => navigate(`/learn/${categoryName}`)}
-            className="bg-white text-black px-6 py-3 rounded-lg hover:bg-indigo-100 transition-colors duration-200"
-          >
-            Back to Lessons
-          </button>
-          <button
-            onClick={() => navigate('/quiz')}
-            className="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition-colors duration-200"
-            >
-            Take Quiz
-          </button>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main content */}
+          <div className="lg:col-span-2">
+            <div className="bg-gray-800 rounded-lg p-6 mb-8">
+              <div className="prose prose-invert max-w-none">
+                {lesson.content.split('\n\n').map((paragraph, index) => (
+                  <p key={index} className="mb-4">{paragraph}</p>
+                ))}
+              </div>
+            </div>
+
+            {/* Interactive Practice Section */}
+            {lesson.interactiveSection && (
+              <div className="bg-gray-800 rounded-lg p-6 mb-8">
+                <h2 className="text-2xl font-bold mb-4">Interactive Practice</h2>
+                <p className="text-gray-300 mb-4">
+                  Put your knowledge to the test with interactive practice scenarios.
+                </p>
+                <button
+                  onClick={() => navigate(`/learn/practice/lesson/${lessonId}`)}
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-lg"
+                >
+                  Start Practice
+                </button>
+              </div>
+            )}
+
+            {/* Video Section */}
+            {lesson.videoUrl && (
+              <div className="bg-gray-800 rounded-lg p-6 mb-8">
+                <h2 className="text-2xl font-bold mb-4">Video Explanation</h2>
+                <div className="aspect-w-16 aspect-h-9">
+                  <iframe
+                    src={lesson.videoUrl}
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="w-full h-full rounded"
+                  ></iframe>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Sidebar */}
+          <div className="lg:col-span-1">
+            {/* Key Characteristics */}
+            <div className="bg-gray-800 rounded-lg p-6 mb-6">
+              <h2 className="text-xl font-bold mb-4">Key Characteristics</h2>
+              <ul className="space-y-3">
+                {lesson.keyCharacteristics.map((item, index) => (
+                  <li key={index} className="flex items-start gap-2">
+                    <span className="text-indigo-400">•</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* How to Exploit */}
+            <div className="bg-gray-800 rounded-lg p-6">
+              <h2 className="text-xl font-bold mb-4">How to Exploit</h2>
+              <ul className="space-y-3">
+                {lesson.howToExploit.map((item, index) => (
+                  <li key={index} className="flex items-start gap-2">
+                    <span className="text-green-400">•</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
     </div>
