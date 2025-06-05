@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useParams } from 'react-router-dom';
 import OnlinePokerRoom from '../../components/poker/OnlinePokerRoom';
 
 const PlayWithFriendsPage = () => {
+  const { gameId } = useParams();
   const [gameSettings, setGameSettings] = useState({
     gameType: 'cash', // 'cash' or 'tournament'
     startingStack: 100,
@@ -24,6 +25,13 @@ const PlayWithFriendsPage = () => {
   
   const [mode, setMode] = useState('idle'); // 'idle', 'creatingRoom', 'joiningRoom'
   const [joinGameIdInput, setJoinGameIdInput] = useState('');
+
+  useEffect(() => {
+    if (gameId) {
+      setJoinGameIdInput(gameId);
+      setMode('joiningRoom');
+    }
+  }, [gameId]);
 
   const handleSettingChange = (setting, value) => {
     setGameSettings(prev => ({

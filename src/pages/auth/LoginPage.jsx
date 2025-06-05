@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import LoginImage from '../../assets/images/ChatGPT Image May 23, 2025, 08_09_53 PM.png';
 import { supabase } from '../../config/supabase';
@@ -10,6 +10,7 @@ const LoginPage = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { signIn } = useAuth();
 
   const handleLogin = async (e) => {
@@ -33,7 +34,8 @@ const LoginPage = () => {
       }
       const { error } = await signIn({ email: loginEmail, password });
       if (error) throw error;
-      navigate('/play');
+      const from = location.state?.from?.pathname || '/play';
+      navigate(from, { replace: true });
     } catch (error) {
       setError(error.message);
     } finally {

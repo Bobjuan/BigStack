@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import io from 'socket.io-client';
 import { useAuth } from '../../context/AuthContext'; // Assuming you want to use user info
 import OnlinePokerTableDisplay from './OnlinePokerTableDisplay'; // Import the new display component
@@ -20,6 +21,7 @@ const GamePhase = {
 };
 
 function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
+  const navigate = useNavigate();
   const { user } = useAuth(); // Get user info if needed for player details
   const [socket, setSocket] = useState(null);
   const [gameId, setGameId] = useState('');
@@ -89,12 +91,14 @@ function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
           setInputGameId(response.gameId);
           setMessages(prev => [...prev, `Game room ${response.gameId} created! Share ID.`]);
           setError('');
+          // Update the URL to include the new game ID
+          navigate(`/play-with-friends/${response.gameId}`, { replace: true });
         } else {
           setError(response.message || 'Error creating game.');
         }
       });
     }
-  }, [socket, playerName, initialGameSettings]);
+  }, [socket, playerName, initialGameSettings, navigate]);
 
   const handleJoinGame = useCallback((currentSocket, gameIdToJoin) => {
     const sock = currentSocket || socket;
