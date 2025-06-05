@@ -28,6 +28,9 @@ function shuffleDeck(deck) {
   }
   return d;
 }
+function getSeatedPlayers(game) {
+  return game.seats.filter(s => s && !s.isEmpty).map(s => s.player);
+}
 
 function assignPositions(players, dealerIndex) {
   const POS_9 = ['BTN', 'SB', 'BB', 'UTG', 'UTG+1', 'MP', 'LJ', 'HJ', 'CO'];
@@ -46,15 +49,19 @@ function assignPositions(players, dealerIndex) {
   });
 }
 
-function initGameState(players, gameSettings) {
+function initGameState(gameSettings) {
+  const maxPlayers = gameSettings.maxPlayers || 9;
+  const seats = Array(maxPlayers).fill(null).map((_, i) => ({ seatIndex: i, isEmpty: true }));
+
   return {
-    players,
+    seats,
+    spectators: [], // Array of playerInfo objects for those not seated
     deck: [],
     communityCards: [],
     pot: 0,
     currentBettingRound: GamePhase.WAITING,
-    currentPlayerIndex: -1,
-    dealerIndex: -1,
+    currentPlayerIndex: -1, // This will now refer to the index within the temporary 'seated players' array
+    dealerIndex: -1, // This will also refer to the index within the temporary 'seated players' array
     currentHighestBet: 0,
     minRaiseAmount: gameSettings.blinds?.big || BIG_BLIND_AMOUNT_DEFAULT,
     lastAggressorIndex: -1,
@@ -68,6 +75,11 @@ function initGameState(players, gameSettings) {
 }
 
 function startHand(game) {
+  const players = getSeatedPlayers(game);
+  if (players.length < 2) {
+    // Not enough players to start a hand.
+    return;
+  }
   game.deck = shuffleDeck(createDeck());
   game.communityCards = [];
   game.pot = 0;
@@ -79,10 +91,10 @@ function startHand(game) {
   game.showdownPlayers = [];
   game.handOverMessage = "";
   // rotate dealer
-  game.dealerIndex = (game.dealerIndex + 1) % game.players.length;
-  assignPositions(game.players, game.dealerIndex);
+  game.dealerIndex = (game.dealerIndex + 1) % players.length;
+  assignPositions(players, game.dealerIndex);
   // deal 2 cards each
-  game.players.forEach(p => {
+  players.forEach(p => {
     p.cards = [game.deck.pop(), game.deck.pop()];
     p.isFolded = false;
     p.isAllIn = false;
@@ -91,8 +103,8 @@ function startHand(game) {
     p.hasActedThisRound = false;
   });
   // blinds
-  const sbPlayerIndex = game.players.findIndex(p => p.isSB);
-  const bbPlayerIndex = game.players.findIndex(p => p.isBB);
+  const sbPlayerIndex = players.findIndex(p => p.isSB);
+  const bbPlayerIndex = players.findIndex(p => p.isBB);
 
   postBlind(game, sbPlayerIndex, game.smallBlind);
   postBlind(game, bbPlayerIndex, game.bigBlind);
@@ -100,17 +112,18 @@ function startHand(game) {
   game.currentHighestBet = game.bigBlind;
   game.lastAggressorIndex = bbPlayerIndex;
 
-  if (game.players.length === 2) {
+  if (players.length === 2) {
     game.currentPlayerIndex = sbPlayerIndex;
     game.actionClosingPlayerIndex = bbPlayerIndex;
   } else {
-    game.currentPlayerIndex = (bbPlayerIndex + 1) % game.players.length;
+    game.currentPlayerIndex = (bbPlayerIndex + 1) % players.length;
     game.actionClosingPlayerIndex = bbPlayerIndex;
   }
 }
 function postBlind(game, idx, amt) {
+  const players = getSeatedPlayers(game);
   if (idx === -1) return;
-  const p = game.players[idx];
+  const p = players[idx];
   const post = Math.min(p.stack, amt);
   p.stack -= post;
   p.currentBet = post;
@@ -120,9 +133,10 @@ function postBlind(game, idx, amt) {
 }
 
 function processAction(game, playerId, action, details = {}) {
-  const idx = game.players.findIndex(p => p.id === playerId);
+  const players = getSeatedPlayers(game);
+  const idx = players.findIndex(p => p.id === playerId);
   if (idx !== game.currentPlayerIndex) return { error: 'Not your turn' };
-  const player = game.players[idx];
+  const player = players[idx];
   const highest = game.currentHighestBet;
   switch (action) {
     case 'fold':
@@ -165,7 +179,7 @@ function processAction(game, playerId, action, details = {}) {
         game.currentHighestBet = player.currentBet;
         game.lastAggressorIndex = idx;
         game.actionClosingPlayerIndex = idx;
-        game.players.forEach((p, i) => {
+        players.forEach((p, i) => {
           if (i !== idx && !p.isFolded && !p.isAllIn) {
             p.hasActedThisRound = false;
           }
@@ -184,12 +198,13 @@ function processAction(game, playerId, action, details = {}) {
 }
 
 function advanceTurn(game) {
-  const len = game.players.length;
+  const players = getSeatedPlayers(game);
+  const len = players.length;
   let next = game.currentPlayerIndex;
   let guard=0;
   do {
     next = (next +1) % len;
-    const p = game.players[next];
+    const p = players[next];
     let needsToAct = !p.isFolded && !p.isAllIn;
     if (needsToAct) {
         if (p.currentBet < game.currentHighestBet) {
@@ -215,13 +230,16 @@ function advanceTurn(game) {
 }
 
 function remainingActivePlayers(game){
-  return game.players.filter(p=>!p.isFolded);
+    const players = getSeatedPlayers(game);
+  return players.filter(p=>!p.isFolded);
 }
 function allPlayersActed(game){
-  return game.players.every(p=> p.isFolded || p.isAllIn || p.hasActedThisRound);
+    const players = getSeatedPlayers(game);
+  return players.every(p=> p.isFolded || p.isAllIn || p.hasActedThisRound);
 }
 function bettingRoundComplete(game){
-  const activePlayers = game.players.filter(p => !p.isFolded);
+  const players = getSeatedPlayers(game);
+  const activePlayers = players.filter(p => !p.isFolded);
 
   // 1. If 0 or 1 active players, betting is over.
   if (activePlayers.length <= 1) {
@@ -268,8 +286,9 @@ function dealCommunity(game, count){
   for(let i=0;i<count;i++) game.communityCards.push(game.deck.shift());
 }
 function proceedRound(game) {
+  const players = getSeatedPlayers(game);
   if (bettingRoundComplete(game)) {
-    game.players.forEach(p => {
+    players.forEach(p => {
     });
 
     let newRoundStarted = false;
@@ -297,7 +316,7 @@ function proceedRound(game) {
     }
 
     if (newRoundStarted) {
-      game.players.forEach(p => {
+      players.forEach(p => {
         if (!p.isFolded && !p.isAllIn) {
           p.hasActedThisRound = false;
         }
@@ -305,20 +324,20 @@ function proceedRound(game) {
 
       let nextPlayerForNewRound = -1;
       let guard = 0;
-      let currentEvalPlayer = (game.dealerIndex + 1 + game.players.length) % game.players.length; 
+      let currentEvalPlayer = (game.dealerIndex + 1 + players.length) % players.length; 
       
-      while (guard < game.players.length) {
-        const player = game.players[currentEvalPlayer];
+      while (guard < players.length) {
+        const player = players[currentEvalPlayer];
         if (!player.isFolded && !player.isAllIn) {
           nextPlayerForNewRound = currentEvalPlayer;
           break;
         }
-        currentEvalPlayer = (currentEvalPlayer + 1 + game.players.length) % game.players.length;
+        currentEvalPlayer = (currentEvalPlayer + 1 + players.length) % players.length;
         guard++;
       }
       game.currentPlayerIndex = nextPlayerForNewRound;
       game.currentHighestBet = 0;
-      game.players.forEach(p => { 
+      players.forEach(p => { 
         if(!p.isFolded && !p.isAllIn) p.currentBet = 0;
       });
       game.minRaiseAmount = game.bigBlind;
@@ -328,11 +347,11 @@ function proceedRound(game) {
          let searchIdx = nextPlayerForNewRound;
          let searchGuard = 0;
          do {
-            const p = game.players[searchIdx];
+            const p = players[searchIdx];
             if (!p.isFolded && !p.isAllIn) potentialClosing = searchIdx;
-            searchIdx = (searchIdx + 1) % game.players.length;
+            searchIdx = (searchIdx + 1) % players.length;
             searchGuard++;
-         } while (searchGuard < game.players.length && searchIdx !== nextPlayerForNewRound);
+         } while (searchGuard < players.length && searchIdx !== nextPlayerForNewRound);
          game.actionClosingPlayerIndex = potentialClosing;
       } else {
         game.actionClosingPlayerIndex = -1;
@@ -344,7 +363,8 @@ function proceedRound(game) {
   } 
 }
 function resolveShowdown(game){
-  const contenders = game.players.filter(p=>!p.isFolded && p.cards && p.cards.length === 2);
+  const players = getSeatedPlayers(game);
+  const contenders = players.filter(p=>!p.isFolded && p.cards && p.cards.length === 2);
   game.showdownPlayers = contenders.map(p => p.id);
 
   if(contenders.length === 0) {
@@ -417,7 +437,7 @@ function resolveShowdown(game){
     const remainder = game.pot - totalPotAwarded;
     if (remainder > 0 && game.winners.length > 0) {
       const firstWinnerId = game.winners[0].id;
-      const firstWinnerPlayer = game.players.find(p => p.id === firstWinnerId);
+      const firstWinnerPlayer = players.find(p => p.id === firstWinnerId);
       if (firstWinnerPlayer) firstWinnerPlayer.stack += remainder;
       game.winners[0].amountWon += remainder;
     }
@@ -439,6 +459,28 @@ function resolveShowdown(game){
 
   game.pot = 0;
   game.currentBettingRound = GamePhase.HAND_OVER;
+}
+
+function runItOutStep(game) {
+    if (game.currentBettingRound === GamePhase.RIVER || game.currentBettingRound === GamePhase.SHOWDOWN) {
+        resolveShowdown(game);
+        return;
+    }
+
+    switch (game.currentBettingRound) {
+        case GamePhase.PREFLOP:
+            dealCommunity(game, 3);
+            game.currentBettingRound = GamePhase.FLOP;
+            break;
+        case GamePhase.FLOP:
+            dealCommunity(game, 1);
+            game.currentBettingRound = GamePhase.TURN;
+            break;
+        case GamePhase.TURN:
+            dealCommunity(game, 1);
+            game.currentBettingRound = GamePhase.RIVER;
+            break;
+    }
 }
 
 const originalProcess = processAction;
@@ -474,6 +516,13 @@ function processActionWrapper(game, playerId, action, details = {}) {
     return res;
   }
 
+  const canStillBetPlayers = activePlayers.filter(p => !p.isAllIn);
+  if (activePlayers.length > 1 && canStillBetPlayers.length <= 1) {
+    game.runItOut = true;
+    game.currentPlayerIndex = -1;
+    return res;
+  }
+
   proceedRound(game);
 
   if (game.currentBettingRound === roundInitial && 
@@ -494,4 +543,6 @@ module.exports = {
   startHand,
   processAction: processActionWrapper,
   GamePhase,
+  getSeatedPlayers,
+  runItOutStep,
 }; 

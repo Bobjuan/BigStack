@@ -43,7 +43,7 @@ const getCardSvgFilename = (card) => {
 
 
 // Updated Card component for community cards
-function Card({ card }) {
+function Card({ card, cardWidth }) {
   const svgSrc = getCardSvgFilename(card);
   if (!svgSrc) return null; // Don't render if card is invalid
 
@@ -52,17 +52,17 @@ function Card({ card }) {
       src={svgSrc}
       alt={card}
       className="inline-block mx-0.5 shadow-md rounded-sm"
-      style={{ height: '70px', width: 'auto' }}
+      style={{ width: `${cardWidth}px`, height: 'auto' }}
     />
   );
 }
 
-function CommunityCards({ cards = [] }) {
+function CommunityCards({ cards = [], cardWidth = 50 }) { // Default width if not provided
   return (
     <div className="community-cards text-center my-2">
       <div className="flex justify-center items-center h-full">
         {cards.map((card, index) => (
-          <Card key={index} card={card} />
+          <Card key={index} card={card} cardWidth={cardWidth} />
         ))}
       </div>
     </div>

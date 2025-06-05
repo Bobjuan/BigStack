@@ -12,6 +12,8 @@ function ActionButtons({
   minBetAmount, // Minimum total bet required
   maxBetAmount, // Usually player's stack
   potSize,
+  isPreflop,
+  preflopOptions, // e.g., [{label: "3x", amount: 30}]
 }) {
   const [isRaiseMode, setIsRaiseMode] = useState(false);
   const [betAmount, setBetAmount] = useState('');
@@ -158,13 +160,31 @@ function ActionButtons({
       ) : (
         // Raise/Bet Sizing View
         <div className="bg-gray-800 p-3 rounded-lg border border-gray-700 space-y-3">
-          {/* Top row: Pot buttons */}
+          {/* Top row: Sizing buttons */}
           <div className="flex justify-between space-x-1">
-             <button onClick={() => setExactBetAmount(minBetAmount)} className={betSizeButtonClass} disabled={!canBet || minBetAmount > maxBetAmount}>Min</button>
-             <button onClick={() => calculatePotBet(0.5)} className={betSizeButtonClass} disabled={!canBet}>½ Pot</button>
-             <button onClick={() => calculatePotBet(0.75)} className={betSizeButtonClass} disabled={!canBet}>¾ Pot</button>
-             <button onClick={() => calculatePotBet(1)} className={betSizeButtonClass} disabled={!canBet}>Pot</button>
-             <button onClick={() => setExactBetAmount(maxBetAmount)} className={betSizeButtonClass} disabled={!canBet || maxBetAmount <= 0}>All In</button>
+            {isPreflop ? (
+              <>
+                {preflopOptions && preflopOptions.map(opt => (
+                  <button 
+                    key={opt.label}
+                    onClick={() => setExactBetAmount(opt.amount)} 
+                    className={betSizeButtonClass}
+                    disabled={!canBet || opt.amount < minBetAmount || opt.amount > maxBetAmount}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+                <button onClick={() => setExactBetAmount(maxBetAmount)} className={betSizeButtonClass} disabled={!canBet || maxBetAmount <= 0}>All In</button>
+              </>
+            ) : (
+              <>
+                <button onClick={() => setExactBetAmount(minBetAmount)} className={betSizeButtonClass} disabled={!canBet || minBetAmount > maxBetAmount}>Min</button>
+                <button onClick={() => calculatePotBet(0.5)} className={betSizeButtonClass} disabled={!canBet}>½ Pot</button>
+                <button onClick={() => calculatePotBet(0.75)} className={betSizeButtonClass} disabled={!canBet}>¾ Pot</button>
+                <button onClick={() => calculatePotBet(1)} className={betSizeButtonClass} disabled={!canBet}>Pot</button>
+                <button onClick={() => setExactBetAmount(maxBetAmount)} className={betSizeButtonClass} disabled={!canBet || maxBetAmount <= 0}>All In</button>
+              </>
+            )}
           </div>
           {/* Middle row: Input, Slider */}
           <div className="flex items-center space-x-3">
