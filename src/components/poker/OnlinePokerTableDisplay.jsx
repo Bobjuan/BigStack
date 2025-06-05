@@ -141,20 +141,20 @@ function OnlinePokerTableDisplay({ gameState, currentSocketId, GamePhase, onTake
         }
 
         // Determine the rotation of the entire table.
-        // We want the current user's seat to be at the bottom.
-        // The bottom visual slot is at `totalSeats / 2`.
-        // If the current user is not seated, we don't rotate the table; seat 0 remains at the 'top'.
-        const seatToPlaceAtBottom = currentUserSeatIndex !== -1 ? currentUserSeatIndex : Math.floor(totalSeats / 2);
-        const bottomVisualSlot = Math.floor(totalSeats / 2);
-
-        // This rotation is added to every seat's index to determine its visual position.
-        const rotation = bottomVisualSlot - seatToPlaceAtBottom;
+        // We want the current user's seat to be at the bottom-middle of the screen.
+        // First, we rotate the entire layout by 180 degrees (PI radians) to make the single seat appear at the bottom.
+        // Then, we calculate the rotation needed to move the current user into that bottom-center slot (visual index 0).
+        const bottomVisualSlot = 0; // The bottom-center seat is now the 0th visual index.
+        
+        const rotation = (currentUserSeatIndex !== -1)
+            ? (bottomVisualSlot - currentUserSeatIndex)
+            : 0;
+            
         const visualIndex = (seatIndex + rotation + totalSeats) % totalSeats;
         
         // Calculate the angle for the seat based on its final visual position.
-        // (visualIndex / totalSeats) gives a fraction of the circle.
-        // We subtract Math.PI / 2 to make index 0 start at the top (-90 degrees) instead of the right (0 degrees).
-        const angle = (visualIndex / totalSeats) * 2 * Math.PI - (Math.PI / 2);
+        // We add Math.PI / 2 (90 degrees) to start the layout from the bottom-center.
+        const angle = (visualIndex / totalSeats) * 2 * Math.PI + (Math.PI / 2);
 
         const tableWidth = currentTableWidth;
         const tableHeight = currentTableHeight;
