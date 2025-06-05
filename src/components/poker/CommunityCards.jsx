@@ -51,17 +51,15 @@ function Card({ card }) {
     <img
       src={svgSrc}
       alt={card}
-      className="w-auto inline-block mx-1 shadow-md rounded-sm"
-      style={{ height: '100%' }}
+      className="inline-block mx-0.5 shadow-md rounded-sm"
+      style={{ height: '70px', width: 'auto' }}
     />
   );
 }
 
 function CommunityCards({ cards = [] }) {
   return (
-    <div className="community-cards text-center my-2" style={{ height: '10vmin' }}> {/* Fixed height relative to viewport */}
-      {/* Removed h3 title for cleaner look matching target */}
-      {/* <h3 className="text-lg font-semibold mb-2 text-gray-300">Community Cards</h3> */}
+    <div className="community-cards text-center my-2">
       <div className="flex justify-center items-center h-full">
         {cards.map((card, index) => (
           <Card key={index} card={card} />
