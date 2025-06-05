@@ -149,6 +149,7 @@ io.on('connection', (socket) => {
     const { gameId, playerInfo } = data;
     const game = activeGames[gameId];
     if (!game) {
+      socket.emit('gameNotFound');
       return callback && callback({ status: 'error', message: 'Game not found' });
     }
     // Check if player is already seated or spectating
@@ -253,6 +254,21 @@ io.on('connection', (socket) => {
 
     } else if (game.currentBettingRound === gameEngine.GamePhase.HAND_OVER) {
       scheduleNextHand(gameId);
+    }
+  });
+
+  socket.on('chatMessage', ({ gameId, message }) => {
+    const game = activeGames[gameId];
+    if (!game) return;
+
+    const player = game.seats.find(s => !s.isEmpty && s.player.id === socket.id)?.player || game.spectators.find(p => p.id === socket.id);
+
+    if (player) {
+      io.to(gameId).emit('chatMessage', {
+        sender: player.name,
+        message,
+        timestamp: new Date(),
+      });
     }
   });
 

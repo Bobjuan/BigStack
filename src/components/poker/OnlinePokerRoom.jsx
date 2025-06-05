@@ -27,10 +27,13 @@ function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
   const [gameId, setGameId] = useState('');
   const [inputGameId, setInputGameId] = useState(joinWithGameId || ''); // Initialize if provided
   const [messages, setMessages] = useState([]);
+  const [chatMessages, setChatMessages] = useState([]);
   const [gameState, setGameState] = useState(null); // To hold the game state from the server
   const [playerName, setPlayerName] = useState(user?.user_metadata?.full_name || user?.email || 'Player');
   const [hasAutoActionTriggered, setHasAutoActionTriggered] = useState(false); // Prevent re-triggering
   const [error, setError] = useState('');
+  const [activeTab, setActiveTab] = useState('log'); // 'log' or 'chat'
+  const [chatInput, setChatInput] = useState('');
   const tableRef = useRef(null); // Add table ref for sizing
 
   // Effect for setting player name from user auth
@@ -70,6 +73,18 @@ function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
     newSocket.on('playerJoined', (data) => setMessages(prev => [...prev, data.message]));
     newSocket.on('playerLeft', (data) => setMessages(prev => [...prev, data.message]));
     newSocket.on('message', (data) => setMessages(prev => [...prev, data.text]));
+
+    newSocket.on('chatMessage', (data) => {
+        setChatMessages(prev => [...prev, data]);
+    });
+
+    newSocket.on('gameNotFound', () => {
+        setError('The game you tried to join does not exist. Redirecting...');
+        setTimeout(() => {
+            navigate('/play-with-friends');
+        }, 3000);
+    });
+
     newSocket.on('disconnect', () => {
         console.log('Disconnected from WebSocket server');
         setMessages(prev => [...prev, 'Disconnected from server.']);
@@ -168,6 +183,14 @@ function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
         setMessages(prev => [...prev, "It's not your turn!"]);
     }
   }, [socket, gameId, gameState]);
+
+  const handleSendMessage = (e) => {
+    e.preventDefault();
+    if (socket && gameId && chatInput.trim()) {
+      socket.emit('chatMessage', { gameId, message: chatInput.trim() });
+      setChatInput('');
+    }
+  };
 
   // ---- Action Button Props Calculation ----
   let isMyTurn = false;
@@ -342,13 +365,55 @@ function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
             )}
         </div>
 
-        {/* Game Log - Bottom Left */}
-        <div className="absolute bottom-4 left-4 z-20">
-            <div className="w-full max-w-md">
-                <h4 className="text-lg mb-1 text-white">Game Log:</h4>
-                <div className="h-40 overflow-y-auto bg-gray-900 bg-opacity-80 p-2 rounded border border-gray-600 text-white">
-                {messages.slice().reverse().map((msg, index) => <div key={index} className="text-sm">{msg}</div>)}
-                </div>
+        {/* Game Log & Chat - Bottom Left */}
+        <div className="absolute bottom-4 left-4 z-20 w-full max-w-md">
+            {/* Tab Buttons */}
+            <div className="flex border-b border-gray-700">
+                <button 
+                    onClick={() => setActiveTab('log')}
+                    className={`px-4 py-2 text-sm font-medium transition-colors duration-200 ${activeTab === 'log' ? 'bg-gray-800 text-white border-t border-l border-r border-gray-700 rounded-t-md' : 'text-gray-400 hover:text-white'}`}
+                >
+                    Game Log
+                </button>
+                <button 
+                    onClick={() => setActiveTab('chat')}
+                    className={`px-4 py-2 text-sm font-medium transition-colors duration-200 ${activeTab === 'chat' ? 'bg-gray-800 text-white border-t border-l border-r border-gray-700 rounded-t-md' : 'text-gray-400 hover:text-white'}`}
+                >
+                    Chat
+                </button>
+            </div>
+
+            {/* Tab Content */}
+            <div className="h-48 bg-gray-900 bg-opacity-80 p-2 border border-gray-600 rounded-b-md rounded-tr-md text-white flex flex-col">
+                {activeTab === 'log' && (
+                    <div className="h-full overflow-y-auto">
+                        {messages.slice().reverse().map((msg, index) => <div key={index} className="text-sm">{msg}</div>)}
+                    </div>
+                )}
+                {activeTab === 'chat' && (
+                    <>
+                        <div className="flex-grow overflow-y-auto">
+                           {chatMessages.map((msg, index) => (
+                                <div key={index} className="text-sm mb-1">
+                                    <span className="font-bold text-yellow-300">{msg.sender}: </span>
+                                    <span>{msg.message}</span>
+                                </div>
+                           ))}
+                        </div>
+                        <form onSubmit={handleSendMessage} className="mt-2 flex">
+                            <input
+                                type="text"
+                                value={chatInput}
+                                onChange={(e) => setChatInput(e.target.value)}
+                                placeholder="Say something..."
+                                className="flex-grow p-2 rounded-l-md border border-gray-600 bg-gray-800 text-white text-sm"
+                            />
+                            <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-r-md text-sm">
+                                Send
+                            </button>
+                        </form>
+                    </>
+                )}
             </div>
         </div>
         
