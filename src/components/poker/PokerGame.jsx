@@ -921,36 +921,40 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
 
                 {/* Test Mode / Player Count Controls - Top Right */}
                 <div className="absolute top-4 right-4 z-20 flex flex-col items-end space-y-1">
-                    {/* Test Mode Buttons */}
-                    <div className="flex space-x-2">
-                        <button
-                            onClick={() => setIsTestMode(prev => !prev)}
-                            className={`px-3 py-1 text-xs rounded ${isTestMode ? 'bg-red-600' : 'bg-gray-600'} hover:bg-gray-500 text-white`}
-                        >
-                            Test Mode: {isTestMode ? 'ON' : 'OFF'}
-                        </button>
-                        {isTestMode && (
-                            <button
-                                onClick={() => setShowAllCards(prev => !prev)}
-                                className={`px-3 py-1 text-xs rounded ${showAllCards ? 'bg-blue-600' : 'bg-gray-600'} hover:bg-gray-500 text-white`}
-                            >
-                                Show Cards: {showAllCards ? 'ON' : 'OFF'}
-                            </button>
-                        )}
-                    </div>
-                    {/* Player Count Selection */}
-                    <div className="flex space-x-1 items-center">
-                        <span className={`text-xs ${tableTheme === 'light' ? 'text-gray-800' : 'text-gray-400'} mr-1`}>Players:</span>
-                        {[2, 6, 9].map(count => (
-                            <button
-                                key={count}
-                                onClick={() => handleSetNumPlayers(count)}
-                                className={`px-2 py-0.5 text-xs rounded ${numPlayers === count ? 'bg-green-700' : 'bg-gray-600'} hover:bg-gray-500 text-white`}
-                            >
-                                {count}
-                            </button>
-                        ))}
-                    </div>
+                    {/* Test Mode Buttons - Only show if not in practice mode */}
+                    {!isPracticeMode && (
+                        <>
+                            <div className="flex space-x-2">
+                                <button
+                                    onClick={() => setIsTestMode(prev => !prev)}
+                                    className={`px-3 py-1 text-xs rounded ${isTestMode ? 'bg-red-600' : 'bg-gray-600'} hover:bg-gray-500 text-white`}
+                                >
+                                    Test Mode: {isTestMode ? 'ON' : 'OFF'}
+                                </button>
+                                {isTestMode && (
+                                    <button
+                                        onClick={() => setShowAllCards(prev => !prev)}
+                                        className={`px-3 py-1 text-xs rounded ${showAllCards ? 'bg-blue-600' : 'bg-gray-600'} hover:bg-gray-500 text-white`}
+                                    >
+                                        Show Cards: {showAllCards ? 'ON' : 'OFF'}
+                                    </button>
+                                )}
+                            </div>
+                            {/* Player Count Selection */}
+                            <div className="flex space-x-1 items-center">
+                                <span className={`text-xs ${tableTheme === 'light' ? 'text-gray-800' : 'text-gray-400'} mr-1`}>Players:</span>
+                                {[2, 6, 9].map(count => (
+                                    <button
+                                        key={count}
+                                        onClick={() => handleSetNumPlayers(count)}
+                                        className={`px-2 py-0.5 text-xs rounded ${numPlayers === count ? 'bg-green-700' : 'bg-gray-600'} hover:bg-gray-500 text-white`}
+                                    >
+                                        {count}
+                                    </button>
+                                ))}
+                            </div>
+                        </>
+                    )}
                 </div>
 
                 {/* Central Area for Community Cards & Pot */}
