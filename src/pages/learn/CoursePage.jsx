@@ -2,14 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../config/supabase';
-import ReactMarkdown from 'react-markdown';
-import { found01, found02, found03 } from './lessons/index.jsx';
-
-const lessonComponents = {
-  'found01': found01,
-  'found02': found02,
-  'found03': found03
-};
+import LessonComponents from './lessons/indexForLessons';
 
 const CoursePage = () => {
   const navigate = useNavigate();
@@ -56,7 +49,6 @@ const CoursePage = () => {
       }
     };
     fetchProgress();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, module]);
 
   // Auto-select the first lesson if none is selected and lessons exist
@@ -115,37 +107,22 @@ const CoursePage = () => {
     }
   };
 
+  // Get the lesson component based on lessonId
+  const LessonComponent = selectedLesson ? LessonComponents[selectedLesson.id] : null;
+
   return (
-    <div className="min-h-screen bg-black text-white flex">
+    <div className="flex h-screen bg-gray-900">
       {/* Sidebar */}
-      <div className={`bg-[#1a1a1a] w-80 min-h-screen fixed left-0 top-0 transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold">{module?.title}</h2>
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="text-gray-400 hover:text-white"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <div className={`bg-[#1F2127] w-80 flex-shrink-0 transition-all duration-300 ${isSidebarOpen ? '' : '-ml-80'}`}>
+        <div className="p-4">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-white">{module?.title}</h2>
+            <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="text-gray-400 hover:text-white">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
           </div>
-
-          {/* Progress Bar */}
-          <div className="mb-6">
-            <div className="flex justify-between items-center mb-1">
-              <span className="text-sm text-gray-300 font-semibold">Progress</span>
-              <span className="text-xs text-gray-400">{progress}%</span>
-            </div>
-            <div className="h-2 bg-[#2a2d36] rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-blue-500 to-blue-700 transition-all duration-500"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-          </div>
-
           <div className="space-y-2">
             {lessons?.map((lesson) => (
               <div key={lesson.id} className="mb-2">
@@ -172,62 +149,22 @@ const CoursePage = () => {
       </div>
 
       {/* Main Content */}
-      <div className={`flex-1 transition-all duration-300 ${isSidebarOpen ? 'ml-80' : 'ml-0'}`}>
-        {/* Top Navigation Bar */}
-        <div className="bg-[#1a1a1a] border-b border-gray-800 p-4 flex justify-between items-center">
-          <div className="flex items-center space-x-4">
-            {!isSidebarOpen && (
-              <button
-                onClick={() => setSidebarOpen(true)}
-                className="bg-[#1a1a1a] p-2 rounded-lg hover:bg-[#2a2d36] transition-colors"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              </button>
-            )}
-            <h1 className="text-2xl font-bold text-white">BigStack</h1>
-          </div>
-          <button
-            onClick={() => navigate(`/learn/course/${courseId}`)}
-            className="flex items-center bg-white text-black px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors duration-200"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to Modules
-          </button>
-        </div>
-
-        <div className="max-w-4xl mx-auto p-8">
-          {selectedLesson ? (
+      <div className="flex-1 overflow-auto">
+        <div className="p-8">
+          {LessonComponent ? (
             <div>
-              <div className="mb-8">
-                <h1 className="text-3xl font-bold mb-4">{selectedLesson.title}</h1>
-                {lessonComponents[selectedLesson.id] ? (
-                  React.createElement(lessonComponents[selectedLesson.id], { lesson: selectedLesson })
-                ) : (
-                  <div className="prose prose-invert max-w-none">
-                    <ReactMarkdown>{selectedLesson.content}</ReactMarkdown>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex justify-between items-center mt-8 pt-8 border-t border-gray-700">
-                {!selectedLesson.completed && (
-                  <button
-                    onClick={async () => {
-                      await markLessonComplete(selectedLesson.id);
-                    }}
-                    className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    Mark as Complete
-                  </button>
-                )}
+              <LessonComponent />
+              <div className="mt-8 flex justify-between items-center">
+                <button
+                  onClick={() => markLessonComplete(selectedLesson.id)}
+                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  Mark Complete
+                </button>
                 {getNextLesson() && (
                   <button
                     onClick={handleNextLesson}
-                    className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                   >
                     Next Lesson
                   </button>
@@ -235,10 +172,8 @@ const CoursePage = () => {
               </div>
             </div>
           ) : (
-            <div className="text-center py-12">
-              <h2 className="text-2xl font-bold mb-4">Welcome to {module?.title}</h2>
-              <p className="text-gray-400 mb-8">{module?.description}</p>
-              <p className="text-gray-500">Select a lesson from the sidebar to begin learning</p>
+            <div className="text-center text-gray-400">
+              Select a lesson to begin
             </div>
           )}
         </div>

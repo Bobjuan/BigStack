@@ -26,12 +26,14 @@ import ResourcesPage from './pages/ResourcesPage';
 import CustomersPage from './pages/CustomersPage';
 import PracticeMenuPage from './pages/learn/practice/PracticeMenuPage';
 import PracticeScenarioPage from './pages/learn/practice/PracticeScenarioPage';
+import MainLayout from './components/layout/MainLayout';
 
 function App() {
   return (
     <Router>
       <AuthProvider>
         <Routes>
+          {/* Public routes */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
@@ -39,121 +41,128 @@ function App() {
           <Route path="/pricing" element={<PricingPage />} />
           <Route path="/product" element={<ProductPage />} />
           <Route path="/resources" element={<ResourcesPage />} />
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <DashboardPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/play"
-            element={
-              <ProtectedRoute>
-                <PlayPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/play-with-friends"
-            element={
-              <ProtectedRoute>
-                <PlayWithFriendsPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/cash-game"
-            element={
-              <ProtectedRoute>
-                <CashGamePage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/heads-up"
-            element={
-              <ProtectedRoute>
-                <HeadsUpPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/deep-stack"
-            element={
-              <ProtectedRoute>
-                <DeepStackPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/gto-trainer"
-            element={
-              <ProtectedRoute>
-                <GTOTrainerPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/tournament"
-            element={
-              <ProtectedRoute>
-                <TournamentPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/learn"
-            element={
-              <ProtectedRoute>
-                <LearnPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/learn/course/:courseId"
-            element={
-              <ProtectedRoute>
-                <ModulesPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/learn/course/:courseId/module/:moduleId"
-            element={
-              <ProtectedRoute>
-                <CoursePage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/learn/course/:courseId/module/:moduleId/lesson/:lessonId"
-            element={
-              <ProtectedRoute>
-                <LessonPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/quiz"
-            element={
-              <ProtectedRoute>
-                <QuizPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/profile"
-            element={
-              <ProtectedRoute>
-                <ProfilePage />
-              </ProtectedRoute>
-            }
-          />
           <Route path="/customers" element={<CustomersPage />} />
-          <Route path="/learn/practice" element={<PracticeMenuPage />} />
-          <Route path="/learn/practice/:scenarioId" element={<PracticeScenarioPage />} />
+
+          {/* Protected routes with MainLayout */}
+          <Route path="/dashboard" element={
+              <ProtectedRoute>
+              <MainLayout>
+                <DashboardPage />
+              </MainLayout>
+              </ProtectedRoute>
+          } />
+          <Route path="/play" element={
+              <ProtectedRoute>
+              <MainLayout>
+                <PlayPage />
+              </MainLayout>
+              </ProtectedRoute>
+          } />
+          <Route path="/play-with-friends" element={
+              <ProtectedRoute>
+              <MainLayout>
+                <PlayWithFriendsPage />
+              </MainLayout>
+              </ProtectedRoute>
+          } />
+          <Route path="/cash-game" element={
+              <ProtectedRoute>
+              <MainLayout>
+                <CashGamePage />
+              </MainLayout>
+              </ProtectedRoute>
+          } />
+          <Route path="/heads-up" element={
+              <ProtectedRoute>
+              <MainLayout>
+                <HeadsUpPage />
+              </MainLayout>
+              </ProtectedRoute>
+          } />
+          <Route path="/deep-stack" element={
+              <ProtectedRoute>
+              <MainLayout>
+                <DeepStackPage />
+              </MainLayout>
+              </ProtectedRoute>
+          } />
+          <Route path="/gto-trainer" element={
+              <ProtectedRoute>
+              <MainLayout>
+                <GTOTrainerPage />
+              </MainLayout>
+              </ProtectedRoute>
+          } />
+          <Route path="/tournament" element={
+              <ProtectedRoute>
+              <MainLayout>
+                <TournamentPage />
+              </MainLayout>
+              </ProtectedRoute>
+          } />
+          <Route path="/learn" element={
+              <ProtectedRoute>
+              <MainLayout>
+                <LearnPage />
+              </MainLayout>
+              </ProtectedRoute>
+          } />
+          <Route path="/learn/course/:courseId" element={
+              <ProtectedRoute>
+              <MainLayout>
+                <ModulesPage />
+              </MainLayout>
+              </ProtectedRoute>
+          } />
+          <Route path="/learn/course/:courseId/module/:moduleId" element={
+              <ProtectedRoute>
+              <MainLayout>
+                <CoursePage />
+              </MainLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/learn/course/:courseId/module/:moduleId/lesson/:lessonId" element={
+            <ProtectedRoute>
+              <MainLayout>
+                <LessonPage />
+              </MainLayout>
+              </ProtectedRoute>
+          } />
+          <Route path="/learn/lessons/:lessonId" element={
+              <ProtectedRoute>
+              <MainLayout>
+                <LessonPage />
+              </MainLayout>
+              </ProtectedRoute>
+          } />
+          <Route path="/quiz" element={
+              <ProtectedRoute>
+              <MainLayout>
+                <QuizPage />
+              </MainLayout>
+              </ProtectedRoute>
+          } />
+          <Route path="/profile" element={
+              <ProtectedRoute>
+              <MainLayout>
+                <ProfilePage />
+              </MainLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/learn/practice" element={
+            <ProtectedRoute>
+              <MainLayout>
+                <PracticeMenuPage />
+              </MainLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/learn/practice/:scenarioId" element={
+            <ProtectedRoute>
+              <MainLayout>
+                <PracticeScenarioPage />
+              </MainLayout>
+              </ProtectedRoute>
+          } />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>

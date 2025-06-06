@@ -1,5 +1,8 @@
-import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { categories } from './practice/data/scenarios/index';
+import LessonComponents from './lessons/indexForLessons';
+import { Box, Button } from '@mui/material';
 
 // Dummy function to get lesson details - replace with actual data fetching or structure
 const getLessonDetails = (categoryName, lessonId) => {
@@ -486,7 +489,7 @@ At the same time, selective aggression can flip his own style back on him. Littl
 
 Maniacs come in flavours. One variety prefers the gargantuan three bet turning a $7 open into $35 with holdings as weak as 7 5 suited. Recognising the difference between that pattern and a tight player's rare monster save stacks and earns windfalls. Versus the maniac three bettor, hands like 9 9 and A Q play for stacks profitably; versus the nit doing it five times a night, they are easy folds. Against the maniac you may either smooth call to keep his trash in or four bet/jam if you think he will snap with worse.
 
-All of this is volatile. You will lose some large pots when the maniac's 40 percent range happens to wake up with aces or spikes a river. Your job is to keep perspective. If someone literally volunteers to shovel money in with 40 percent equity, your bankroll grows every time you accept the gamble. Emotional stability refusing to tighten up in fear after a bad beat is as much a skill edge as any technical line you choose.`,
+All of this is volatile. You will lose some large pots when the maniac's 40 percent range happens to wake up with aces or spikes a river. Your job is to keep perspective. If someone literally volunteered to shovel money in with 40 percent equity, your bankroll grows every time you accept the gamble. Emotional stability refusing to tighten up in fear after a bad beat is as much a skill edge as any technical line you choose.`,
         keyCharacteristics: [
           "Opens and three bets an extremely wide range, firing multi street bluffs at the first sign of passivity",
           "Adjusts only when you show real strength; otherwise assumes folds are weakness",
@@ -609,12 +612,38 @@ Finally, keep tilt in check. Stations will outdraw you sometimes-two-outer on th
   return allLessons[categoryName]?.[lessonId] || null;
 };
 
-const LessonPage = () => {
-  const { categoryName, lessonId } = useParams();
-  const navigate = useNavigate();
-  const lesson = getLessonDetails(categoryName, lessonId);
+const LESSON_ORDER = [
+  'found-0-1', // Course Introduction
+  'found-0-2', // Self-Assessment
+  'found-0-3', // Essential Mindset
+  'fund-1',    // Cash vs Tournaments
+  'fund-2',    // Table Selection
+  'pre-1',     // Starting Hand Selection
+  'pre-2',     // Position and Hand Ranges
+  'pre-3',     // 3-Betting Strategy
+  'post-1',    // Board Texture Analysis
+  'post-2',    // Bet Sizing
+  'post-3',    // Hand Reading
+  'adv-1',     // Exploitative Play
+  'adv-2',     // Multi-Street Planning
+  'adv-3'      // Mental Game
+];
 
-  if (!lesson) {
+const LessonPage = () => {
+  const { courseId, moduleId, lessonId } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState('content');
+
+  // Get the lesson component based on lessonId
+  const LessonComponent = LessonComponents[lessonId];
+
+  // Find current lesson index
+  const currentIndex = LESSON_ORDER.indexOf(lessonId);
+  const previousLesson = currentIndex > 0 ? LESSON_ORDER[currentIndex - 1] : null;
+  const nextLesson = currentIndex < LESSON_ORDER.length - 1 ? LESSON_ORDER[currentIndex + 1] : null;
+
+  if (!LessonComponent) {
     return (
       <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
         <div>Lesson not found</div>
@@ -625,85 +654,46 @@ const LessonPage = () => {
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <div className="container mx-auto px-4 py-8">
+        {/* Navigation */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-4 flex items-center gap-4">
-            <span>{lesson.icon}</span>
-            {lesson.title}
-          </h1>
+          <button
+            onClick={() => {
+              navigate('/learn', { state: { activeSection: 'lessons' } });
+            }}            
+            className="text-gray-400 hover:text-white transition-colors flex items-center mb-4"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to Lessons
+          </button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main content */}
-          <div className="lg:col-span-2">
-            <div className="bg-gray-800 rounded-lg p-6 mb-8">
-              <div className="prose prose-invert max-w-none">
-                {lesson.content.split('\n\n').map((paragraph, index) => (
-                  <p key={index} className="mb-4">{paragraph}</p>
-                ))}
-              </div>
-            </div>
-
-            {/* Interactive Practice Section */}
-            {lesson.interactiveSection && (
-              <div className="bg-gray-800 rounded-lg p-6 mb-8">
-                <h2 className="text-2xl font-bold mb-4">Interactive Practice</h2>
-                <p className="text-gray-300 mb-4">
-                  Put your knowledge to the test with interactive practice scenarios.
-                </p>
-                <button
-                  onClick={() => navigate(`/learn/practice/lesson/${lessonId}`)}
-                  className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-lg"
-                >
-                  Start Practice
-                </button>
-              </div>
+        {/* Content */}
+        <div className="bg-[#1F2127] rounded-xl p-6">
+          <LessonComponent />
+          
+          {/* Lesson Navigation */}
+          <Box sx={{ mt: 4, display: 'flex', justifyContent: 'space-between' }}>
+            {previousLesson && (
+              <Button
+                variant="contained"
+                onClick={() => navigate(`/learn/lessons/${previousLesson}`)}
+                sx={{ bgcolor: 'blue.600', '&:hover': { bgcolor: 'blue.700' } }}
+              >
+                Previous Lesson
+              </Button>
             )}
-
-            {/* Video Section */}
-            {lesson.videoUrl && (
-              <div className="bg-gray-800 rounded-lg p-6 mb-8">
-                <h2 className="text-2xl font-bold mb-4">Video Explanation</h2>
-                <div className="aspect-w-16 aspect-h-9">
-                  <iframe
-                    src={lesson.videoUrl}
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    className="w-full h-full rounded"
-                  ></iframe>
-                </div>
-              </div>
+            {nextLesson && (
+              <Button
+                variant="contained"
+                onClick={() => navigate(`/learn/lessons/${nextLesson}`)}
+                sx={{ bgcolor: 'blue.600', '&:hover': { bgcolor: 'blue.700' } }}
+              >
+                Next Lesson
+              </Button>
             )}
-          </div>
-
-          {/* Sidebar */}
-          <div className="lg:col-span-1">
-            {/* Key Characteristics */}
-            <div className="bg-gray-800 rounded-lg p-6 mb-6">
-              <h2 className="text-xl font-bold mb-4">Key Characteristics</h2>
-              <ul className="space-y-3">
-                {lesson.keyCharacteristics.map((item, index) => (
-                  <li key={index} className="flex items-start gap-2">
-                    <span className="text-indigo-400">•</span>
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* How to Exploit */}
-            <div className="bg-gray-800 rounded-lg p-6">
-              <h2 className="text-xl font-bold mb-4">How to Exploit</h2>
-              <ul className="space-y-3">
-                {lesson.howToExploit.map((item, index) => (
-                  <li key={index} className="flex items-start gap-2">
-                    <span className="text-green-400">•</span>
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
+          </Box>
         </div>
       </div>
     </div>

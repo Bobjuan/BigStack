@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PokerGame from '../../../components/poker/PokerGame';
-import { scenarios } from './data/scenarios';
+import { allScenarios } from './data/scenarios/index';
 
 const PracticeScenarioPage = () => {
     const { scenarioId } = useParams();
@@ -9,54 +9,53 @@ const PracticeScenarioPage = () => {
     const [scenario, setScenario] = useState(null);
     const [feedback, setFeedback] = useState(null);
     const [isComplete, setIsComplete] = useState(false);
-    const [resetKey, setResetKey] = useState(0); // Add a key to force PokerGame remount
+    const [resetKey, setResetKey] = useState(0);
 
     useEffect(() => {
-        if (scenarioId && scenarios[scenarioId]) {
-            setScenario(scenarios[scenarioId]);
+        const numericId = parseInt(scenarioId);
+        if (scenarioId && allScenarios[numericId]) {
+            setScenario(allScenarios[numericId]);
             setFeedback(null);
             setIsComplete(false);
         } else {
-            navigate('/learn/practice'); // Redirect to practice menu if scenario not found
+            console.log('Scenario not found:', { scenarioId, allScenarios });
+            navigate('/learn/practice');
         }
     }, [scenarioId, navigate]);
 
-    // Function to reset the game state
     const resetGame = useCallback(() => {
-        setResetKey(prev => prev + 1); // Increment key to force remount
+        setResetKey(prev => prev + 1);
         setFeedback(null);
         setIsComplete(false);
     }, []);
 
     const handleAction = (action, amount) => {
-        console.log('Action received:', action, amount); // Debug log
+        console.log('Action received:', action, amount);
 
         if (!scenario.correctActions.includes(action)) {
             setFeedback({
                 type: 'error',
                 message: `That's not the optimal play. ${scenario.explanation}`
             });
-            return false; // Return false to indicate invalid action
+            return false;
         }
 
-        // For betting actions, validate the sizing
         if ((action === 'RAISE' || action === 'BET') && scenario.correctSizing) {
             if (amount < scenario.correctSizing.min || amount > scenario.correctSizing.max) {
                 setFeedback({
                     type: 'error',
                     message: `Incorrect sizing. The optimal sizing is between ${scenario.correctSizing.min} and ${scenario.correctSizing.max} BB.`
                 });
-                return false; // Return false to indicate invalid action
+                return false;
             }
         }
 
-        // Action is correct
         setFeedback({
             type: 'success',
             message: `Correct! ${scenario.explanation}`
         });
         setIsComplete(true);
-        return true; // Return true to indicate valid action
+        return true;
     };
 
     if (!scenario) {
@@ -69,13 +68,11 @@ const PracticeScenarioPage = () => {
 
     return (
         <div className="practice-scenario min-h-screen bg-gray-900">
-            {/* Scenario Information */}
             <div className="scenario-header bg-gray-800 p-4 text-white">
                 <h1 className="text-2xl font-bold">{scenario.title}</h1>
                 <p className="mt-2">{scenario.description}</p>
             </div>
 
-            {/* Feedback Display - Made more prominent */}
             {feedback && (
                 <div className={`fixed top-1/4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md mx-auto p-6 rounded-lg shadow-lg ${
                     feedback.type === 'success' 
@@ -83,7 +80,6 @@ const PracticeScenarioPage = () => {
                         : 'bg-red-600 text-white'
                 }`}>
                     <div className="flex items-start">
-                        {/* Icon for success/error */}
                         <div className="flex-shrink-0">
                             {feedback.type === 'success' ? (
                                 <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -95,7 +91,6 @@ const PracticeScenarioPage = () => {
                                 </svg>
                             )}
                         </div>
-                        {/* Message */}
                         <div className="ml-3">
                             <p className="text-lg font-medium">
                                 {feedback.type === 'success' ? 'Well done!' : 'Try again'}
@@ -133,7 +128,6 @@ const PracticeScenarioPage = () => {
                                 </div>
                             )}
                         </div>
-                        {/* Close button - Only show for error messages */}
                         {feedback.type === 'error' && (
                             <button 
                                 onClick={() => {
@@ -151,17 +145,15 @@ const PracticeScenarioPage = () => {
                 </div>
             )}
 
-            {/* Poker Game Component */}
             <div className="game-container flex-1">
                 <PokerGame 
-                    key={resetKey} // Add key to force remount when resetting
+                    key={resetKey}
                     isPracticeMode={true}
                     scenarioSetup={scenario.setup}
                     onAction={handleAction}
                 />
             </div>
 
-            {/* Navigation Controls */}
             <div className="navigation-controls p-4 flex justify-between bg-gray-800">
                 <button 
                     onClick={() => navigate('/learn/practice')}
