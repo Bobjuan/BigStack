@@ -20,6 +20,7 @@ function createDeck() {
   for (const suit of SUITS) for (const rank of RANKS) deck.push(rank + suit);
   return deck;
 }
+
 function shuffleDeck(deck) {
   const d = [...deck];
   for (let i = d.length - 1; i > 0; i--) {
@@ -28,6 +29,7 @@ function shuffleDeck(deck) {
   }
   return d;
 }
+
 function getSeatedPlayers(game) {
   return game.seats.filter(s => s && !s.isEmpty).map(s => s.player);
 }
@@ -55,15 +57,17 @@ function initGameState(gameSettings) {
 
   return {
     seats,
-    spectators: [], // Array of playerInfo objects for those not seated
+    spectators: [],
     deck: [],
     communityCards: [],
     pot: 0,
+    pots: [],
     currentBettingRound: GamePhase.WAITING,
-    currentPlayerIndex: -1, // This will now refer to the index within the temporary 'seated players' array
-    dealerIndex: -1, // This will also refer to the index within the temporary 'seated players' array
+    currentPlayerIndex: -1,
+    dealerIndex: -1,
     currentHighestBet: 0,
     minRaiseAmount: gameSettings.blinds?.big || BIG_BLIND_AMOUNT_DEFAULT,
+    lastRaiseAmount: 0,
     lastAggressorIndex: -1,
     actionClosingPlayerIndex: -1,
     bigBlind: gameSettings.blinds?.big || BIG_BLIND_AMOUNT_DEFAULT,
@@ -71,28 +75,46 @@ function initGameState(gameSettings) {
     winners: [],
     showdownPlayers: [],
     handOverMessage: "",
+    turnStartTime: null,
+    timeBank: gameSettings.timeBank || 60,
+    ritPending: false,
+    ritVotes: {},
+    ritRequired: [],
+    gameSettings: gameSettings
   };
 }
 
 function startHand(game) {
   const players = getSeatedPlayers(game);
   if (players.length < 2) {
-    // Not enough players to start a hand.
     return;
   }
   game.deck = shuffleDeck(createDeck());
   game.communityCards = [];
   game.pot = 0;
+  game.pots = [];
   game.currentBettingRound = GamePhase.PREFLOP;
   game.currentHighestBet = 0;
   game.minRaiseAmount = game.bigBlind;
+  game.lastRaiseAmount = game.bigBlind;
   game.lastAggressorIndex = -1;
   game.winners = [];
   game.showdownPlayers = [];
   game.handOverMessage = "";
+  game.ritPending = false;
+  game.ritVotes = {};
+  game.ritRequired = [];
+  delete game.runItTwice;
+  delete game.runItOut;
+  delete game.ritFirstRun;
+  delete game.ritSecondRun;
+  delete game.ritFirstWinners;
+  delete game.ritSecondWinners;
+  
   // rotate dealer
   game.dealerIndex = (game.dealerIndex + 1) % players.length;
   assignPositions(players, game.dealerIndex);
+  
   // deal 2 cards each
   players.forEach(p => {
     p.cards = [game.deck.pop(), game.deck.pop()];
@@ -102,6 +124,7 @@ function startHand(game) {
     p.totalBetInHand = 0;
     p.hasActedThisRound = false;
   });
+  
   // blinds
   const sbPlayerIndex = players.findIndex(p => p.isSB);
   const bbPlayerIndex = players.findIndex(p => p.isBB);
@@ -119,7 +142,9 @@ function startHand(game) {
     game.currentPlayerIndex = (bbPlayerIndex + 1) % players.length;
     game.actionClosingPlayerIndex = bbPlayerIndex;
   }
+  game.turnStartTime = Date.now();
 }
+
 function postBlind(game, idx, amt) {
   const players = getSeatedPlayers(game);
   if (idx === -1) return;
@@ -138,13 +163,16 @@ function processAction(game, playerId, action, details = {}) {
   if (idx !== game.currentPlayerIndex) return { error: 'Not your turn' };
   const player = players[idx];
   const highest = game.currentHighestBet;
+  
   switch (action) {
     case 'fold':
       player.isFolded = true;
       break;
+      
     case 'check':
       if (player.currentBet < highest) return { error: 'Cannot check' };
       break;
+      
     case 'call': {
       const toCall = highest - player.currentBet;
       const amt = Math.min(toCall, player.stack);
@@ -155,30 +183,36 @@ function processAction(game, playerId, action, details = {}) {
       if (player.stack === 0) player.isAllIn = true;
       break;
     }
+    
     case 'bet': {
-      const amt = Number(details.amount);
-      if (!amt || amt < 0) return { error: 'Invalid bet amount' };
+      const totalBetAmount = Number(details.amount);
+      if (!totalBetAmount || totalBetAmount < 0) return { error: 'Invalid bet amount' };
       
-      const betRequiredToCall = game.currentHighestBet - player.currentBet;
-      const totalBetAmountOnStreet = amt;
-
-      if (totalBetAmountOnStreet < game.currentHighestBet + game.minRaiseAmount && totalBetAmountOnStreet < player.stack) {
-        if (totalBetAmountOnStreet < game.currentHighestBet) return { error: 'Bet/Raise amount is less than current highest bet.' };
-        return { error: `Minimum raise is to ${game.currentHighestBet + game.minRaiseAmount}. Your bet is ${totalBetAmountOnStreet}.` };
+      const amountToAdd = totalBetAmount - player.currentBet;
+      if (amountToAdd > player.stack) return { error: 'Not enough chips' };
+      
+      const isAllIn = amountToAdd === player.stack;
+      const raiseAmount = totalBetAmount - highest;
+      
+      // Validate minimum raise (unless all-in)
+      if (!isAllIn && raiseAmount < game.minRaiseAmount) {
+        return { error: `Minimum raise is ${game.minRaiseAmount}. You raised ${raiseAmount}.` };
       }
-      if (totalBetAmountOnStreet > player.stack) return { error: 'Not enough chips for this bet/raise amount.' };
-
-      const amountAddedToPot = totalBetAmountOnStreet - player.currentBet;
-      player.stack -= amountAddedToPot;
-      player.totalBetInHand += amountAddedToPot;
-      player.currentBet = totalBetAmountOnStreet;
-      game.pot += amountAddedToPot;
-
-      if (player.currentBet > game.currentHighestBet) {
-        game.minRaiseAmount = player.currentBet - game.currentHighestBet;
-        game.currentHighestBet = player.currentBet;
+      
+      // Execute the bet
+      player.stack -= amountToAdd;
+      player.currentBet = totalBetAmount;
+      player.totalBetInHand += amountToAdd;
+      game.pot += amountToAdd;
+      
+      if (totalBetAmount > game.currentHighestBet) {
+        game.lastRaiseAmount = raiseAmount;
+        game.minRaiseAmount = raiseAmount;
+        game.currentHighestBet = totalBetAmount;
         game.lastAggressorIndex = idx;
         game.actionClosingPlayerIndex = idx;
+        
+        // Reset hasActedThisRound for players who need to respond
         players.forEach((p, i) => {
           if (i !== idx && !p.isFolded && !p.isAllIn) {
             p.hasActedThisRound = false;
@@ -189,9 +223,11 @@ function processAction(game, playerId, action, details = {}) {
       if (player.stack === 0) player.isAllIn = true;
       break;
     }
+    
     default:
       return { error: 'Unknown action' };
   }
+  
   player.hasActedThisRound = true;
   advanceTurn(game);
   return { ok: true };
@@ -201,97 +237,179 @@ function advanceTurn(game) {
   const players = getSeatedPlayers(game);
   const len = players.length;
   let next = game.currentPlayerIndex;
-  let guard=0;
-  do {
-    next = (next +1) % len;
-    const p = players[next];
-    let needsToAct = !p.isFolded && !p.isAllIn;
-    if (needsToAct) {
-        if (p.currentBet < game.currentHighestBet) {
-        } else if (p.currentBet === game.currentHighestBet) {
-            if (!p.hasActedThisRound) {
-            } else {
-                 needsToAct = false;
-            }
-        } else {
-             needsToAct = false;
-        }
-    }
-    const originalNeedsAction = !p.isFolded && !p.isAllIn && (!p.hasActedThisRound || p.currentBet < game.currentHighestBet);
-
-    if(originalNeedsAction) {
-      break;
-    }
-    guard++;
-  } while(guard < len);
+  let foundNextPlayer = false;
   
-  if(guard>=len) next = -1;
+  // Look for next player who needs to act
+  for (let i = 0; i < len; i++) {
+    next = (next + 1) % len;
+    const p = players[next];
+    
+    if (!p.isFolded && !p.isAllIn) {
+      const needsToAct = !p.hasActedThisRound || p.currentBet < game.currentHighestBet;
+      if (needsToAct) {
+        foundNextPlayer = true;
+        break;
+      }
+    }
+  }
+  
+  if (!foundNextPlayer) {
+    next = -1;
+    // Check if we should auto-proceed when everyone is all-in
+    const activePlayers = players.filter(p => !p.isFolded);
+    const canActPlayers = activePlayers.filter(p => !p.isAllIn);
+    if (activePlayers.length > 1 && canActPlayers.length === 0) {
+      // Everyone is all-in, trigger auto-proceed
+      setTimeout(() => proceedRound(game), 0);
+    }
+  }
+  
   game.currentPlayerIndex = next;
+  game.turnStartTime = next !== -1 ? Date.now() : null;
 }
 
-function remainingActivePlayers(game){
-    const players = getSeatedPlayers(game);
-  return players.filter(p=>!p.isFolded);
-}
-function allPlayersActed(game){
-    const players = getSeatedPlayers(game);
-  return players.every(p=> p.isFolded || p.isAllIn || p.hasActedThisRound);
-}
-function bettingRoundComplete(game){
+function remainingActivePlayers(game) {
   const players = getSeatedPlayers(game);
-  const activePlayers = players.filter(p => !p.isFolded);
+  return players.filter(p => !p.isFolded);
+}
 
-  // 1. If 0 or 1 active players, betting is over.
+function bettingRoundComplete(game) {
+  const activePlayers = getSeatedPlayers(game).filter(p => !p.isFolded);
+  
   if (activePlayers.length <= 1) {
     return true;
   }
-
-  // 2. Check if all active players who are not all-in have effectively matched the current highest bet.
-  const allBetsSettled = activePlayers.every(p => 
-    p.isAllIn || 
-    p.currentBet === game.currentHighestBet ||
-    (p.currentBet > 0 && game.currentHighestBet === 0) // This covers cases where first player bets and others fold around
-  );
   
-  if (!allBetsSettled) {
-    // Exception: If currentHighestBet is 0, and only one player has a currentBet > 0 (they made an opening bet)
-    // and everyone else folded back to them. The round should end. But activePlayers.length <=1 handles this.
-    // This check is more for when betting has occurred and needs to be matched by multiple players.
-    
-    // If highestBet > 0, then all non-all-in players must have matched it if they are to be considered settled.
-    if (game.currentHighestBet > 0 && !activePlayers.every(p => p.isAllIn || p.currentBet === game.currentHighestBet)) {
-        return false; // Bets are not yet settled for all active, non-all-in players against a raise/bet.
-    }
-    // If highestBet is 0, but some players have acted (e.g. checked) but not all. Round is not over yet.
-    // This is handled by the currentPlayerIndex check below.
-  }
-
-  // 3. Check if action has completed: game.currentPlayerIndex will be -1 
-  // if advanceTurn found no player needing to act (they are folded, all-in, or have acted and their bet matches the highest).
-  // When a raise occurs, `hasActedThisRound` is reset for others, ensuring they will be found by `advanceTurn` if they need to act.
-  if (game.currentPlayerIndex === -1) {
-    // This indicates advanceTurn (called after the last action) determined no one else has a required move.
-    // And if allBetsSettled is also effectively true (or handled by activePlayers <=1), round is complete.
-    // We need to ensure that `allBetsSettled` is robust for the `currentPlayerIndex === -1` case.
-    // If currentPlayerIndex is -1, it means all players who *could* act have done so and their currentBet matches currentHighestBet (or they are all-in/folded).
-    // So, if currentPlayerIndex is -1, the bets *must* be settled among those who could act.
-    return true;
+  const highestBet = Math.max(...activePlayers.map(p => p.currentBet));
+  
+  if (highestBet === 0) {
+    return activePlayers.every(p => p.hasActedThisRound);
   }
   
-  return false; // Default: betting round is not complete.
+  const betsSettled = activePlayers.every(p => p.currentBet === highestBet || p.isAllIn);
+  if (!betsSettled) return false;
+  
+  const playersAtHighest = activePlayers.filter(p => !p.isAllIn && p.currentBet === highestBet);
+  return playersAtHighest.every(p => p.hasActedThisRound);
 }
-function dealCommunity(game, count){
-  if(game.deck.length<count+1) return;
+
+function dealCommunity(game, count) {
+  if (game.deck.length < count + 1) return;
+  
+  // Burn card
   game.deck.shift();
-  for(let i=0;i<count;i++) game.communityCards.push(game.deck.shift());
+  
+  // Deal community cards
+  for (let i = 0; i < count; i++) {
+    game.communityCards.push(game.deck.shift());
+  }
 }
+
+function dealCommunityForRIT(deck, existingCards, cardsNeeded) {
+  const community = [...existingCards];
+  
+  // For RIT, we need to handle burns properly
+  // If we're completing from flop (3 cards), we need turn + river (2 more cards)
+  // Each street needs a burn
+  
+  let cardsDealt = existingCards.length;
+  
+  while (community.length < 5 && deck.length > 0) {
+    // Burn before each street
+    if (cardsDealt === 0 || cardsDealt === 3 || cardsDealt === 4) {
+      deck.shift(); // burn
+    }
+    
+    // Deal the card(s)
+    if (cardsDealt < 3) {
+      // Dealing flop
+      for (let i = 0; i < 3 && community.length < 5; i++) {
+        community.push(deck.shift());
+        cardsDealt++;
+      }
+    } else {
+      // Dealing turn or river
+      community.push(deck.shift());
+      cardsDealt++;
+    }
+  }
+  
+  return community;
+}
+
+function buildSidePots(game) {
+  const players = getSeatedPlayers(game);
+  const activePlayers = players.filter(p => !p.isFolded);
+  
+  if (activePlayers.length === 0) return;
+  
+  // Clear existing pots
+  game.pots = [];
+  
+  // Sort players by their total contribution (ascending)
+  const sortedPlayers = [...activePlayers].sort((a, b) => a.totalBetInHand - b.totalBetInHand);
+  
+  let previousContribution = 0;
+  
+  for (let i = 0; i < sortedPlayers.length; i++) {
+    const player = sortedPlayers[i];
+    const contribution = player.totalBetInHand;
+    
+    if (contribution > previousContribution) {
+      const potAmount = contribution - previousContribution;
+      const eligiblePlayers = sortedPlayers.slice(i).map(p => p.id);
+      
+      // Calculate the actual pot size (potAmount * number of contributors)
+      const contributors = activePlayers.filter(p => p.totalBetInHand >= contribution);
+      const potSize = potAmount * contributors.length;
+      
+      if (potSize > 0) {
+        game.pots.push({
+          amount: potSize,
+          eligiblePlayerIds: eligiblePlayers
+        });
+      }
+      
+      previousContribution = contribution;
+    }
+  }
+  
+  // Update main pot display (sum of all side pots)
+  game.pot = game.pots.reduce((sum, pot) => sum + pot.amount, 0);
+}
+
 function proceedRound(game) {
   const players = getSeatedPlayers(game);
+  
   if (bettingRoundComplete(game)) {
+    // Build side pots at the end of each betting round
+    buildSidePots(game);
+    
+    // Check for RIT conditions
+    const activePlayers = remainingActivePlayers(game);
+    const canStillBetPlayers = activePlayers.filter(p => !p.isAllIn);
+    
+    if (activePlayers.length > 1 && canStillBetPlayers.length <= 1 && 
+        game.currentBettingRound !== GamePhase.RIVER && 
+        game.currentBettingRound !== GamePhase.SHOWDOWN) {
+        
+      if (game.gameSettings?.allowRunItTwice && !game.ritPending) {
+        game.ritPending = true;
+        game.ritRequired = activePlayers.map(p => p.id);
+        game.ritVotes = {};
+        return;
+      }
+      game.runItOut = true;
+    }
+    
+    // Reset current bets for new round
     players.forEach(p => {
+      p.currentBet = 0;
+      p.hasActedThisRound = false;
     });
-
+    
     let newRoundStarted = false;
+    
     switch (game.currentBettingRound) {
       case GamePhase.PREFLOP:
         dealCommunity(game, 3);
@@ -311,220 +429,369 @@ function proceedRound(game) {
       case GamePhase.RIVER:
         game.currentBettingRound = GamePhase.SHOWDOWN;
         break;
-      default:
-        return; 
     }
-
+    
     if (newRoundStarted) {
-      players.forEach(p => {
-        if (!p.isFolded && !p.isAllIn) {
-          p.hasActedThisRound = false;
-        }
-      });
-
-      let nextPlayerForNewRound = -1;
-      let guard = 0;
-      let currentEvalPlayer = (game.dealerIndex + 1 + players.length) % players.length; 
+      // Find first player to act in new round
+      let nextPlayer = -1;
+      const startPos = (game.dealerIndex + 1) % players.length;
       
-      while (guard < players.length) {
-        const player = players[currentEvalPlayer];
+      for (let i = 0; i < players.length; i++) {
+        const idx = (startPos + i) % players.length;
+        const player = players[idx];
         if (!player.isFolded && !player.isAllIn) {
-          nextPlayerForNewRound = currentEvalPlayer;
+          nextPlayer = idx;
           break;
         }
-        currentEvalPlayer = (currentEvalPlayer + 1 + players.length) % players.length;
-        guard++;
       }
-      game.currentPlayerIndex = nextPlayerForNewRound;
+      
+      game.currentPlayerIndex = nextPlayer;
       game.currentHighestBet = 0;
-      players.forEach(p => { 
-        if(!p.isFolded && !p.isAllIn) p.currentBet = 0;
-      });
       game.minRaiseAmount = game.bigBlind;
+      game.lastRaiseAmount = 0;
       game.lastAggressorIndex = -1;
-      if (nextPlayerForNewRound !== -1) {
-         let potentialClosing = nextPlayerForNewRound;
-         let searchIdx = nextPlayerForNewRound;
-         let searchGuard = 0;
-         do {
-            const p = players[searchIdx];
-            if (!p.isFolded && !p.isAllIn) potentialClosing = searchIdx;
-            searchIdx = (searchIdx + 1) % players.length;
-            searchGuard++;
-         } while (searchGuard < players.length && searchIdx !== nextPlayerForNewRound);
-         game.actionClosingPlayerIndex = potentialClosing;
-      } else {
-        game.actionClosingPlayerIndex = -1;
-      }
-
+      game.actionClosingPlayerIndex = nextPlayer;
+      game.turnStartTime = nextPlayer !== -1 ? Date.now() : null;
+      
     } else if (game.currentBettingRound === GamePhase.SHOWDOWN) {
       resolveShowdown(game);
     }
-  } 
+  }
 }
-function resolveShowdown(game){
-  const players = getSeatedPlayers(game);
-  const contenders = players.filter(p=>!p.isFolded && p.cards && p.cards.length === 2);
-  game.showdownPlayers = contenders.map(p => p.id);
 
-  if(contenders.length === 0) {
-    game.handOverMessage = "No contenders for showdown.";
+function getPlayerPositionFromButton(game, playerId) {
+  const players = getSeatedPlayers(game);
+  const playerIndex = players.findIndex(p => p.id === playerId);
+  if (playerIndex === -1) return -1;
+  
+  // Calculate position relative to button (0 = button, 1 = SB, etc.)
+  return (playerIndex - game.dealerIndex + players.length) % players.length;
+}
+
+function distributeOddChips(game, winners, remainder) {
+  if (remainder === 0 || winners.length === 0) return;
+  
+  // Sort winners by position from button
+  const sortedWinners = [...winners].sort((a, b) => {
+    const posA = getPlayerPositionFromButton(game, a.id);
+    const posB = getPlayerPositionFromButton(game, b.id);
+    return posA - posB;
+  });
+  
+  // Distribute odd chips starting from closest to button
+  for (let i = 0; i < remainder && i < sortedWinners.length; i++) {
+    const winner = sortedWinners[i];
+    const player = getSeatedPlayers(game).find(p => p.id === winner.id);
+    if (player) {
+      player.stack += 1;
+      winner.amountWon += 1;
+    }
+  }
+}
+
+function resolveShowdown(game) {
+  const players = getSeatedPlayers(game);
+  const contenders = players.filter(p => !p.isFolded && p.cards && p.cards.length === 2);
+  game.showdownPlayers = contenders.map(p => p.id);
+  
+  if (contenders.length === 0) {
+    console.error("No valid contenders at showdown - this shouldn't happen");
+    game.handOverMessage = "Error: No valid players for showdown.";
     game.currentBettingRound = GamePhase.HAND_OVER;
     game.winners = [];
     return;
   }
-
-  if(contenders.length === 1){
-     const winner = contenders[0];
-     winner.stack += game.pot;
-     game.winners = [{ 
-        id: winner.id, 
-        name: winner.name, 
-        cards: winner.cards,
-        handDescription: "Only remaining player", 
-        amountWon: game.pot 
-     }];
-     game.handOverMessage = `${winner.name} wins ${game.pot} as the only remaining player.`;
-     game.pot=0;
-     game.currentBettingRound = GamePhase.HAND_OVER;
-     return;
+  
+  if (contenders.length === 1) {
+    const winner = contenders[0];
+    winner.stack += game.pot;
+    game.winners = [{
+      id: winner.id,
+      name: winner.name,
+      cards: winner.cards,
+      handDescription: "Only remaining player",
+      amountWon: game.pot
+    }];
+    game.handOverMessage = `${winner.name} wins ${game.pot} as the only remaining player.`;
+    game.pot = 0;
+    game.pots = [];
+    game.currentBettingRound = GamePhase.HAND_OVER;
+    return;
   }
-
-  game.solvedHands = contenders.map(p => {
-    const hand = Hand.solve([...p.cards, ...game.communityCards]);
-    return { player: p, hand: hand, handDescription: hand.descr };
-  });
-
-  const allPlayerHandsForSolver = game.solvedHands.map(s => s.hand);
-  let _winningSolverHands = Hand.winners(allPlayerHandsForSolver);
-
-  // Safeguard: If pokersolver returns multiple "winners", ensure they are of the same actual rank.
-  if (_winningSolverHands.length > 1) {
-    let bestRank = -1;
-    // Find the best rank among the tentatively winning hands (lower rank is better)
-    _winningSolverHands.forEach(h => {
-      if (bestRank === -1 || h.rank < bestRank) {
-        bestRank = h.rank;
-      }
-    });
-    // Filter to only include hands that match this best rank
-    _winningSolverHands = _winningSolverHands.filter(h => h.rank === bestRank);
+  
+  // Build side pots if not already done
+  if (game.pots.length === 0) {
+    buildSidePots(game);
   }
-  // Now _winningSolverHands contains only the truly best hand(s)
-
+  
   game.winners = [];
-  let totalPotAwarded = 0;
-
-  // Use a Set for efficient lookup based on object reference
-  const winningHandObjectSet = new Set(_winningSolverHands);
-  const actualWinnersData = game.solvedHands.filter(s => 
-    winningHandObjectSet.has(s.hand) // Check if the hand object itself is in the set of winning hands
-  );
-
-  if (actualWinnersData.length > 0) {
-    const potShare = Math.floor(game.pot / actualWinnersData.length);
-    actualWinnersData.forEach(winnerData => {
-      winnerData.player.stack += potShare;
-      totalPotAwarded += potShare;
-      game.winners.push({
-        id: winnerData.player.id,
-        name: winnerData.player.name,
-        cards: winnerData.player.cards,
-        handDescription: winnerData.handDescription,
-        amountWon: potShare
-      });
+  let totalMessages = [];
+  
+  // Process each pot from smallest to largest
+  for (const pot of game.pots) {
+    const eligibleContenders = contenders.filter(p => pot.eligiblePlayerIds.includes(p.id));
+    
+    if (eligibleContenders.length === 0) continue;
+    
+    // Evaluate hands
+    const evaluatedHands = eligibleContenders.map(p => {
+      const hand = Hand.solve([...p.cards, ...game.communityCards]);
+      return { player: p, hand: hand, handDescription: hand.descr };
     });
-    const remainder = game.pot - totalPotAwarded;
-    if (remainder > 0 && game.winners.length > 0) {
-      const firstWinnerId = game.winners[0].id;
-      const firstWinnerPlayer = players.find(p => p.id === firstWinnerId);
-      if (firstWinnerPlayer) firstWinnerPlayer.stack += remainder;
-      game.winners[0].amountWon += remainder;
+    
+    // Find winners - pokersolver already returns the best hands
+    const allHands = evaluatedHands.map(e => e.hand);
+    const winningHands = Hand.winners(allHands);
+    
+    // Map back to players
+    const winningHandSet = new Set(winningHands);
+    const potWinners = evaluatedHands.filter(e => winningHandSet.has(e.hand));
+    
+    if (potWinners.length > 0) {
+      const share = Math.floor(pot.amount / potWinners.length);
+      const remainder = pot.amount % potWinners.length;
+      
+      const winnersInfo = potWinners.map(w => ({
+        id: w.player.id,
+        name: w.player.name,
+        cards: w.player.cards,
+        handDescription: w.handDescription,
+        amountWon: share
+      }));
+      
+      // Award main shares
+      winnersInfo.forEach(winner => {
+        const player = players.find(p => p.id === winner.id);
+        if (player) {
+          player.stack += winner.amountWon;
+        }
+        
+        // Add to or update existing winner
+        const existingWinner = game.winners.find(w => w.id === winner.id);
+        if (existingWinner) {
+          existingWinner.amountWon += winner.amountWon;
+        } else {
+          game.winners.push({...winner});
+        }
+      });
+      
+      // Distribute odd chips
+      distributeOddChips(game, winnersInfo, remainder);
+      
+      // Build message for this pot
+      if (game.pots.length > 1) {
+        const potType = pot === game.pots[0] ? "main pot" : "side pot";
+        if (winnersInfo.length === 1) {
+          totalMessages.push(`${winnersInfo[0].name} wins ${potType} of ${pot.amount}`);
+        } else {
+          totalMessages.push(`${winnersInfo.map(w => w.name).join(', ')} split ${potType} of ${pot.amount}`);
+        }
+      }
     }
-    // Construct handOverMessage based on the number of actual winners
-    if (game.winners.length === 1) {
-      game.handOverMessage = `${game.winners[0].name} (with ${game.winners[0].handDescription}) wins ${game.winners[0].amountWon}.`;
-    } else if (game.winners.length > 1) {
-      // Assuming potShare was calculated correctly for an even split before remainder.
-      // The amountWon in each winner object should reflect their share.
-      game.handOverMessage = `${game.winners.map(w => `${w.name} (with ${w.handDescription})`).join(', ')} split the pot. Each wins ${game.winners[0].amountWon}.`;
-    } else {
-      // This case should ideally not be reached if actualWinnersData had entries.
-      game.handOverMessage = "Error determining winner message.";
-    }
-
-  } else {
-     game.handOverMessage = "Error determining winners or a chop with no one qualifying?";
   }
-
+  
+  // Build final message
+  if (game.pots.length === 1) {
+    // Single pot
+    if (game.winners.length === 1) {
+      game.handOverMessage = `${game.winners[0].name} wins ${game.pot} with ${game.winners[0].handDescription}`;
+    } else {
+      game.handOverMessage = `${game.winners.map(w => w.name).join(', ')} split the pot with ${game.winners[0].handDescription}`;
+    }
+  } else {
+    // Multiple pots
+    game.handOverMessage = totalMessages.join('. ');
+  }
+  
   game.pot = 0;
+  game.pots = [];
   game.currentBettingRound = GamePhase.HAND_OVER;
 }
 
-function runItOutStep(game) {
-    if (game.currentBettingRound === GamePhase.RIVER || game.currentBettingRound === GamePhase.SHOWDOWN) {
-        resolveShowdown(game);
-        return;
+function resolveShowdownRIT(game) {
+  const players = getSeatedPlayers(game);
+  const contenders = players.filter(p => !p.isFolded && p.cards && p.cards.length === 2);
+  
+  if (contenders.length <= 1) {
+    return resolveShowdown(game);
+  }
+  
+  // Build side pots if not already done
+  if (game.pots.length === 0) {
+    buildSidePots(game);
+  }
+  
+  // Snapshot deck and community cards
+  const deck = [...game.deck];
+  const existingCommunityCards = [...game.communityCards];
+  
+  // Deal first run
+  const firstRunCommunity = dealCommunityForRIT([...deck], existingCommunityCards, 5 - existingCommunityCards.length);
+  
+  // Deal second run (using the remaining deck after first run)
+  const secondRunCommunity = dealCommunityForRIT(deck, existingCommunityCards, 5 - existingCommunityCards.length);
+  
+  // Process each pot for both runs
+  game.winners = [];
+  const firstRunMessages = [];
+  const secondRunMessages = [];
+  
+  for (const pot of game.pots) {
+    const eligibleContenders = contenders.filter(p => pot.eligiblePlayerIds.includes(p.id));
+    if (eligibleContenders.length === 0) continue;
+    
+    const halfPot = Math.floor(pot.amount / 2);
+    const oddChip = pot.amount % 2;
+    
+    // First run
+    const firstRunResults = evaluateHands(eligibleContenders, firstRunCommunity);
+    awardPotToWinnersRIT(game, firstRunResults.winners, halfPot + oddChip, players, 'first');
+    
+    // Second run
+    const secondRunResults = evaluateHands(eligibleContenders, secondRunCommunity);
+    awardPotToWinnersRIT(game, secondRunResults.winners, halfPot, players, 'second');
+    
+    // Build messages
+    const potType = pot === game.pots[0] ? "main pot" : "side pot";
+    if (firstRunResults.winners.length === 1) {
+      firstRunMessages.push(`${firstRunResults.winners[0].player.name} wins first run of ${potType}`);
+    } else {
+      firstRunMessages.push(`${firstRunResults.winners.map(w => w.player.name).join(', ')} split first run of ${potType}`);
     }
+    
+    if (secondRunResults.winners.length === 1) {
+      secondRunMessages.push(`${secondRunResults.winners[0].player.name} wins second run of ${potType}`);
+    } else {
+      secondRunMessages.push(`${secondRunResults.winners.map(w => w.player.name).join(', ')} split second run of ${potType}`);
+    }
+  }
+  
+  // Store RIT boards for display
+  game.ritFirstRun = firstRunCommunity;
+  game.ritSecondRun = secondRunCommunity;
+  game.communityCards = [];
+  
+  // Build final message
+  game.handOverMessage = `Run it twice: ${firstRunMessages.join('. ')} | ${secondRunMessages.join('. ')}`;
+  
+  game.pot = 0;
+  game.pots = [];
+  game.currentBettingRound = GamePhase.HAND_OVER;
+  game.showdownPlayers = contenders.map(p => p.id);
+}
 
-    switch (game.currentBettingRound) {
-        case GamePhase.PREFLOP:
-            dealCommunity(game, 3);
-            game.currentBettingRound = GamePhase.FLOP;
-            break;
-        case GamePhase.FLOP:
-            dealCommunity(game, 1);
-            game.currentBettingRound = GamePhase.TURN;
-            break;
-        case GamePhase.TURN:
-            dealCommunity(game, 1);
-            game.currentBettingRound = GamePhase.RIVER;
-            break;
+function evaluateHands(contenders, communityCards) {
+  const evaluatedHands = contenders.map(p => {
+    const hand = Hand.solve([...p.cards, ...communityCards]);
+    return { player: p, hand: hand, handDescription: hand.descr };
+  });
+  
+  const allHands = evaluatedHands.map(e => e.hand);
+  const winningHands = Hand.winners(allHands);
+  
+  const winningHandSet = new Set(winningHands);
+  const winners = evaluatedHands.filter(e => winningHandSet.has(e.hand));
+  
+  return { winners, evaluatedHands };
+}
+
+function awardPotToWinnersRIT(game, winners, potAmount, players, runType) {
+  if (winners.length === 0 || potAmount === 0) return;
+  
+  const share = Math.floor(potAmount / winners.length);
+  const remainder = potAmount % winners.length;
+  
+  winners.forEach((winner, idx) => {
+    const player = players.find(p => p.id === winner.player.id);
+    if (player) {
+      const amount = share + (idx === 0 ? remainder : 0);
+      player.stack += amount;
+      
+      // Track winner info
+      const existingWinner = game.winners.find(w => w.id === winner.player.id);
+      if (existingWinner) {
+        existingWinner.amountWon += amount;
+        existingWinner.runs = existingWinner.runs || [];
+        existingWinner.runs.push(runType);
+      } else {
+        game.winners.push({
+          id: winner.player.id,
+          name: winner.player.name,
+          cards: winner.player.cards,
+          handDescription: winner.handDescription,
+          amountWon: amount,
+          runs: [runType]
+        });
+      }
     }
+  });
+}
+
+function runItOutStep(game) {
+  if (game.currentBettingRound === GamePhase.RIVER || game.currentBettingRound === GamePhase.SHOWDOWN) {
+    if (game.runItTwice) {
+      resolveShowdownRIT(game);
+    } else {
+      resolveShowdown(game);
+    }
+    return;
+  }
+  
+  switch (game.currentBettingRound) {
+    case GamePhase.PREFLOP:
+      dealCommunity(game, 3);
+      game.currentBettingRound = GamePhase.FLOP;
+      break;
+    case GamePhase.FLOP:
+      dealCommunity(game, 1);
+      game.currentBettingRound = GamePhase.TURN;
+      break;
+    case GamePhase.TURN:
+      dealCommunity(game, 1);
+      game.currentBettingRound = GamePhase.RIVER;
+      break;
+  }
 }
 
 const originalProcess = processAction;
 function processActionWrapper(game, playerId, action, details = {}) {
   const roundInitial = game.currentBettingRound;
-  const playerInitialTurn = game.currentPlayerIndex; 
-
+  
   const res = originalProcess(game, playerId, action, details);
   if (res.error) return res;
-
+  
   const activePlayers = remainingActivePlayers(game);
   if (activePlayers.length <= 1) {
+    // Build final pots before awarding
+    buildSidePots(game);
+    
     let handEndMessage = "";
     if (activePlayers.length === 1) {
       const winner = activePlayers[0];
       winner.stack += game.pot;
-      game.winners = [{ 
-          id: winner.id, 
-          name: winner.name, 
-          cards: winner.cards,
-          handDescription: "Opponents folded", 
-          amountWon: game.pot 
+      game.winners = [{
+        id: winner.id,
+        name: winner.name,
+        cards: winner.cards,
+        handDescription: "Opponents folded",
+        amountWon: game.pot
       }];
       handEndMessage = `${winner.name} wins ${game.pot} as opponents folded.`;
     } else {
-      handEndMessage = "All players folded. Pot remains or split (logic TBD).";
+      handEndMessage = "All players folded.";
       game.winners = [];
     }
     game.pot = 0;
+    game.pots = [];
     game.currentBettingRound = GamePhase.HAND_OVER;
     game.handOverMessage = handEndMessage;
     game.currentPlayerIndex = -1;
+    game.turnStartTime = null;
     return res;
   }
-
-  const canStillBetPlayers = activePlayers.filter(p => !p.isAllIn);
-  if (activePlayers.length > 1 && canStillBetPlayers.length <= 1) {
-    game.runItOut = true;
-    game.currentPlayerIndex = -1;
-    return res;
-  }
-
+  
   proceedRound(game);
-
+  
   if (game.currentBettingRound === roundInitial && 
       game.currentBettingRound !== GamePhase.HAND_OVER && 
       game.currentBettingRound !== GamePhase.SHOWDOWN) {
@@ -532,8 +799,38 @@ function processActionWrapper(game, playerId, action, details = {}) {
       proceedRound(game);
     }
   }
-
+  
   return res;
+}
+
+function processRitVote(game, playerId, vote) {
+  if (!game.ritPending) return { error: 'No RIT vote pending' };
+  if (!game.ritRequired.includes(playerId)) return { error: 'You are not eligible to vote' };
+  if (game.ritVotes.hasOwnProperty(playerId)) return { error: 'You have already voted' };
+  
+  game.ritVotes[playerId] = vote;
+  
+  // Check if all votes are in
+  if (Object.keys(game.ritVotes).length === game.ritRequired.length) {
+    const allAgree = Object.values(game.ritVotes).every(v => v === true);
+    
+    game.ritPending = false;
+    
+    if (allAgree) {
+      game.runItTwice = true;
+      game.runItOut = true;
+    } else {
+      game.runItOut = true;
+    }
+    
+    game.currentPlayerIndex = -1;
+    game.turnStartTime = null;
+    
+    // Immediately trigger the run out
+    return { ok: true, shouldRunOut: true };
+  }
+  
+  return { ok: true };
 }
 
 module.exports = {
@@ -542,6 +839,8 @@ module.exports = {
   initGameState,
   startHand,
   processAction: processActionWrapper,
+  processRitVote,
+  resolveShowdownRIT,
   GamePhase,
   getSeatedPlayers,
   runItOutStep,

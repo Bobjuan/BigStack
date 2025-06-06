@@ -4,6 +4,8 @@ import io from 'socket.io-client';
 import { useAuth } from '../../context/AuthContext'; // Assuming you want to use user info
 import OnlinePokerTableDisplay from './OnlinePokerTableDisplay'; // Import the new display component
 import ActionButtons from './ActionButtons'; // Import ActionButtons
+import GameSettingsModal from './GameSettingsModal'; // Import the new modal component
+import RitVoteModal from './RitVoteModal'; // Import RIT vote modal
 import tableBg from '/src/assets/blacktable.png'; // Import table background
 
 // Connect to your backend server. Make sure the port matches your server.js
@@ -34,7 +36,12 @@ function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('log'); // 'log' or 'chat'
   const [chatInput, setChatInput] = useState('');
+  const [isLogVisible, setIsLogVisible] = useState(true);
+  const [hasNewChatMessage, setHasNewChatMessage] = useState(false);
   const tableRef = useRef(null); // Add table ref for sizing
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [ritVoteOpen, setRitVoteOpen] = useState(false);
+  const [isEligibleForRit, setIsEligibleForRit] = useState(false);
 
   // Effect for setting player name from user auth
   useEffect(() => {
@@ -76,6 +83,15 @@ function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
 
     newSocket.on('chatMessage', (data) => {
         setChatMessages(prev => [...prev, data]);
+        if (activeTab !== 'chat' || !isLogVisible) {
+            setHasNewChatMessage(true);
+        }
+    });
+
+    newSocket.on('ritPrompt', (data) => {
+        setRitVoteOpen(true);
+        setIsEligibleForRit(data.eligiblePlayers.includes(newSocket.id));
+        setMessages(prev => [...prev, data.message]);
     });
 
     newSocket.on('gameNotFound', () => {
@@ -192,6 +208,18 @@ function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
     }
   };
 
+  const handleSaveSettings = useCallback((newSettings) => {
+    if (socket && gameId && gameState?.hostId === socket.id) {
+        socket.emit('updateGameSettings', { gameId, newSettings }, (response) => {
+            if (response.status === 'ok') {
+                setMessages(prev => [...prev, 'Game settings have been updated for the next hand.']);
+            } else {
+                setError(response.message || 'Error updating settings.');
+            }
+        });
+    }
+  }, [socket, gameId, gameState]);
+  
   // ---- Action Button Props Calculation ----
   let isMyTurn = false;
   let canCheck = false;
@@ -220,13 +248,21 @@ function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
           canCall = callAmount > 0 && myStackNum > 0 && !me.isAllIn;
           
           const minRaise = gameState.minRaiseAmount || bigBlind;
-          let calculatedMinBet = Math.max(1, (highestBetNum + minRaise) - currentBetNum);
-          minBetAmount = Math.min(calculatedMinBet, myStackNum > 0 ? myStackNum : calculatedMinBet);
-          maxBetAmount = myStackNum;
+          // The total bet must be at least the highest bet plus the minimum raise amount.
+          const calculatedMinBet = highestBetNum + minRaise;
+          // The maximum total bet is the player's stack plus what they've already bet.
+          const calculatedMaxBet = myStackNum + currentBetNum;
+
+          minBetAmount = Math.min(calculatedMinBet, calculatedMaxBet);
+          maxBetAmount = calculatedMaxBet;
+          
           canBet = myStackNum > 0 && !me.isAllIn;
-          // Ensure if betting is possible, minBetAmount is at least 1 if stack allows
-          if (canBet && minBetAmount <= 0 && myStackNum > 0) minBetAmount = 1; 
-          if (canBet && minBetAmount > maxBetAmount) minBetAmount = maxBetAmount; // Cannot bet less than all-in if minBet > stack
+          // Ensure if betting is possible, the minBet is at least the call amount (or BB if no bet)
+          if(canBet && highestBetNum > 0) {
+            minBetAmount = Math.max(minBetAmount, highestBetNum);
+          } else if (canBet) {
+            minBetAmount = Math.max(minBetAmount, bigBlind);
+          }
      
           if (isPreflop) {
               preflopOptions = [2, 3, 4].map(multiplier => ({
@@ -252,6 +288,25 @@ function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
 
   // Render create/join buttons only if no auto-action is triggered and not in a game
   const showManualControls = !initialGameSettings && !joinWithGameId && !gameId;
+
+  let hostName = '';
+  if (gameState && gameState.hostId) {
+    const allPlayers = [
+        ...gameState.seats.filter(s => !s.isEmpty).map(s => s.player),
+        ...gameState.spectators
+    ];
+    const host = allPlayers.find(p => p.id === gameState.hostId);
+    if (host) {
+        hostName = host.name;
+    }
+  }
+
+  const handleRitVote = useCallback((vote) => {
+    if (socket && gameId) {
+        socket.emit('ritVote', { gameId, vote });
+        setRitVoteOpen(false);
+    }
+  }, [socket, gameId]);
 
   // Basic UI for creating/joining and displaying messages/game state
   if (!socket) {
@@ -306,10 +361,21 @@ function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
         
         {/* Game Info - Top Left */}
         <div className="absolute top-4 left-4 z-20 text-left max-w-xs text-white">
-            <h2 className="text-lg font-bold">Game: {gameId}</h2>
+            <div className="flex items-center space-x-2">
+                <h2 className="text-lg font-bold">Game: {gameId}</h2>
+                <button 
+                    onClick={() => setIsSettingsModalOpen(true)} 
+                    className="text-gray-400 hover:text-white w-8 h-8 flex items-center justify-center bg-gray-800 bg-opacity-50 hover:bg-gray-700 hover:bg-opacity-70 rounded-md transition-colors"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0L8 7.48a1 1 0 01-1.41 1.41l-4.31-1.51c-1.56-.38-2.38 1.24-1.25 2.38l3.17 3.17a1 1 0 010 1.41l-3.17 3.17c-1.13 1.13.31 2.75 1.87 2.37l4.31-1.51a1 1 0 011.41 1.41l-1.51 4.31c-.38 1.56 1.24 2.38 2.38 1.25l3.17-3.17a1 1 0 011.41 0l3.17 3.17c1.13 1.13 2.75-.31 2.37-1.87l-1.51-4.31a1 1 0 011.41-1.41l4.31 1.51c1.56.38 2.38-1.24 1.25-2.38l-3.17-3.17a1 1 0 010-1.41l3.17-3.17c1.13-1.13-.31-2.75-1.87-2.37l-4.31 1.51a1 1 0 01-1.41-1.41l1.51-4.31zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+                    </svg>
+                </button>
+            </div>
             {error && <p className="text-red-500 bg-red-100 border border-red-500 p-2 rounded my-1 text-sm">Error: {error}</p>}
              {gameState && (
                  <>
+                    {hostName && <p className="text-sm text-gray-400">Host: {hostName}</p>}
                     <p className="text-md">Status: <span className="font-semibold">{gameState.currentBettingRound}</span></p>
                     {gameState.hostId === socket?.id && gameState.currentBettingRound === GamePhase.WAITING && gameState.seats.filter(s => !s.isEmpty).length >= 2 && (
                         <button 
@@ -345,6 +411,21 @@ function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
             </div>
         )}
 
+        {isSettingsModalOpen && (
+            <GameSettingsModal 
+                gameSettings={gameState?.gameSettings} 
+                onClose={() => setIsSettingsModalOpen(false)} 
+                isHost={gameState?.hostId === socket?.id}
+                onSave={handleSaveSettings}
+            />
+        )}
+
+        <RitVoteModal 
+            isOpen={ritVoteOpen}
+            onVote={handleRitVote}
+            isEligible={isEligibleForRit}
+        />
+
         {/* Poker Table Area */}
         <div
             ref={tableRef}
@@ -368,52 +449,70 @@ function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
         {/* Game Log & Chat - Bottom Left */}
         <div className="absolute bottom-4 left-4 z-20 w-full max-w-md">
             {/* Tab Buttons */}
-            <div className="flex border-b border-gray-700">
+            <div className="flex border-b border-gray-700 bg-gray-900 bg-opacity-80 rounded-t-md pr-2">
                 <button 
-                    onClick={() => setActiveTab('log')}
-                    className={`px-4 py-2 text-sm font-medium transition-colors duration-200 ${activeTab === 'log' ? 'bg-gray-800 text-white border-t border-l border-r border-gray-700 rounded-t-md' : 'text-gray-400 hover:text-white'}`}
+                    onClick={() => {
+                        setActiveTab('log');
+                        if (!isLogVisible) setIsLogVisible(true);
+                    }}
+                    className={`px-4 py-2 text-sm font-medium transition-colors duration-200 ${activeTab === 'log' ? 'bg-gray-800 text-white' : 'text-gray-400 hover:text-white'}`}
                 >
                     Game Log
                 </button>
                 <button 
-                    onClick={() => setActiveTab('chat')}
-                    className={`px-4 py-2 text-sm font-medium transition-colors duration-200 ${activeTab === 'chat' ? 'bg-gray-800 text-white border-t border-l border-r border-gray-700 rounded-t-md' : 'text-gray-400 hover:text-white'}`}
+                    onClick={() => {
+                        setActiveTab('chat');
+                        setHasNewChatMessage(false);
+                        if (!isLogVisible) setIsLogVisible(true);
+                    }}
+                    className={`relative px-4 py-2 text-sm font-medium transition-colors duration-200 ${activeTab === 'chat' ? 'bg-gray-800 text-white' : 'text-gray-400 hover:text-white'}`}
                 >
                     Chat
+                    {hasNewChatMessage && (
+                        <span className="absolute top-2 right-2 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-gray-900"></span>
+                    )}
+                </button>
+                <div className="flex-grow"></div>
+                <button onClick={() => setIsLogVisible(!isLogVisible)} className="p-2 text-gray-400 hover:text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 transition-transform duration-300 ${isLogVisible ? 'rotate-0' : 'rotate-180'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
                 </button>
             </div>
 
             {/* Tab Content */}
-            <div className="h-48 bg-gray-900 bg-opacity-80 p-2 border border-gray-600 rounded-b-md rounded-tr-md text-white flex flex-col">
-                {activeTab === 'log' && (
-                    <div className="h-full overflow-y-auto">
-                        {messages.slice().reverse().map((msg, index) => <div key={index} className="text-sm">{msg}</div>)}
-                    </div>
-                )}
-                {activeTab === 'chat' && (
-                    <>
-                        <div className="flex-grow overflow-y-auto">
-                           {chatMessages.map((msg, index) => (
-                                <div key={index} className="text-sm mb-1">
-                                    <span className="font-bold text-yellow-300">{msg.sender}: </span>
-                                    <span>{msg.message}</span>
-                                </div>
-                           ))}
+            <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isLogVisible ? 'max-h-96' : 'max-h-0'}`}>
+                <div className="h-48 bg-gray-900 bg-opacity-80 p-2 border border-t-0 border-gray-600 rounded-b-md text-white flex flex-col">
+                    {activeTab === 'log' && (
+                        <div className="h-full overflow-y-auto">
+                            {messages.slice().reverse().map((msg, index) => <div key={index} className="text-sm">{msg}</div>)}
                         </div>
-                        <form onSubmit={handleSendMessage} className="mt-2 flex">
-                            <input
-                                type="text"
-                                value={chatInput}
-                                onChange={(e) => setChatInput(e.target.value)}
-                                placeholder="Say something..."
-                                className="flex-grow p-2 rounded-l-md border border-gray-600 bg-gray-800 text-white text-sm"
-                            />
-                            <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-r-md text-sm">
-                                Send
-                            </button>
-                        </form>
-                    </>
-                )}
+                    )}
+                    {activeTab === 'chat' && (
+                        <>
+                            <div className="flex-grow overflow-y-auto">
+                               {chatMessages.map((msg, index) => (
+                                    <div key={index} className="text-sm mb-1">
+                                        <span className="font-bold text-yellow-300">{msg.sender}: </span>
+                                        <span>{msg.message}</span>
+                                    </div>
+                               ))}
+                            </div>
+                            <form onSubmit={handleSendMessage} className="mt-2 flex">
+                                <input
+                                    type="text"
+                                    value={chatInput}
+                                    onChange={(e) => setChatInput(e.target.value)}
+                                    placeholder="Say something..."
+                                    className="flex-grow p-2 rounded-l-md border border-gray-600 bg-gray-800 text-white text-sm"
+                                />
+                                <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-r-md text-sm">
+                                    Send
+                                </button>
+                            </form>
+                        </>
+                    )}
+                </div>
             </div>
         </div>
         
@@ -421,7 +520,7 @@ function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
         <div className="absolute bottom-4 right-4 z-20">
             <div className="flex flex-col items-end">
                 {isMyTurn && gameState?.currentBettingRound !== GamePhase.WAITING && gameState?.currentBettingRound !== GamePhase.HAND_OVER && (
-                    <div className="p-3 bg-gray-800 bg-opacity-90 rounded shadow-md flex justify-center border border-gray-600">
+                    <div className="p-3 bg-gray-800 bg-opacity-90 rounded shadow-md flex justify-end border border-gray-600">
                         <ActionButtons 
                             onCheck={() => handlePlayerAction('check')}
                             onCall={() => handlePlayerAction('call', { amount: callAmount })}

@@ -3,6 +3,7 @@ import PlayerHand from './PlayerHand';
 import CommunityCards from './CommunityCards';
 import PlayerInfo from './PlayerInfo';
 import PotDisplay from './PotDisplay';
+import PlayerTimer from './PlayerTimer';
 import dealerChip from '/src/assets/dealer.png'; // Assuming path is correct
 
 // These might come from a shared constants file later
@@ -15,7 +16,7 @@ const POSITIONS_6MAX = ['BTN', 'SB', 'BB', 'UTG', 'HJ', 'CO'];
 const POSITIONS_HEADSUP = ['BTN/SB', 'BB'];
 
 // Player Component to reduce repetition
-const PlayerDisplay = ({ player, positionStyles, showPlayerCards, isTurn, cardWidth, displayPosition }) => {
+const PlayerDisplay = ({ player, positionStyles, showPlayerCards, isTurn, cardWidth, displayPosition, turnStartTime, timeBank }) => {
     const { infoStyle, cardStyle, betStyle } = positionStyles;
     
     const infoClasses = [
@@ -66,6 +67,12 @@ const PlayerDisplay = ({ player, positionStyles, showPlayerCards, isTurn, cardWi
                 <PlayerInfo
                     position={displayPosition}
                     stack={player.stack}
+                    isTurn={isTurn}
+                />
+
+                <PlayerTimer 
+                    turnStartTime={isTurn ? turnStartTime : null}
+                    timeBank={timeBank}
                     isTurn={isTurn}
                 />
             </div>
@@ -175,6 +182,14 @@ function OnlinePokerTableDisplay({ gameState, currentSocketId, GamePhase, onTake
 
         let infoX = baseX - infoWidth / 2;
         let infoY = baseY - infoHeight / 2;
+
+        // For players in the bottom half of the screen, shift the entire element cluster down to prevent overlap.
+        // This moves the info box, and the cards will follow as they are relative to it.
+        if (Math.sin(angle) > 0.2) { 
+            const shiftFactor = tableHeight * 0.06;
+            infoY += shiftFactor * Math.sin(angle); // Scale the shift by how far down the player is
+        }
+
         const infoStyle = {
             position: 'absolute',
             left: `${infoX}px`,
@@ -193,7 +208,9 @@ function OnlinePokerTableDisplay({ gameState, currentSocketId, GamePhase, onTake
         };
 
         let cardX = baseX - cardWidth / 2;
-        let cardY = infoY - cardHeight * 0.8;
+        // Position cards relative to the (now correctly shifted) info box, with less overlap.
+        let cardY = infoY - cardHeight * 0.7;
+
         const cardStyle = {
             position: 'absolute',
             left: `${cardX}px`,
@@ -254,8 +271,17 @@ function OnlinePokerTableDisplay({ gameState, currentSocketId, GamePhase, onTake
         >
             {/* Community Cards & Pot Area - Centered */}
             <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none">
-                <CommunityCards cards={gameState.communityCards || []} cardWidth={consistentCardWidth * 0.8} />
-                <PotDisplay amount={gameState.pot || 0} label="Pot" />
+                <CommunityCards 
+                    cards={gameState.communityCards || []} 
+                    cardWidth={consistentCardWidth * 0.8}
+                    ritFirstRun={gameState.ritFirstRun}
+                    ritSecondRun={gameState.ritSecondRun}
+                />
+                <PotDisplay 
+                    amount={gameState.pot || 0} 
+                    label="Pot"
+                    pots={gameState.pots || []}
+                />
                 
                 {/* Display Hand Outcome / Winner Info */}
                 {gameState.currentBettingRound === GamePhase.HAND_OVER && (
@@ -289,7 +315,9 @@ function OnlinePokerTableDisplay({ gameState, currentSocketId, GamePhase, onTake
                     );
 
                     if (seat.isEmpty) {
-                        return isCurrentUserSpectator && (
+                        // Only show sit button if the game is waiting for players or the hand is over
+                        const canTakeSeat = gameState.currentBettingRound === GamePhase.WAITING || gameState.currentBettingRound === GamePhase.HAND_OVER;
+                        return isCurrentUserSpectator && canTakeSeat && (
                             <SitButton
                                 key={`sit-btn-${seat.seatIndex}`}
                                 positionStyle={positionStyles.sitButtonStyle}
@@ -317,6 +345,8 @@ function OnlinePokerTableDisplay({ gameState, currentSocketId, GamePhase, onTake
                            isTurn={player.id === currentPlayerTurnId}
                            cardWidth={positionStyles.cardWidth}
                            displayPosition={getPlayerDisplayPosition(player)}
+                           turnStartTime={gameState.turnStartTime}
+                           timeBank={gameState.timeBank}
                        />
                     );
                 })}

@@ -143,7 +143,7 @@ function ActionButtons({
   const sliderClass = "w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-yellow-500 disabled:opacity-30 disabled:cursor-not-allowed";
 
   return (
-    <div className="action-buttons-container w-[450px]"> {/* Container to manage layout */}
+    <div className="action-buttons-container inline-flex"> {/* Container to manage layout */}
       {!isRaiseMode ? (
         // Default Action View
         <div className="flex space-x-2">

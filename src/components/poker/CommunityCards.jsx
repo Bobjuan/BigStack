@@ -57,7 +57,34 @@ function Card({ card, cardWidth }) {
   );
 }
 
-function CommunityCards({ cards = [], cardWidth = 50 }) { // Default width if not provided
+function CommunityCards({ cards = [], cardWidth = 50, ritFirstRun = null, ritSecondRun = null }) { // Default width if not provided
+  // If we have RIT runs, display both
+  if (ritFirstRun && ritSecondRun) {
+    return (
+      <div className="community-cards text-center my-2">
+        <div className="space-y-2">
+          <div>
+            <p className="text-xs text-gray-400 mb-1">First Run</p>
+            <div className="flex justify-center items-center">
+              {ritFirstRun.map((card, index) => (
+                <Card key={`first-${index}`} card={card} cardWidth={cardWidth} />
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="text-xs text-gray-400 mb-1">Second Run</p>
+            <div className="flex justify-center items-center">
+              {ritSecondRun.map((card, index) => (
+                <Card key={`second-${index}`} card={card} cardWidth={cardWidth} />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Normal single run display
   return (
     <div className="community-cards text-center my-2">
       <div className="flex justify-center items-center h-full">
