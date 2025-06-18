@@ -9,7 +9,7 @@ import RitVoteModal from './RitVoteModal'; // Import RIT vote modal
 import tableBg from '/src/assets/blacktable.png'; // Import table background
 
 // Connect to your backend server. Make sure the port matches your server.js
-const SERVER_URL = 'http://localhost:4000'; 
+const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:4000'; 
 
 // Define GamePhase on client to match server
 const GamePhase = {

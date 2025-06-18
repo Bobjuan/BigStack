@@ -12,7 +12,7 @@ const server = http.createServer(app);
 // For development with Vite default, it's usually http://localhost:3000 or http://localhost:5173
 // For production, you'll want to restrict this to your actual frontend domain.
 const corsOptions = {
-  origin: ["http://localhost:3000", "http://localhost:5173"], // Add your frontend dev port
+  origin: [process.env.CORS_ORIGIN, "http://localhost:3000", "http://localhost:5173"].filter(Boolean), // Add your frontend dev port
   methods: ["GET", "POST"]
 };
 
