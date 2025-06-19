@@ -3,6 +3,7 @@ const http = require('http');
 const { Server } = require("socket.io");
 const cors = require('cors'); // Import cors
 const gameEngine = require('./gameEngine'); // NEW import
+const { GamePhase, SocketEvents } = require('./constants');
 
 const app = express();
 const server = http.createServer(app);
@@ -25,39 +26,8 @@ const io = new Server(server, {
 const PORT = process.env.PORT || 4000; // Ensure this is different from your frontend port
 
 // --- Game Logic Helpers (simplified and adapted from PokerGame.jsx) ---
-const SUITS = ['h', 'd', 'c', 's'];
-const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
 const BIG_BLIND_AMOUNT = 10; // Example, will come from gameSettings
 const SMALL_BLIND_AMOUNT = 5; // Example
-
-const GamePhase = {
-  PREFLOP: 'PREFLOP',
-  FLOP: 'FLOP',
-  TURN: 'TURN',
-  RIVER: 'RIVER',
-  SHOWDOWN: 'SHOWDOWN',
-  HAND_OVER: 'HAND_OVER',
-  WAITING: 'WAITING' // New phase for before game starts
-};
-
-const createDeck = () => {
-  const deck = [];
-  for (const suit of SUITS) {
-    for (const rank of RANKS) {
-      deck.push(rank + suit);
-    }
-  }
-  return deck;
-};
-
-const shuffleDeck = (deck) => {
-  let shuffledDeck = [...deck];
-  for (let i = shuffledDeck.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffledDeck[i], shuffledDeck[j]] = [shuffledDeck[j], shuffledDeck[i]];
-  }
-  return shuffledDeck;
-};
 
 // Simplified player initialization for the server
 const initializeServerPlayer = (socketId, name, stack) => ({
@@ -130,10 +100,10 @@ function startActionTimer(gameId) {
             const result = gameEngine.processAction(gameAtTimeout, playerToFold.id, actionToTake, {});
 
             if (result.error) {
-                 io.to(playerToFold.id).emit('message', { text: result.error });
+                 io.to(playerToFold.id).emit(SocketEvents.MESSAGE, { text: result.error });
             }
 
-            io.to(gameId).emit('gameStateUpdate', { newState: getSanitizedGameStateForClient(gameAtTimeout), actionLog: { message: `${playerToFold.name} timed out and was auto-${actionToTake}ed.` } });
+            io.to(gameId).emit(SocketEvents.GAME_STATE_UPDATE, { newState: getSanitizedGameStateForClient(gameAtTimeout), actionLog: { message: `${playerToFold.name} timed out and was auto-${actionToTake}ed.` } });
 
             if (gameAtTimeout.currentBettingRound === gameEngine.GamePhase.HAND_OVER) {
                 scheduleNextHand(gameId);
@@ -160,14 +130,14 @@ function scheduleNextHand(gameId) {
               console.log(`Starting next hand for game ${gameId}`);
               gameEngine.startHand(gameToEndAndRestart);
               delete gameToEndAndRestart.nextHandTimeout;
-              io.to(gameId).emit('gameStateUpdate', { newState: getSanitizedGameStateForClient(gameToEndAndRestart) });
+              io.to(gameId).emit(SocketEvents.GAME_STATE_UPDATE, { newState: getSanitizedGameStateForClient(gameToEndAndRestart) });
               startActionTimer(gameId);
           } else {
                console.log(`Game ${gameId} no longer has enough players to start next hand automatically.`);
                gameToEndAndRestart.currentBettingRound = gameEngine.GamePhase.WAITING;
                delete gameToEndAndRestart.nextHandTimeout;
-               io.to(gameId).emit('gameStateUpdate', { newState: getSanitizedGameStateForClient(gameToEndAndRestart) });
-               io.to(gameId).emit('message', {text: 'Not enough players to start next hand. Waiting for more players.'});
+               io.to(gameId).emit(SocketEvents.GAME_STATE_UPDATE, { newState: getSanitizedGameStateForClient(gameToEndAndRestart) });
+               io.to(gameId).emit(SocketEvents.MESSAGE, {text: 'Not enough players to start next hand. Waiting for more players.'});
           }
       } else {
           console.log(`Game ${gameId} no longer exists, cannot start next hand.`);
@@ -179,7 +149,7 @@ app.get('/', (req, res) => {
   res.send('Poker server is running!');
 });
 
-io.on('connection', (socket) => {
+io.on(SocketEvents.CONNECT, (socket) => {
   console.log('A user connected:', socket.id);
 
   // Example: Listen for a message from the client
@@ -189,7 +159,7 @@ io.on('connection', (socket) => {
     io.emit('serverMessage', { sender: socket.id, message: data });
   });
 
-  socket.on('createGame', (data, callback) => {
+  socket.on(SocketEvents.CREATE_GAME, (data, callback) => {
     const { playerInfo, gameSettings } = data;
     const gameId = `game_${Math.random().toString(36).substr(2, 9)}`;
     console.log(`Game created by ${playerInfo.name || socket.id} with ID: ${gameId}`);
@@ -207,14 +177,14 @@ io.on('connection', (socket) => {
 
     socket.join(gameId);
     callback && callback({ status: 'ok', gameId });
-    io.to(gameId).emit('gameStateUpdate', { newState: getSanitizedGameStateForClient(gameState) });
+    io.to(gameId).emit(SocketEvents.GAME_STATE_UPDATE, { newState: getSanitizedGameStateForClient(gameState) });
   });
 
-  socket.on('joinGame', (data, callback) => {
+  socket.on(SocketEvents.JOIN_GAME, (data, callback) => {
     const { gameId, playerInfo } = data;
     const game = activeGames[gameId];
     if (!game) {
-      socket.emit('gameNotFound');
+      socket.emit(SocketEvents.GAME_NOT_FOUND);
       return callback && callback({ status: 'error', message: 'Game not found' });
     }
     // Check if player is already seated or spectating
@@ -236,11 +206,11 @@ io.on('connection', (socket) => {
 
     socket.join(gameId);
     callback && callback({ status: 'ok', message: `Successfully joined game ${gameId} as spectator` });
-    io.to(gameId).emit('gameStateUpdate', { newState: getSanitizedGameStateForClient(game) });
-    io.to(gameId).emit('playerJoined', { message: `${playerInfo.name || 'Player'} is now spectating.` });
+    io.to(gameId).emit(SocketEvents.GAME_STATE_UPDATE, { newState: getSanitizedGameStateForClient(game) });
+    io.to(gameId).emit(SocketEvents.PLAYER_JOINED, { message: `${playerInfo.name || 'Player'} is now spectating.` });
   });
 
-  socket.on('takeSeat', ({ gameId, seatIndex }, callback) => {
+  socket.on(SocketEvents.TAKE_SEAT, ({ gameId, seatIndex }, callback) => {
     const game = activeGames[gameId];
     if (!game) return callback && callback({ status: 'error', message: 'Game not found' });
 
@@ -261,11 +231,11 @@ io.on('connection', (socket) => {
     game.seats[seatIndex].player = player;
 
     callback && callback({ status: 'ok' });
-    io.to(gameId).emit('gameStateUpdate', { newState: getSanitizedGameStateForClient(game) });
-    io.to(gameId).emit('playerJoined', { message: `${player.name} sat down at seat ${seatIndex + 1}.` });
+    io.to(gameId).emit(SocketEvents.GAME_STATE_UPDATE, { newState: getSanitizedGameStateForClient(game) });
+    io.to(gameId).emit(SocketEvents.PLAYER_JOINED, { message: `${player.name} sat down at seat ${seatIndex + 1}.` });
   });
 
-  socket.on('startGame', (gameId, callback) => {
+  socket.on(SocketEvents.START_GAME, (gameId, callback) => {
     const game = activeGames[gameId];
     if (!game) return callback && callback({ status: 'error', message: 'Game not found' });
     if (game.hostId !== socket.id) return callback && callback({ status: 'error', message: 'Only host can start' });
@@ -274,32 +244,41 @@ io.on('connection', (socket) => {
     if (game.currentBettingRound !== gameEngine.GamePhase.WAITING) return callback && callback({ status: 'error', message: 'Game already started' });
 
     gameEngine.startHand(game);
-    io.to(gameId).emit('gameStateUpdate', { newState: getSanitizedGameStateForClient(game) });
+    io.to(gameId).emit(SocketEvents.GAME_STATE_UPDATE, { newState: getSanitizedGameStateForClient(game) });
     startActionTimer(gameId);
     callback && callback({ status: 'ok' });
   });
 
-  socket.on('playerAction', ({ gameId, action, details }) => {
+  socket.on(SocketEvents.PLAYER_ACTION, (data) => {
+    const { gameId, action, details } = data;
     const game = activeGames[gameId];
     if (!game) return;
 
-    if (game.actionTimer) clearTimeout(game.actionTimer);
-
     if (game.currentBettingRound === gameEngine.GamePhase.HAND_OVER && game.nextHandTimeout) {
-      io.to(socket.id).emit('message', { text: 'Hand is over. Next hand starting soon.' });
-      return;
+       socket.emit(SocketEvents.MESSAGE, { text: 'Hand is over. Next hand starting soon.' });
+       return;
     }
 
     const result = gameEngine.processAction(game, socket.id, action, details);
 
     if (result.error) {
-      io.to(socket.id).emit('message', { text: result.error });
-      return;
+        // Emit error back to the specific player
+        socket.emit(SocketEvents.MESSAGE, { text: result.error });
+        return;
     }
     
-    const actingPlayer = game.seats.find(s => !s.isEmpty && s.player.id === socket.id)?.player;
+    // The action was successful, find the player to create a log message
+    const allPlayers = [...gameEngine.getSeatedPlayers(game), ...game.spectators];
+    const actingPlayer = allPlayers.find(p => p.id === socket.id);
+    let actionLog = 'action';
+    if(actingPlayer) {
+      actionLog = `${actingPlayer.name} ${action}s${details.amount ? ` ${details.amount}` : ''}.`
+    }
 
-    io.to(gameId).emit('gameStateUpdate', {
+    // Clear the main action timer since an action was taken
+    if (game.actionTimer) clearTimeout(game.actionTimer);
+
+    io.to(gameId).emit(SocketEvents.GAME_STATE_UPDATE, {
       newState: getSanitizedGameStateForClient(game),
       actionLog: {
         player: socket.id,
@@ -311,7 +290,7 @@ io.on('connection', (socket) => {
 
     // Check if RIT vote is needed
     if (game.ritPending) {
-        io.to(gameId).emit('ritPrompt', { 
+        io.to(gameId).emit(SocketEvents.RIT_PROMPT, { 
             message: 'All players are all-in. Vote to run it twice?',
             eligiblePlayers: game.ritRequired 
         });
@@ -324,7 +303,7 @@ io.on('connection', (socket) => {
 
         const dealNextStage = () => {
             gameEngine.runItOutStep(game); 
-            io.to(gameId).emit('gameStateUpdate', { newState: getSanitizedGameStateForClient(game) });
+            io.to(gameId).emit(SocketEvents.GAME_STATE_UPDATE, { newState: getSanitizedGameStateForClient(game) });
             
             if (game.currentBettingRound === gameEngine.GamePhase.HAND_OVER) {
                 scheduleNextHand(gameId);
@@ -341,7 +320,8 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('updateGameSettings', ({ gameId, newSettings }, callback) => {
+  socket.on(SocketEvents.UPDATE_GAME_SETTINGS, (data, callback) => {
+    const { gameId, newSettings } = data;
     const game = activeGames[gameId];
     if (!game) return callback && callback({ status: 'error', message: 'Game not found.' });
     if (game.hostId !== socket.id) return callback && callback({ status: 'error', message: 'Only the host can change settings.' });
@@ -367,18 +347,19 @@ io.on('connection', (socket) => {
 
     console.log(`Game settings for ${gameId} updated by host ${socket.id}.`);
     
-    io.to(gameId).emit('gameStateUpdate', { newState: getSanitizedGameStateForClient(game), actionLog: { message: 'Game settings have been updated for the next hand.' } });
+    io.to(gameId).emit(SocketEvents.GAME_STATE_UPDATE, { newState: getSanitizedGameStateForClient(game), actionLog: { message: 'Game settings have been updated for the next hand.' } });
     callback && callback({ status: 'ok' });
   });
 
-  socket.on('ritVote', ({ gameId, vote }) => {
+  socket.on(SocketEvents.RIT_VOTE, (data) => {
+    const { gameId, vote } = data;
     const game = activeGames[gameId];
     if (!game) return;
 
     const result = gameEngine.processRitVote(game, socket.id, vote);
     
     if (result.error) {
-      io.to(socket.id).emit('message', { text: result.error });
+      io.to(socket.id).emit(SocketEvents.MESSAGE, { text: result.error });
       return;
     }
 
@@ -387,7 +368,7 @@ io.on('connection', (socket) => {
                   game.spectators.find(p => p.id === socket.id);
     const voteText = vote ? 'YES' : 'NO';
     
-    io.to(gameId).emit('gameStateUpdate', { 
+    io.to(gameId).emit(SocketEvents.GAME_STATE_UPDATE, { 
         newState: getSanitizedGameStateForClient(game),
         actionLog: { message: `${voter?.name || 'Player'} voted ${voteText} for run it twice` }
     });
@@ -395,19 +376,19 @@ io.on('connection', (socket) => {
     // Check if voting is complete and we should run it out
     if (result.shouldRunOut) {
         const ritMessage = game.runItTwice ? 'Running it twice!' : 'Running it once (not all players agreed).';
-        io.to(gameId).emit('message', { text: ritMessage });
+        io.to(gameId).emit(SocketEvents.MESSAGE, { text: ritMessage });
         
         if (game.runItTwice) {
             // RIT is resolved instantly on the backend, then the result is sent.
             gameEngine.resolveShowdownRIT(game);
-            io.to(gameId).emit('gameStateUpdate', { newState: getSanitizedGameStateForClient(game) });
+            io.to(gameId).emit(SocketEvents.GAME_STATE_UPDATE, { newState: getSanitizedGameStateForClient(game) });
             scheduleNextHand(gameId);
         } else {
             // For a single run, deal out the remaining cards one by one.
             const runItOutDelay = 1500;
             const dealNextStage = () => {
                 gameEngine.runItOutStep(game); 
-                io.to(gameId).emit('gameStateUpdate', { newState: getSanitizedGameStateForClient(game) });
+                io.to(gameId).emit(SocketEvents.GAME_STATE_UPDATE, { newState: getSanitizedGameStateForClient(game) });
                 
                 if (game.currentBettingRound === gameEngine.GamePhase.HAND_OVER) {
                     scheduleNextHand(gameId);
@@ -421,14 +402,24 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('chatMessage', ({ gameId, message }) => {
+  socket.on(SocketEvents.CHAT_MESSAGE, (data) => {
+    const { gameId, message } = data;
     const game = activeGames[gameId];
     if (!game) return;
 
-    const player = game.seats.find(s => !s.isEmpty && s.player.id === socket.id)?.player || game.spectators.find(p => p.id === socket.id);
+    // Enforce the 'allowChat' setting
+    if (!game.gameSettings.allowChat) {
+      // Optionally notify the sender that chat is disabled
+      socket.emit(SocketEvents.MESSAGE, { text: 'Chat is currently disabled by the host.' });
+      return;
+    }
+
+    // Find the player or spectator who sent the message to get their name
+    const allPlayers = [...gameEngine.getSeatedPlayers(game), ...game.spectators];
+    const player = allPlayers.find(p => !p.isEmpty && p.player.id === socket.id);
 
     if (player) {
-      io.to(gameId).emit('chatMessage', {
+      io.to(gameId).emit(SocketEvents.CHAT_MESSAGE, {
         sender: player.name,
         message,
         timestamp: new Date(),
@@ -436,7 +427,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('disconnect', () => {
+  socket.on(SocketEvents.DISCONNECT, () => {
     console.log('User disconnected:', socket.id);
     for (const gameId in activeGames) {
       const game = activeGames[gameId];
@@ -470,10 +461,10 @@ io.on('connection', (socket) => {
             if (newHost) {
                 game.hostId = newHost.id;
                 console.log(`Host disconnected. New host for ${gameId} is ${newHost.name} (${newHost.id})`);
-                io.to(gameId).emit('message', { text: `${disconnectedPlayerName} (Host) left. ${newHost.name} is the new host.` });
+                io.to(gameId).emit(SocketEvents.MESSAGE, { text: `${disconnectedPlayerName} (Host) left. ${newHost.name} is the new host.` });
             }
         } else {
-             io.to(gameId).emit('playerLeft', { message: `${disconnectedPlayerName} left the game.` });
+             io.to(gameId).emit(SocketEvents.PLAYER_LEFT, { message: `${disconnectedPlayerName} left the game.` });
         }
 
         // If the game becomes empty, clear timers and delete it.
@@ -499,7 +490,7 @@ io.on('connection', (socket) => {
             console.log(`Current player ${disconnectedPlayerName} disconnected. Turn needs to be handled.`);
         }
 
-        io.to(gameId).emit('gameStateUpdate', { newState: getSanitizedGameStateForClient(game) });
+        io.to(gameId).emit(SocketEvents.GAME_STATE_UPDATE, { newState: getSanitizedGameStateForClient(game) });
       }
     }
   });

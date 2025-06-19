@@ -16,11 +16,9 @@ const PlayWithFriendsPage = () => {
     autoRebuy: true,
     allowStraddle: true,
     allowRunItTwice: true,
-    allowInsurance: false,
     allowChat: true,
     allowEmotes: true,
     allowTimeBank: true,
-    allowShowOne: true
   });
   
   const [mode, setMode] = useState('idle'); // 'idle', 'creatingRoom', 'joiningRoom'
@@ -137,16 +135,6 @@ const PlayWithFriendsPage = () => {
                   >
                     Cash Game
                   </button>
-                  <button
-                    onClick={() => handleSettingChange('gameType', 'tournament')}
-                    className={`w-full px-6 py-3 rounded-xl text-base font-medium transition-all duration-200 ${
-                      gameSettings.gameType === 'tournament'
-                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
-                        : 'bg-white/10 text-gray-300 hover:bg-white/20'
-                    }`}
-                  >
-                    Tournament
-                  </button>
                 </div>
               </div>
 
@@ -183,7 +171,7 @@ const PlayWithFriendsPage = () => {
               {/* For brevity, advanced toggles are kept visible for now */}
               <h3 className="text-lg font-medium text-gray-300 mb-3 mt-6">Advanced Options</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
-                {[ 'autoRebuy', 'allowStraddle', 'allowRunItTwice', 'allowInsurance', 'allowChat', 'allowEmotes', 'allowTimeBank', 'allowShowOne'].map(opt => (
+                {[ 'autoRebuy', 'allowStraddle', 'allowRunItTwice', 'allowChat', 'allowEmotes', 'allowTimeBank'].map(opt => (
                   <label key={opt} className="flex items-center space-x-3 p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors duration-200">
                     <input type="checkbox" checked={gameSettings[opt]} onChange={(e) => handleSettingChange(opt, e.target.checked)} className="form-checkbox h-5 w-5 text-indigo-600 rounded border-white/20 bg-white/10" />
                     <span className="text-sm text-gray-300">{opt.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</span>

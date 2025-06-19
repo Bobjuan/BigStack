@@ -1,38 +1,15 @@
-const SUITS = ['h', 'd', 'c', 's'];
-const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
+const { Hand } = require('pokersolver');
+const { GamePhase, PlayerAction } = require('./constants');
+const { createDeck, shuffleDeck } = require('./game/deck');
+const { createInitialState, getSeatedPlayers, getActivePlayers } = require('./game/gameState');
+const actionProcessor = require('./game/actionProcessor');
+const showdown = require('./game/showdown');
+
+// Default blind amounts (can be overridden by gameSettings)
 const BIG_BLIND_AMOUNT_DEFAULT = 10;
 const SMALL_BLIND_AMOUNT_DEFAULT = 5;
-const { Hand } = require('pokersolver');
 
-const GamePhase = {
-  PREFLOP: 'PREFLOP',
-  FLOP: 'FLOP',
-  TURN: 'TURN',
-  RIVER: 'RIVER',
-  SHOWDOWN: 'SHOWDOWN',
-  HAND_OVER: 'HAND_OVER',
-  WAITING: 'WAITING'
-};
 module.exports.GamePhase = GamePhase;
-
-function createDeck() {
-  const deck = [];
-  for (const suit of SUITS) for (const rank of RANKS) deck.push(rank + suit);
-  return deck;
-}
-
-function shuffleDeck(deck) {
-  const d = [...deck];
-  for (let i = d.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [d[i], d[j]] = [d[j], d[i]];
-  }
-  return d;
-}
-
-function getSeatedPlayers(game) {
-  return game.seats.filter(s => s && !s.isEmpty).map(s => s.player);
-}
 
 function assignPositions(players, dealerIndex) {
   const POS_9 = ['BTN', 'SB', 'BB', 'UTG', 'UTG+1', 'MP', 'LJ', 'HJ', 'CO'];
@@ -52,36 +29,7 @@ function assignPositions(players, dealerIndex) {
 }
 
 function initGameState(gameSettings) {
-  const maxPlayers = gameSettings.maxPlayers || 9;
-  const seats = Array(maxPlayers).fill(null).map((_, i) => ({ seatIndex: i, isEmpty: true }));
-
-  return {
-    seats,
-    spectators: [],
-    deck: [],
-    communityCards: [],
-    pot: 0,
-    pots: [],
-    currentBettingRound: GamePhase.WAITING,
-    currentPlayerIndex: -1,
-    dealerIndex: -1,
-    currentHighestBet: 0,
-    minRaiseAmount: gameSettings.blinds?.big || BIG_BLIND_AMOUNT_DEFAULT,
-    lastRaiseAmount: 0,
-    lastAggressorIndex: -1,
-    actionClosingPlayerIndex: -1,
-    bigBlind: gameSettings.blinds?.big || BIG_BLIND_AMOUNT_DEFAULT,
-    smallBlind: gameSettings.blinds?.small || SMALL_BLIND_AMOUNT_DEFAULT,
-    winners: [],
-    showdownPlayers: [],
-    handOverMessage: "",
-    turnStartTime: null,
-    timeBank: gameSettings.timeBank || 60,
-    ritPending: false,
-    ritVotes: {},
-    ritRequired: [],
-    gameSettings: gameSettings
-  };
+  return createInitialState(gameSettings);
 }
 
 function startHand(game) {
@@ -158,123 +106,23 @@ function postBlind(game, idx, amt) {
 }
 
 function processAction(game, playerId, action, details = {}) {
-  const players = getSeatedPlayers(game);
-  const idx = players.findIndex(p => p.id === playerId);
-  if (idx !== game.currentPlayerIndex) return { error: 'Not your turn' };
-  const player = players[idx];
-  const highest = game.currentHighestBet;
-  
-  switch (action) {
-    case 'fold':
-      player.isFolded = true;
-      break;
-      
-    case 'check':
-      if (player.currentBet < highest) return { error: 'Cannot check' };
-      break;
-      
-    case 'call': {
-      const toCall = highest - player.currentBet;
-      const amt = Math.min(toCall, player.stack);
-      player.stack -= amt;
-      player.currentBet += amt;
-      player.totalBetInHand += amt;
-      game.pot += amt;
-      if (player.stack === 0) player.isAllIn = true;
-      break;
-    }
-    
-    case 'bet': {
-      const totalBetAmount = Number(details.amount);
-      if (!totalBetAmount || totalBetAmount < 0) return { error: 'Invalid bet amount' };
-      
-      const amountToAdd = totalBetAmount - player.currentBet;
-      if (amountToAdd > player.stack) return { error: 'Not enough chips' };
-      
-      const isAllIn = amountToAdd === player.stack;
-      const raiseAmount = totalBetAmount - highest;
-      
-      // Validate minimum raise (unless all-in)
-      if (!isAllIn && raiseAmount < game.minRaiseAmount) {
-        return { error: `Minimum raise is ${game.minRaiseAmount}. You raised ${raiseAmount}.` };
-      }
-      
-      // Execute the bet
-      player.stack -= amountToAdd;
-      player.currentBet = totalBetAmount;
-      player.totalBetInHand += amountToAdd;
-      game.pot += amountToAdd;
-      
-      if (totalBetAmount > game.currentHighestBet) {
-        game.lastRaiseAmount = raiseAmount;
-        game.minRaiseAmount = raiseAmount;
-        game.currentHighestBet = totalBetAmount;
-        game.lastAggressorIndex = idx;
-        game.actionClosingPlayerIndex = idx;
-        
-        // Reset hasActedThisRound for players who need to respond
-        players.forEach((p, i) => {
-          if (i !== idx && !p.isFolded && !p.isAllIn) {
-            p.hasActedThisRound = false;
-          }
-        });
-      }
-      
-      if (player.stack === 0) player.isAllIn = true;
-      break;
-    }
-    
-    default:
-      return { error: 'Unknown action' };
+  const result = actionProcessor.processAction(game, playerId, action, details);
+  if (!result.success) {
+    return { error: result.error };
   }
   
-  player.hasActedThisRound = true;
-  advanceTurn(game);
+  actionProcessor.advanceTurn(game);
+
+  // After advancing the turn, check if the betting round is complete.
+  if (bettingRoundComplete(game)) {
+      proceedRound(game);
+  }
+
   return { ok: true };
 }
 
-function advanceTurn(game) {
-  const players = getSeatedPlayers(game);
-  const len = players.length;
-  let next = game.currentPlayerIndex;
-  let foundNextPlayer = false;
-  
-  // Look for next player who needs to act
-  for (let i = 0; i < len; i++) {
-    next = (next + 1) % len;
-    const p = players[next];
-    
-    if (!p.isFolded && !p.isAllIn) {
-      const needsToAct = !p.hasActedThisRound || p.currentBet < game.currentHighestBet;
-      if (needsToAct) {
-        foundNextPlayer = true;
-        break;
-      }
-    }
-  }
-  
-  if (!foundNextPlayer) {
-    next = -1;
-    // Check if we should auto-proceed when everyone is all-in
-    const activePlayers = players.filter(p => !p.isFolded);
-    const canActPlayers = activePlayers.filter(p => !p.isAllIn);
-    if (activePlayers.length > 1 && canActPlayers.length === 0) {
-      // Everyone is all-in, trigger auto-proceed
-      setTimeout(() => proceedRound(game), 0);
-    }
-  }
-  
-  game.currentPlayerIndex = next;
-  game.turnStartTime = next !== -1 ? Date.now() : null;
-}
-
-function remainingActivePlayers(game) {
-  const players = getSeatedPlayers(game);
-  return players.filter(p => !p.isFolded);
-}
-
 function bettingRoundComplete(game) {
-  const activePlayers = getSeatedPlayers(game).filter(p => !p.isFolded);
+  const activePlayers = getActivePlayers(game);
   
   if (activePlayers.length <= 1) {
     return true;
@@ -294,14 +142,10 @@ function bettingRoundComplete(game) {
 }
 
 function dealCommunity(game, count) {
-  if (game.deck.length < count + 1) return;
-  
-  // Burn card
-  game.deck.shift();
-  
-  // Deal community cards
   for (let i = 0; i < count; i++) {
-    game.communityCards.push(game.deck.shift());
+    if (game.deck.length > 0) {
+      game.communityCards.push(game.deck.pop());
+    }
   }
 }
 
@@ -378,84 +222,76 @@ function buildSidePots(game) {
   game.pot = game.pots.reduce((sum, pot) => sum + pot.amount, 0);
 }
 
-function proceedRound(game) {
-  const players = getSeatedPlayers(game);
+function proceedRound(game, forceShowdown = false) {
+  const activePlayers = getActivePlayers(game);
+  if (activePlayers.length <= 1) {
+    // Not a showdown, but awarding pot to last player
+    if (activePlayers.length === 1) {
+      const winner = activePlayers[0];
+      // Award pot to the sole remaining player
+      winner.stack += game.pot;
+      // Clear out side pots as they are irrelevant
+      game.pots.forEach(p => winner.stack += p.amount);
+      game.pot = 0;
+      game.pots = [];
+
+      game.winners = [{
+        id: winner.id, name: winner.name, amountWon: game.pot,
+        handDescription: 'Opponents folded'
+      }];
+      game.currentBettingRound = GamePhase.HAND_OVER;
+      game.handOverMessage = `${winner.name} wins the pot as everyone else folded.`;
+      return;
+    }
+    game.currentBettingRound = GamePhase.HAND_OVER;
+    return;
+  }
+
+  if(forceShowdown) {
+    // Fast-forward to showdown if forced (e.g. all-ins)
+    while(game.currentBettingRound !== GamePhase.RIVER) {
+      proceedRound(game);
+    }
+  }
+
+  // Reset player bets for the new round
+  getSeatedPlayers(game).forEach(p => {
+    p.currentBet = 0;
+    p.hasActedThisRound = false;
+  });
+  game.currentHighestBet = 0;
+  game.lastRaiseAmount = 0;
+  game.minRaiseAmount = game.bigBlind; // Reset min raise for new round
+
+  switch (game.currentBettingRound) {
+    case GamePhase.PREFLOP:
+      game.currentBettingRound = GamePhase.FLOP;
+      dealCommunity(game, 3);
+      break;
+    case GamePhase.FLOP:
+      game.currentBettingRound = GamePhase.TURN;
+      dealCommunity(game, 1);
+      break;
+    case GamePhase.TURN:
+      game.currentBettingRound = GamePhase.RIVER;
+      dealCommunity(game, 1);
+      break;
+    case GamePhase.RIVER:
+      game.currentBettingRound = GamePhase.SHOWDOWN;
+      break;
+  }
   
-  if (bettingRoundComplete(game)) {
-    // Build side pots at the end of each betting round
-    buildSidePots(game);
-    
-    // Check for RIT conditions
-    const activePlayers = remainingActivePlayers(game);
-    const canStillBetPlayers = activePlayers.filter(p => !p.isAllIn);
-    
-    if (activePlayers.length > 1 && canStillBetPlayers.length <= 1 && 
-        game.currentBettingRound !== GamePhase.RIVER && 
-        game.currentBettingRound !== GamePhase.SHOWDOWN) {
-        
-      if (game.gameSettings?.allowRunItTwice && !game.ritPending) {
-        game.ritPending = true;
-        game.ritRequired = activePlayers.map(p => p.id);
-        game.ritVotes = {};
-        return;
-      }
-      game.runItOut = true;
+  if (game.currentBettingRound === GamePhase.SHOWDOWN) {
+    showdown.resolveShowdown(game);
+  } else {
+    // Find the first player to act in the new round (typically SB or person after)
+    const dealerIndex = game.dealerIndex;
+    let firstToAct = (dealerIndex + 1) % getSeatedPlayers(game).length;
+    while(getSeatedPlayers(game)[firstToAct].isFolded) {
+      firstToAct = (firstToAct + 1) % getSeatedPlayers(game).length;
     }
-    
-    // Reset current bets for new round
-    players.forEach(p => {
-      p.currentBet = 0;
-      p.hasActedThisRound = false;
-    });
-    
-    let newRoundStarted = false;
-    
-    switch (game.currentBettingRound) {
-      case GamePhase.PREFLOP:
-        dealCommunity(game, 3);
-        game.currentBettingRound = GamePhase.FLOP;
-        newRoundStarted = true;
-        break;
-      case GamePhase.FLOP:
-        dealCommunity(game, 1);
-        game.currentBettingRound = GamePhase.TURN;
-        newRoundStarted = true;
-        break;
-      case GamePhase.TURN:
-        dealCommunity(game, 1);
-        game.currentBettingRound = GamePhase.RIVER;
-        newRoundStarted = true;
-        break;
-      case GamePhase.RIVER:
-        game.currentBettingRound = GamePhase.SHOWDOWN;
-        break;
-    }
-    
-    if (newRoundStarted) {
-      // Find first player to act in new round
-      let nextPlayer = -1;
-      const startPos = (game.dealerIndex + 1) % players.length;
-      
-      for (let i = 0; i < players.length; i++) {
-        const idx = (startPos + i) % players.length;
-        const player = players[idx];
-        if (!player.isFolded && !player.isAllIn) {
-          nextPlayer = idx;
-          break;
-        }
-      }
-      
-      game.currentPlayerIndex = nextPlayer;
-      game.currentHighestBet = 0;
-      game.minRaiseAmount = game.bigBlind;
-      game.lastRaiseAmount = 0;
-      game.lastAggressorIndex = -1;
-      game.actionClosingPlayerIndex = nextPlayer;
-      game.turnStartTime = nextPlayer !== -1 ? Date.now() : null;
-      
-    } else if (game.currentBettingRound === GamePhase.SHOWDOWN) {
-      resolveShowdown(game);
-    }
+    game.currentPlayerIndex = firstToAct;
+    game.actionClosingPlayerIndex = (dealerIndex -1 + getSeatedPlayers(game).length) % getSeatedPlayers(game).length;
   }
 }
 
@@ -753,56 +589,6 @@ function runItOutStep(game) {
   }
 }
 
-const originalProcess = processAction;
-function processActionWrapper(game, playerId, action, details = {}) {
-  const roundInitial = game.currentBettingRound;
-  
-  const res = originalProcess(game, playerId, action, details);
-  if (res.error) return res;
-  
-  const activePlayers = remainingActivePlayers(game);
-  if (activePlayers.length <= 1) {
-    // Build final pots before awarding
-    buildSidePots(game);
-    
-    let handEndMessage = "";
-    if (activePlayers.length === 1) {
-      const winner = activePlayers[0];
-      winner.stack += game.pot;
-      game.winners = [{
-        id: winner.id,
-        name: winner.name,
-        cards: winner.cards,
-        handDescription: "Opponents folded",
-        amountWon: game.pot
-      }];
-      handEndMessage = `${winner.name} wins ${game.pot} as opponents folded.`;
-    } else {
-      handEndMessage = "All players folded.";
-      game.winners = [];
-    }
-    game.pot = 0;
-    game.pots = [];
-    game.currentBettingRound = GamePhase.HAND_OVER;
-    game.handOverMessage = handEndMessage;
-    game.currentPlayerIndex = -1;
-    game.turnStartTime = null;
-    return res;
-  }
-  
-  proceedRound(game);
-  
-  if (game.currentBettingRound === roundInitial && 
-      game.currentBettingRound !== GamePhase.HAND_OVER && 
-      game.currentBettingRound !== GamePhase.SHOWDOWN) {
-    if (game.currentPlayerIndex === -1) {
-      proceedRound(game);
-    }
-  }
-  
-  return res;
-}
-
 function processRitVote(game, playerId, vote) {
   if (!game.ritPending) return { error: 'No RIT vote pending' };
   if (!game.ritRequired.includes(playerId)) return { error: 'You are not eligible to vote' };
@@ -838,7 +624,7 @@ module.exports = {
   shuffleDeck,
   initGameState,
   startHand,
-  processAction: processActionWrapper,
+  processAction,
   processRitVote,
   resolveShowdownRIT,
   GamePhase,

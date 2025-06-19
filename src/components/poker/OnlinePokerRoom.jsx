@@ -498,18 +498,24 @@ function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
                                     </div>
                                ))}
                             </div>
-                            <form onSubmit={handleSendMessage} className="mt-2 flex">
-                                <input
-                                    type="text"
-                                    value={chatInput}
-                                    onChange={(e) => setChatInput(e.target.value)}
-                                    placeholder="Say something..."
-                                    className="flex-grow p-2 rounded-l-md border border-gray-600 bg-gray-800 text-white text-sm"
-                                />
-                                <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-r-md text-sm">
-                                    Send
-                                </button>
-                            </form>
+                            {gameState?.gameSettings?.allowChat ? (
+                                <form onSubmit={handleSendMessage} className="mt-2 flex">
+                                    <input
+                                        type="text"
+                                        value={chatInput}
+                                        onChange={(e) => setChatInput(e.target.value)}
+                                        placeholder="Say something..."
+                                        className="flex-grow p-2 rounded-l-md border border-gray-600 bg-gray-800 text-white text-sm"
+                                    />
+                                    <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-r-md text-sm">
+                                        Send
+                                    </button>
+                                </form>
+                            ) : (
+                                <div className="mt-2 p-2 text-center text-sm text-gray-400 bg-gray-800 rounded-md">
+                                    Chat is disabled by the host.
+                                </div>
+                            )}
                         </>
                     )}
                 </div>
