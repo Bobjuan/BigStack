@@ -1,5 +1,5 @@
 const { PlayerAction } = require('../constants');
-const { getSeatedPlayers } = require('./gameState');
+const { getSeatedPlayers, getActivePlayers } = require('./gameState');
 
 function processAction(game, playerId, action, details = {}) {
   const players = getSeatedPlayers(game);
@@ -88,7 +88,21 @@ function processAction(game, playerId, action, details = {}) {
       return { success: false, error: 'Unknown action' };
   }
 
+  // After any legal action, the player has officially taken their turn.
   player.hasActedThisRound = true;
+
+  // If the action was aggressive (a bet or a raise), all other players must act again.
+  // We reset their flag to ensure the betting round continues correctly.
+  const isAggressiveAction = action === PlayerAction.BET || action === PlayerAction.RAISE;
+  if (isAggressiveAction) {
+    const activePlayers = getActivePlayers(game); // Use a helper to be safe
+    activePlayers.forEach(p => {
+      if (p.id !== player.id && !p.isAllIn) {
+        p.hasActedThisRound = false;
+      }
+    });
+  }
+  
   return { success: true };
 }
 

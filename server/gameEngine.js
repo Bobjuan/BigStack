@@ -4,6 +4,7 @@ const { createDeck, shuffleDeck } = require('./game/deck');
 const { createInitialState, getSeatedPlayers, getActivePlayers } = require('./game/gameState');
 const actionProcessor = require('./game/actionProcessor');
 const showdown = require('./game/showdown');
+const statsTracker = require('./game/statsTracker');
 
 // Default blind amounts (can be overridden by gameSettings)
 const BIG_BLIND_AMOUNT_DEFAULT = 10;
@@ -29,7 +30,9 @@ function assignPositions(players, dealerIndex) {
 }
 
 function initGameState(gameSettings) {
-  return createInitialState(gameSettings);
+  const state = createInitialState(gameSettings);
+  state.handStats = {};
+  return state;
 }
 
 function startHand(game) {
@@ -37,6 +40,18 @@ function startHand(game) {
   if (players.length < 2) {
     return;
   }
+
+  game.handStats = {};
+  // NEW: Add a shared state object for tracking hand-wide events.
+  game.handStats.sharedState = {
+    preflopRaiseMade: false,
+  };
+  players.forEach(p => {
+    if (p && p.userId) {
+      game.handStats[p.userId] = statsTracker.createHandStatsObject(p.userId);
+    }
+  });
+
   game.deck = shuffleDeck(createDeck());
   game.communityCards = [];
   game.pot = 0;
@@ -106,39 +121,64 @@ function postBlind(game, idx, amt) {
 }
 
 function processAction(game, playerId, action, details = {}) {
+  const player = getSeatedPlayers(game).find(p => p.id === playerId);
+  
   const result = actionProcessor.processAction(game, playerId, action, details);
   if (!result.success) {
     return { error: result.error };
   }
   
-  actionProcessor.advanceTurn(game);
-
-  // After advancing the turn, check if the betting round is complete.
-  if (bettingRoundComplete(game)) {
-      proceedRound(game);
+  if (player && player.userId) {
+    statsTracker.trackAction(game.handStats, game, player, action);
   }
+  
+  checkGameAndProceed(game);
 
   return { ok: true };
 }
 
-function bettingRoundComplete(game) {
+/**
+ * NEW: The single, authoritative function for advancing the game state.
+ * This function is called after every action to determine what happens next.
+ */
+function checkGameAndProceed(game) {
   const activePlayers = getActivePlayers(game);
   
+  // If only one player is left, the hand is over.
   if (activePlayers.length <= 1) {
-    return true;
+    return proceedRound(game);
+  }
+
+  // If the round is complete, proceed to the next street or showdown.
+  if (bettingRoundComplete(game)) {
+    return proceedRound(game);
   }
   
+  // Otherwise, the hand is still in progress. Advance to the next player.
+  actionProcessor.advanceTurn(game);
+}
+
+function bettingRoundComplete(game) {
+  const activePlayers = getActivePlayers(game);
+  if (activePlayers.length <= 1) {
+    return true; // Round is over if only one or zero players are left.
+  }
+
+  // Find the highest bet amount that any player has committed in this round.
   const highestBet = Math.max(...activePlayers.map(p => p.currentBet));
-  
-  if (highestBet === 0) {
-    return activePlayers.every(p => p.hasActedThisRound);
-  }
-  
-  const betsSettled = activePlayers.every(p => p.currentBet === highestBet || p.isAllIn);
-  if (!betsSettled) return false;
-  
-  const playersAtHighest = activePlayers.filter(p => !p.isAllIn && p.currentBet === highestBet);
-  return playersAtHighest.every(p => p.hasActedThisRound);
+
+  // The round is complete ONLY if two conditions are met:
+  // 1. All active players have either matched the highest bet or are all-in.
+  const allBetsSettled = activePlayers.every(p => p.currentBet === highestBet || p.isAllIn);
+
+  // 2. All active players who are not all-in have had a turn to act since the last raise.
+  const nonAllInPlayers = activePlayers.filter(p => !p.isAllIn);
+  const allHaveActed = nonAllInPlayers.every(p => p.hasActedThisRound);
+
+  // This logic correctly handles the pre-flop "option" for the Big Blind.
+  // If the SB limps, bets are settled, but the BB has not yet acted, so allHaveActed is false.
+  // The round continues, correctly giving the BB their turn.
+  return allBetsSettled && allHaveActed;
 }
 
 function dealCommunity(game, count) {
@@ -224,26 +264,51 @@ function buildSidePots(game) {
 
 function proceedRound(game, forceShowdown = false) {
   const activePlayers = getActivePlayers(game);
+  
+  // CRITICAL FIX: Check if betting can even continue.
+  // If fewer than 2 active players are NOT all-in, no more betting is possible.
+  // We must proceed directly to dealing the rest of the board and then to showdown.
+  const playersWhoCanAct = activePlayers.filter(p => !p.isAllIn);
+  if (playersWhoCanAct.length < 2) {
+    // Deal the rest of the community cards immediately
+    const cardsToDeal = 5 - game.communityCards.length;
+    if (cardsToDeal > 0) {
+      // Burn a card before dealing the street (if it's flop, turn, or river)
+      if (game.deck.length > 0 && (game.communityCards.length === 0 || game.communityCards.length === 3 || game.communityCards.length === 4)) {
+        game.deck.pop(); // Burn
+      }
+      dealCommunity(game, cardsToDeal);
+    }
+    return resolveShowdown(game);
+  }
+
   if (activePlayers.length <= 1) {
-    // Not a showdown, but awarding pot to last player
+    // This handles the case where only one player is left (everyone else folded).
     if (activePlayers.length === 1) {
       const winner = activePlayers[0];
-      // Award pot to the sole remaining player
-      winner.stack += game.pot;
-      // Clear out side pots as they are irrelevant
-      game.pots.forEach(p => winner.stack += p.amount);
-      game.pot = 0;
-      game.pots = [];
-
+      
+      // Correctly calculate total pot before zeroing it out.
+      const potWon = game.pot + game.pots.reduce((sum, p) => sum + p.amount, 0);
+      winner.stack += potWon;
+      
       game.winners = [{
-        id: winner.id, name: winner.name, amountWon: game.pot,
+        id: winner.id, 
+        name: winner.name, 
+        amountWon: potWon,
         handDescription: 'Opponents folded'
       }];
+
+      game.pot = 0;
+      game.pots = [];
       game.currentBettingRound = GamePhase.HAND_OVER;
-      game.handOverMessage = `${winner.name} wins the pot as everyone else folded.`;
+      game.handOverMessage = `${winner.name} wins ${potWon} as everyone else folded.`;
+      
+      statsTracker.commitHandStats(game.handStats);
       return;
     }
     game.currentBettingRound = GamePhase.HAND_OVER;
+    
+    statsTracker.commitHandStats(game.handStats);
     return;
   }
 
@@ -277,21 +342,39 @@ function proceedRound(game, forceShowdown = false) {
       dealCommunity(game, 1);
       break;
     case GamePhase.RIVER:
-      game.currentBettingRound = GamePhase.SHOWDOWN;
-      break;
+      // After river betting, go to showdown
+      return resolveShowdown(game);
   }
   
   if (game.currentBettingRound === GamePhase.SHOWDOWN) {
     showdown.resolveShowdown(game);
   } else {
     // Find the first player to act in the new round (typically SB or person after)
+    const players = getSeatedPlayers(game);
+    const numPlayers = players.length;
     const dealerIndex = game.dealerIndex;
-    let firstToAct = (dealerIndex + 1) % getSeatedPlayers(game).length;
-    while(getSeatedPlayers(game)[firstToAct].isFolded) {
-      firstToAct = (firstToAct + 1) % getSeatedPlayers(game).length;
+
+    let firstToAct = (dealerIndex + 1) % numPlayers;
+    while(players[firstToAct].isFolded || players[firstToAct].isAllIn) {
+      firstToAct = (firstToAct + 1) % numPlayers;
     }
     game.currentPlayerIndex = firstToAct;
-    game.actionClosingPlayerIndex = (dealerIndex -1 + getSeatedPlayers(game).length) % getSeatedPlayers(game).length;
+
+    // Correctly set the player who closes the action for the post-flop round.
+    // It's the last active player before the dealer button.
+    let closingPlayer = dealerIndex;
+    while(players[closingPlayer].isFolded || players[closingPlayer].isAllIn) {
+        closingPlayer = (closingPlayer - 1 + numPlayers) % numPlayers;
+    }
+    // If the only active player is the first to act, they close the action.
+    if (closingPlayer === firstToAct && players.filter(p => !p.isFolded && !p.isAllIn).length > 1) {
+        closingPlayer = (firstToAct - 1 + numPlayers) % numPlayers;
+        while(players[closingPlayer].isFolded || players[closingPlayer].isAllIn) {
+            closingPlayer = (closingPlayer - 1 + numPlayers) % numPlayers;
+        }
+    }
+    game.actionClosingPlayerIndex = closingPlayer;
+    game.turnStartTime = Date.now();
   }
 }
 
@@ -326,122 +409,36 @@ function distributeOddChips(game, winners, remainder) {
 }
 
 function resolveShowdown(game) {
-  const players = getSeatedPlayers(game);
-  const contenders = players.filter(p => !p.isFolded && p.cards && p.cards.length === 2);
-  game.showdownPlayers = contenders.map(p => p.id);
-  
+  if (!game) return;
+
+  const contenders = getActivePlayers(game).filter(p => !p.isFolded);
   if (contenders.length === 0) {
-    console.error("No valid contenders at showdown - this shouldn't happen");
-    game.handOverMessage = "Error: No valid players for showdown.";
+    game.handOverMessage = 'No contenders for showdown.';
     game.currentBettingRound = GamePhase.HAND_OVER;
-    game.winners = [];
+    statsTracker.commitHandStats(game.handStats);
     return;
   }
-  
+
+  // If only one player remains, they win the entire pot without a showdown.
   if (contenders.length === 1) {
     const winner = contenders[0];
     winner.stack += game.pot;
-    game.winners = [{
-      id: winner.id,
-      name: winner.name,
-      cards: winner.cards,
-      handDescription: "Only remaining player",
-      amountWon: game.pot
-    }];
-    game.handOverMessage = `${winner.name} wins ${game.pot} as the only remaining player.`;
-    game.pot = 0;
-    game.pots = [];
+    game.winners = [{ ...winner, amount: game.pot }];
+    game.handOverMessage = `${winner.name} wins the pot of ${game.pot}.`;
     game.currentBettingRound = GamePhase.HAND_OVER;
+    statsTracker.commitHandStats(game.handStats);
     return;
   }
+
+  // Proceed with showdown for multiple players
+  const showdownResults = showdown.resolveShowdown(game, contenders);
+
+  const { winners: finalWinners, showdownPlayers } = showdownResults;
   
-  // Build side pots if not already done
-  if (game.pots.length === 0) {
-    buildSidePots(game);
-  }
-  
-  game.winners = [];
-  let totalMessages = [];
-  
-  // Process each pot from smallest to largest
-  for (const pot of game.pots) {
-    const eligibleContenders = contenders.filter(p => pot.eligiblePlayerIds.includes(p.id));
-    
-    if (eligibleContenders.length === 0) continue;
-    
-    // Evaluate hands
-    const evaluatedHands = eligibleContenders.map(p => {
-      const hand = Hand.solve([...p.cards, ...game.communityCards]);
-      return { player: p, hand: hand, handDescription: hand.descr };
-    });
-    
-    // Find winners - pokersolver already returns the best hands
-    const allHands = evaluatedHands.map(e => e.hand);
-    const winningHands = Hand.winners(allHands);
-    
-    // Map back to players
-    const winningHandSet = new Set(winningHands);
-    const potWinners = evaluatedHands.filter(e => winningHandSet.has(e.hand));
-    
-    if (potWinners.length > 0) {
-      const share = Math.floor(pot.amount / potWinners.length);
-      const remainder = pot.amount % potWinners.length;
-      
-      const winnersInfo = potWinners.map(w => ({
-        id: w.player.id,
-        name: w.player.name,
-        cards: w.player.cards,
-        handDescription: w.handDescription,
-        amountWon: share
-      }));
-      
-      // Award main shares
-      winnersInfo.forEach(winner => {
-        const player = players.find(p => p.id === winner.id);
-        if (player) {
-          player.stack += winner.amountWon;
-        }
-        
-        // Add to or update existing winner
-        const existingWinner = game.winners.find(w => w.id === winner.id);
-        if (existingWinner) {
-          existingWinner.amountWon += winner.amountWon;
-        } else {
-          game.winners.push({...winner});
-        }
-      });
-      
-      // Distribute odd chips
-      distributeOddChips(game, winnersInfo, remainder);
-      
-      // Build message for this pot
-      if (game.pots.length > 1) {
-        const potType = pot === game.pots[0] ? "main pot" : "side pot";
-        if (winnersInfo.length === 1) {
-          totalMessages.push(`${winnersInfo[0].name} wins ${potType} of ${pot.amount}`);
-        } else {
-          totalMessages.push(`${winnersInfo.map(w => w.name).join(', ')} split ${potType} of ${pot.amount}`);
-        }
-      }
-    }
-  }
-  
-  // Build final message
-  if (game.pots.length === 1) {
-    // Single pot
-    if (game.winners.length === 1) {
-      game.handOverMessage = `${game.winners[0].name} wins ${game.pot} with ${game.winners[0].handDescription}`;
-    } else {
-      game.handOverMessage = `${game.winners.map(w => w.name).join(', ')} split the pot with ${game.winners[0].handDescription}`;
-    }
-  } else {
-    // Multiple pots
-    game.handOverMessage = totalMessages.join('. ');
-  }
-  
-  game.pot = 0;
-  game.pots = [];
+  game.winners = finalWinners;
+  game.showdownPlayers = showdownPlayers;
   game.currentBettingRound = GamePhase.HAND_OVER;
+  statsTracker.commitHandStats(game.handStats);
 }
 
 function resolveShowdownRIT(game) {
@@ -627,6 +624,7 @@ module.exports = {
   processAction,
   processRitVote,
   resolveShowdownRIT,
+  checkGameAndProceed,
   GamePhase,
   getSeatedPlayers,
   runItOutStep,

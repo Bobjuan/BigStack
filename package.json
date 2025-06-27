@@ -13,6 +13,7 @@
   "dependencies": {
     "@heroicons/react": "^2.2.0",
     "@supabase/supabase-js": "^2.49.8",
+    "dotenv": "^16.6.0",
     "framer-motion": "^12.12.2",
     "pokersolver": "^2.1.4",
     "prop-types": "^15.8.1",

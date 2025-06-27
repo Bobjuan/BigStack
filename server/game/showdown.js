@@ -82,6 +82,14 @@ function resolveShowdown(game) {
 
     game.currentBettingRound = GamePhase.HAND_OVER;
     game.handOverMessage = `Hand over. Winners: ${game.winners.map(w => `${w.name} won ${w.amountWon}`).join(', ')}`;
+
+    // Return the results as an explicit object to fulfill the contract with the game engine.
+    return {
+      winners: game.winners,
+      showdownPlayers: getActivePlayers(game)
+                          .filter(p => !p.isFolded)
+                          .map(p => p.id)
+    };
 }
 
 module.exports = {

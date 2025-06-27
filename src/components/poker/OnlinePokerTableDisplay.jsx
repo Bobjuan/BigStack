@@ -4,6 +4,7 @@ import CommunityCards from './CommunityCards';
 import PlayerInfo from './PlayerInfo';
 import PotDisplay from './PotDisplay';
 import PlayerTimer from './PlayerTimer';
+import PlayerHUD from './PlayerHUD';
 import dealerChip from '/src/assets/dealer.png'; // Assuming path is correct
 
 // These might come from a shared constants file later
@@ -16,11 +17,11 @@ const POSITIONS_6MAX = ['BTN', 'SB', 'BB', 'UTG', 'HJ', 'CO'];
 const POSITIONS_HEADSUP = ['BTN/SB', 'BB'];
 
 // Player Component to reduce repetition
-const PlayerDisplay = ({ player, positionStyles, showPlayerCards, isTurn, cardWidth, displayPosition, turnStartTime, timeBank }) => {
+const PlayerDisplay = ({ player, positionStyles, showPlayerCards, isTurn, cardWidth, displayPosition, turnStartTime, timeBank, onHudToggle, isHudVisible, stats }) => {
     const { infoStyle, cardStyle, betStyle } = positionStyles;
     
     const infoClasses = [
-        'player-info-container relative p-1 border rounded transition-all duration-300',
+        'player-info-container relative p-1 border rounded transition-all duration-300 cursor-pointer',
         isTurn ? 'border-yellow-400 ring-4 ring-yellow-300 ring-opacity-50' : 'border-gray-700 bg-gray-900 bg-opacity-80',
         'text-white' // Assuming dark theme for now
     ].filter(Boolean).join(' ');
@@ -36,7 +37,12 @@ const PlayerDisplay = ({ player, positionStyles, showPlayerCards, isTurn, cardWi
             </div>
 
             {/* Player Info Box */}
-            <div style={infoStyle} className={infoClasses}>
+            <div style={infoStyle} className={infoClasses} onClick={onHudToggle}>
+                <PlayerHUD 
+                    stats={stats}
+                    isVisible={isHudVisible}
+                    onClose={onHudToggle}
+                />
                 {(player.isFolded || player.isAllIn) && (
                     <div className="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center z-20 rounded">
                         <span className={`font-bold text-lg ${player.isAllIn ? 'text-red-500' : 'text-gray-400'}`}>
@@ -100,9 +106,14 @@ const SitButton = ({ positionStyle, onTakeSeat, seatIndex }) => (
     </div>
 );
 
-function OnlinePokerTableDisplay({ gameState, currentSocketId, GamePhase, onTakeSeat }) {
+function OnlinePokerTableDisplay({ gameState, currentSocketId, GamePhase, onTakeSeat, playerStats }) {
     const tableRef = useRef(null);
     const [tableDimensions, setTableDimensions] = useState({ width: 0, height: 0 });
+    const [visibleHudPlayerId, setVisibleHudPlayerId] = useState(null);
+
+    const handleHudToggle = (playerId) => {
+        setVisibleHudPlayerId(prevId => (prevId === playerId ? null : playerId));
+    };
 
     useEffect(() => {
         // We get the parent of the poker-table-display, which is now the flex-centered container
@@ -305,24 +316,18 @@ function OnlinePokerTableDisplay({ gameState, currentSocketId, GamePhase, onTake
 
             {/* Players Area */}
             <div className="players-area absolute inset-0 w-full h-full z-0">
-                {gameState.seats.map((seat) => {
-                    const positionStyles = getSeatPosition(
-                        seat.seatIndex,
-                        gameState.seats.length,
-                        tableDimensions.width,
-                        tableDimensions.height,
-                        currentUserSeatIndex
-                    );
+                {gameState.seats.map((seat, index) => {
+                    const positionStyles = getSeatPosition(index, gameState.seats.length, tableDimensions.width, tableDimensions.height, currentUserSeatIndex);
 
                     if (seat.isEmpty) {
                         // Only show sit button if the game is waiting for players or the hand is over
                         const canTakeSeat = gameState.currentBettingRound === GamePhase.WAITING || gameState.currentBettingRound === GamePhase.HAND_OVER;
                         return isCurrentUserSpectator && canTakeSeat && (
                             <SitButton
-                                key={`sit-btn-${seat.seatIndex}`}
+                                key={index}
+                                seatIndex={index}
                                 positionStyle={positionStyles.sitButtonStyle}
                                 onTakeSeat={onTakeSeat}
-                                seatIndex={seat.seatIndex}
                             />
                         );
                     }
@@ -336,18 +341,26 @@ function OnlinePokerTableDisplay({ gameState, currentSocketId, GamePhase, onTake
                         }
                     }
                     
+                    const isTurn = gameState.currentPlayerIndex === seatedPlayers.findIndex(p => p.id === player.id);
+                    const displayPosition = getPlayerDisplayPosition(player);
+                    const isHudVisible = visibleHudPlayerId === player.userId;
+                    const stats = playerStats ? playerStats[player.userId] : null;
+
                     return (
-                       <PlayerDisplay 
-                           key={player.id}
-                           player={player}
-                           positionStyles={positionStyles}
-                           showPlayerCards={showPlayerCards}
-                           isTurn={player.id === currentPlayerTurnId}
-                           cardWidth={positionStyles.cardWidth}
-                           displayPosition={getPlayerDisplayPosition(player)}
-                           turnStartTime={gameState.turnStartTime}
-                           timeBank={gameState.timeBank}
-                       />
+                        <PlayerDisplay
+                            key={player.id}
+                            player={player}
+                            positionStyles={positionStyles}
+                            showPlayerCards={showPlayerCards}
+                            isTurn={isTurn}
+                            cardWidth={positionStyles.cardWidth}
+                            displayPosition={displayPosition}
+                            turnStartTime={gameState.turnStartTime}
+                            timeBank={gameState.timeBank}
+                            onHudToggle={() => handleHudToggle(player.userId)}
+                            isHudVisible={isHudVisible}
+                            stats={stats}
+                        />
                     );
                 })}
             </div>

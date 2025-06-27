@@ -32,6 +32,7 @@ function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
   const [chatMessages, setChatMessages] = useState([]);
   const [gameState, setGameState] = useState(null); // To hold the game state from the server
   const [playerName, setPlayerName] = useState(user?.user_metadata?.full_name || user?.email || 'Player');
+  const [playerStats, setPlayerStats] = useState({}); // NEW: State for player stats
   const [hasAutoActionTriggered, setHasAutoActionTriggered] = useState(false); // Prevent re-triggering
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('log'); // 'log' or 'chat'
@@ -77,6 +78,16 @@ function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
         setMessages(prev => [...prev, logMessage]);
       }
     });
+    
+    // NEW: Listener for live stat updates from the server
+    newSocket.on('playerStatsUpdate', (data) => {
+      console.log('Received playerStatsUpdate:', data.updatedStats);
+      setPlayerStats(prevStats => ({
+        ...prevStats,
+        ...data.updatedStats,
+      }));
+    });
+
     newSocket.on('playerJoined', (data) => setMessages(prev => [...prev, data.message]));
     newSocket.on('playerLeft', (data) => setMessages(prev => [...prev, data.message]));
     newSocket.on('message', (data) => setMessages(prev => [...prev, data.text]));
@@ -115,7 +126,10 @@ function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
   const handleCreateGame = useCallback((currentSocket, settings) => {
     const sock = currentSocket || socket;
     if (sock) {
-      const playerDetails = { name: playerName || `Player_${sock.id.substring(0,5)}` };
+      const playerDetails = { 
+        name: playerName || `Player_${sock.id.substring(0,5)}`,
+        userId: user?.id,
+      };
       sock.emit('createGame', { playerInfo: playerDetails, gameSettings: settings || initialGameSettings }, (response) => {
         if (response.status === 'ok') {
           setGameId(response.gameId);
@@ -129,24 +143,36 @@ function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
         }
       });
     }
-  }, [socket, playerName, initialGameSettings, navigate]);
+  }, [socket, playerName, initialGameSettings, navigate, user]);
 
   const handleJoinGame = useCallback((currentSocket, gameIdToJoin) => {
     const sock = currentSocket || socket;
     const idToJoin = gameIdToJoin || inputGameId;
     if (sock && idToJoin) {
-      const playerDetails = { name: playerName || `Player_${sock.id.substring(0,5)}` };
+      const playerDetails = { 
+        name: playerName || `Player_${sock.id.substring(0,5)}`,
+        userId: user?.id,
+      };
       sock.emit('joinGame', { gameId: idToJoin, playerInfo: playerDetails }, (response) => {
         if (response.status === 'ok' || response.status === 'already_joined') {
           setGameId(idToJoin);
           setMessages(prev => [...prev, response.message || `Joined ${idToJoin}!`]);
           setError('');
+          // NEW: Fetch stats for all players in the game
+          sock.emit('fetchStats', idToJoin, (statsResponse) => {
+            if (statsResponse.status === 'ok') {
+              setPlayerStats(statsResponse.stats);
+              console.log('Fetched initial stats:', statsResponse.stats);
+            } else {
+              console.error('Could not fetch stats:', statsResponse.message);
+            }
+          });
         } else {
           setError(response.message || 'Error joining game.');
         }
       });
     }
-  }, [socket, inputGameId, playerName]);
+  }, [socket, inputGameId, playerName, user]);
 
   // Effect for auto-triggering create or join game (runs when socket or relevant props change)
   useEffect(() => {
@@ -436,6 +462,7 @@ function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
                 <OnlinePokerTableDisplay 
                     gameState={gameState} 
                     currentSocketId={socket?.id} 
+                    playerStats={playerStats}
                     GamePhase={GamePhase}
                     onTakeSeat={handleTakeSeat}
                 />

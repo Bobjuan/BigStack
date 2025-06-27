@@ -2,8 +2,23 @@ const express = require('express');
 const http = require('http');
 const { Server } = require("socket.io");
 const cors = require('cors'); // Import cors
+const { createClient } = require('@supabase/supabase-js');
 const gameEngine = require('./gameEngine'); // NEW import
 const { GamePhase, SocketEvents } = require('./constants');
+const statsTracker = require('./game/statsTracker'); // CORRECT PATH
+
+// Load environment variables and initialize Supabase
+require('dotenv').config();
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
+if (!supabaseUrl || !supabaseKey) {
+    console.error("FATAL: Supabase URL or Service Key is missing. Please check your .env file in the /server directory.");
+    process.exit(1); // Exit if Supabase isn't configured, as stats are a core feature.
+} else {
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    statsTracker.init(supabase); // Initialize the stats tracker with the client
+    console.log("Supabase client initialized and passed to statsTracker.");
+}
 
 const app = express();
 const server = http.createServer(app);
@@ -16,6 +31,8 @@ const corsOptions = {
   origin: [process.env.CORS_ORIGIN, "http://localhost:3000", "http://localhost:5173"].filter(Boolean), // Add your frontend dev port
   methods: ["GET", "POST"]
 };
+
+console.log('Configuring CORS for origins:', corsOptions.origin);
 
 app.use(cors(corsOptions));
 
@@ -30,9 +47,10 @@ const BIG_BLIND_AMOUNT = 10; // Example, will come from gameSettings
 const SMALL_BLIND_AMOUNT = 5; // Example
 
 // Simplified player initialization for the server
-const initializeServerPlayer = (socketId, name, stack) => ({
-  id: socketId,
-  name,
+const initializeServerPlayer = (socketId, playerInfo, stack) => ({
+  id: socketId, // The temporary, session-based ID
+  userId: playerInfo.userId, // The permanent, account-based ID for stats
+  name: playerInfo.name,
   cards: [],
   stack,
   currentBet: 0,
@@ -101,6 +119,10 @@ function startActionTimer(gameId) {
 
             if (result.error) {
                  io.to(playerToFold.id).emit(SocketEvents.MESSAGE, { text: result.error });
+            } else {
+                // After the timeout action is processed, check the game state and proceed.
+                // This ensures the game moves on if the timeout ended the hand.
+                gameEngine.checkGameAndProceed(gameAtTimeout);
             }
 
             io.to(gameId).emit(SocketEvents.GAME_STATE_UPDATE, { newState: getSanitizedGameStateForClient(gameAtTimeout), actionLog: { message: `${playerToFold.name} timed out and was auto-${actionToTake}ed.` } });
@@ -122,6 +144,21 @@ function scheduleNextHand(gameId) {
     if (game.nextHandTimeout) clearTimeout(game.nextHandTimeout);
     if (game.actionTimer) clearTimeout(game.actionTimer);
     
+    // NEW: Broadcast updated stats to the room at the end of the hand.
+    const playerIds = gameEngine.getSeatedPlayers(game).map(p => p.userId).filter(Boolean);
+    if (playerIds.length > 0) {
+        statsTracker.getStatsForPlayers(playerIds)
+            .then(({ data, error }) => {
+                if (error) {
+                    console.error(`Error fetching stats for broadcast in game ${gameId}:`, error);
+                } else if (data) {
+                    io.to(gameId).emit('playerStatsUpdate', { updatedStats: data });
+                    console.log(`Broadcasted stats update for game ${gameId}`);
+                }
+            })
+            .catch(e => console.error(`Exception while fetching stats for broadcast in game ${gameId}:`, e));
+    }
+
     game.nextHandTimeout = setTimeout(() => {
       const gameToEndAndRestart = activeGames[gameId];
       if (gameToEndAndRestart) {
@@ -165,7 +202,7 @@ io.on(SocketEvents.CONNECT, (socket) => {
     console.log(`Game created by ${playerInfo.name || socket.id} with ID: ${gameId}`);
 
     const gameState = gameEngine.initGameState(gameSettings);
-    const creatorPlayer = initializeServerPlayer(socket.id, playerInfo.name, gameSettings.startingStack);
+    const creatorPlayer = initializeServerPlayer(socket.id, playerInfo, gameSettings.startingStack);
 
     // Creator joins as a spectator initially
     gameState.spectators.push(creatorPlayer);
@@ -201,7 +238,7 @@ io.on(SocketEvents.CONNECT, (socket) => {
         return callback && callback({ status: 'error', message: 'Game is full' });
     }
     
-    const newSpectator = initializeServerPlayer(socket.id, playerInfo.name, game.gameSettings.startingStack);
+    const newSpectator = initializeServerPlayer(socket.id, playerInfo, game.gameSettings.startingStack);
     game.spectators.push(newSpectator);
 
     socket.join(gameId);
@@ -233,6 +270,30 @@ io.on(SocketEvents.CONNECT, (socket) => {
     callback && callback({ status: 'ok' });
     io.to(gameId).emit(SocketEvents.GAME_STATE_UPDATE, { newState: getSanitizedGameStateForClient(game) });
     io.to(gameId).emit(SocketEvents.PLAYER_JOINED, { message: `${player.name} sat down at seat ${seatIndex + 1}.` });
+  });
+
+  socket.on('fetchStats', async (gameId, callback) => {
+    const game = activeGames[gameId];
+    if (!game) return callback && callback({ status: 'error', message: 'Game not found' });
+
+    const userIds = gameEngine.getSeatedPlayers(game)
+                              .map(p => p.userId)
+                              .filter(Boolean); // Filter out any null/undefined userIds
+
+    if (userIds.length === 0) {
+      return callback && callback({ status: 'ok', stats: {} });
+    }
+
+    try {
+      const { data, error } = await statsTracker.getStatsForPlayers(userIds);
+      if (error) {
+        throw error;
+      }
+      callback && callback({ status: 'ok', stats: data });
+    } catch (error) {
+      console.error('Error fetching player stats:', error);
+      callback && callback({ status: 'error', message: 'Could not fetch stats' });
+    }
   });
 
   socket.on(SocketEvents.START_GAME, (gameId, callback) => {
