@@ -1,6 +1,7 @@
 import React from 'react';
+import IndLessLayout from '../../../components/layout/IndLessLayout';
 
-const LessonFound02 = () => (
+const LessonContent = () => (
   <div className="space-y-8">
     <section>
       <h2 className="text-2xl font-bold mb-2">Self-Assessment: Your Current Cash Game Understanding</h2>
@@ -31,4 +32,6 @@ const LessonFound02 = () => (
   </div>
 );
 
-export default LessonFound02; 
+export default function LessonFound02() {
+  return <IndLessLayout><LessonContent /></IndLessLayout>;
+} 

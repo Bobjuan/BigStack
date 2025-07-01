@@ -1,158 +1,158 @@
 import React from 'react';
-import { Typography, Box, List, ListItem } from '@mui/material';
+import IndLessLayout from '../../../components/layout/IndLessLayout';
 
-const EssentialMindset = () => {
-  return (
-    <Box sx={{ color: 'white' }}>
-      <Typography variant="h4" gutterBottom sx={{ color: 'white' }}>
-        Essential Mindset & Bankroll Prerequisites
-      </Typography>
+const LessonContent = () => (
+  <div className="space-y-8">
+    <h4 className="text-2xl font-bold mb-4 text-white">
+      Essential Mindset & Bankroll Prerequisites
+    </h4>
 
-      <Typography paragraph sx={{ color: 'white' }}>
-        Success in poker requires more than just technical skills. The right mindset and proper bankroll management are fundamental prerequisites that will determine your long-term success in the game.
-      </Typography>
+    <p className="text-white">
+      Success in poker requires more than just technical skills. The right mindset and proper bankroll management are fundamental prerequisites that will determine your long-term success in the game.
+    </p>
 
-      <Typography variant="h5" gutterBottom sx={{ mt: 3, color: 'white' }}>
-        The Winner's Mindset
-      </Typography>
-      
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Focus on Learning:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Prioritize improvement over immediate profits</ListItem>
-        <ListItem>Study and analyze your play regularly</ListItem>
-        <ListItem>Stay updated with evolving strategies</ListItem>
-        <ListItem>Learn from both wins and losses</ListItem>
-      </List>
+    <h5 className="text-xl font-bold mb-3 mt-3 text-white">
+      The Winner's Mindset
+    </h5>
+    
+    <p className="text-white font-semibold mb-2">
+      Focus on Learning:
+    </p>
+    <ul className="list-disc pl-8">
+      <li className="text-white">Prioritize improvement over immediate profits</li>
+      <li className="text-white">Study and analyze your play regularly</li>
+      <li className="text-white">Stay updated with evolving strategies</li>
+      <li className="text-white">Learn from both wins and losses</li>
+    </ul>
 
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Long-Term Perspective:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Understand that poker is a long-term game</ListItem>
-        <ListItem>Accept that losing days are normal</ListItem>
-        <ListItem>Focus on making correct decisions</ListItem>
-        <ListItem>Don't let short-term results affect your play</ListItem>
-      </List>
+    <p className="text-white font-semibold mb-2">
+      Long-Term Perspective:
+    </p>
+    <ul className="list-disc pl-8">
+      <li className="text-white">Understand that poker is a long-term game</li>
+      <li className="text-white">Accept that losing days are normal</li>
+      <li className="text-white">Focus on making correct decisions</li>
+      <li className="text-white">Don't let short-term results affect your play</li>
+    </ul>
 
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Emotional Control:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Play your best game regardless of results</ListItem>
-        <ListItem>Avoid tilting after bad beats</ListItem>
-        <ListItem>Know when to quit a session</ListItem>
-        <ListItem>Maintain professional attitude at all times</ListItem>
-      </List>
+    <p className="text-white font-semibold mb-2">
+      Emotional Control:
+    </p>
+    <ul className="list-disc pl-8">
+      <li className="text-white">Play your best game regardless of results</li>
+      <li className="text-white">Avoid tilting after bad beats</li>
+      <li className="text-white">Know when to quit a session</li>
+      <li className="text-white">Maintain professional attitude at all times</li>
+    </ul>
 
-      <Typography variant="h5" gutterBottom sx={{ mt: 3, color: 'white' }}>
-        Bankroll Prerequisites
-      </Typography>
-      
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Starting Capital:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Have sufficient buy-ins for your chosen stake</ListItem>
-        <ListItem>Keep poker funds separate from life expenses</ListItem>
-        <ListItem>Only play with money you can afford to lose</ListItem>
-        <ListItem>Consider costs beyond buy-ins (travel, rake, etc.)</ListItem>
-      </List>
+    <h5 className="text-xl font-bold mb-3 mt-3 text-white">
+      Bankroll Prerequisites
+    </h5>
+    
+    <p className="text-white font-semibold mb-2">
+      Starting Capital:
+    </p>
+    <ul className="list-disc pl-8">
+      <li className="text-white">Have sufficient buy-ins for your chosen stake</li>
+      <li className="text-white">Keep poker funds separate from life expenses</li>
+      <li className="text-white">Only play with money you can afford to lose</li>
+      <li className="text-white">Consider costs beyond buy-ins (travel, rake, etc.)</li>
+    </ul>
 
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Risk Management:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Follow strict bankroll management rules</ListItem>
-        <ListItem>Never risk more than prescribed limits</ListItem>
-        <ListItem>Have a plan for moving up/down in stakes</ListItem>
-        <ListItem>Track all sessions and expenses</ListItem>
-      </List>
+    <p className="text-white font-semibold mb-2">
+      Risk Management:
+    </p>
+    <ul className="list-disc pl-8">
+      <li className="text-white">Follow strict bankroll management rules</li>
+      <li className="text-white">Never risk more than prescribed limits</li>
+      <li className="text-white">Have a plan for moving up/down in stakes</li>
+      <li className="text-white">Track all sessions and expenses</li>
+    </ul>
 
-      <Typography variant="h5" gutterBottom sx={{ mt: 3, color: 'white' }}>
-        Study Habits
-      </Typography>
-      
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Regular Review:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Analyze your play after each session</ListItem>
-        <ListItem>Keep detailed notes on tough spots</ListItem>
-        <ListItem>Review hands with stronger players</ListItem>
-        <ListItem>Study consistently, not just after losses</ListItem>
-      </List>
+    <h5 className="text-xl font-bold mb-3 mt-3 text-white">
+      Study Habits
+    </h5>
+    
+    <p className="text-white font-semibold mb-2">
+      Regular Review:
+    </p>
+    <ul className="list-disc pl-8">
+      <li className="text-white">Analyze your play after each session</li>
+      <li className="text-white">Keep detailed notes on tough spots</li>
+      <li className="text-white">Review hands with stronger players</li>
+      <li className="text-white">Study consistently, not just after losses</li>
+    </ul>
 
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Strategic Development:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Build a solid fundamental strategy</ListItem>
-        <ListItem>Regularly update your knowledge</ListItem>
-        <ListItem>Study opponents' tendencies</ListItem>
-        <ListItem>Work on your weakest areas first</ListItem>
-      </List>
+    <p className="text-white font-semibold mb-2">
+      Strategic Development:
+    </p>
+    <ul className="list-disc pl-8">
+      <li className="text-white">Build a solid fundamental strategy</li>
+      <li className="text-white">Regularly update your knowledge</li>
+      <li className="text-white">Study opponents' tendencies</li>
+      <li className="text-white">Work on your weakest areas first</li>
+    </ul>
 
-      <Typography variant="h5" gutterBottom sx={{ mt: 3, color: 'white' }}>
-        Game Selection
-      </Typography>
-      
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Table Selection:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Choose games where you have an edge</ListItem>
-        <ListItem>Avoid games above your bankroll</ListItem>
-        <ListItem>Look for profitable table dynamics</ListItem>
-        <ListItem>Be willing to change tables when needed</ListItem>
-      </List>
+    <h5 className="text-xl font-bold mb-3 mt-3 text-white">
+      Game Selection
+    </h5>
+    
+    <p className="text-white font-semibold mb-2">
+      Table Selection:
+    </p>
+    <ul className="list-disc pl-8">
+      <li className="text-white">Choose games where you have an edge</li>
+      <li className="text-white">Avoid games above your bankroll</li>
+      <li className="text-white">Look for profitable table dynamics</li>
+      <li className="text-white">Be willing to change tables when needed</li>
+    </ul>
 
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Stake Selection:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Play at stakes you're properly rolled for</ListItem>
-        <ListItem>Move up only when ready both mentally and financially</ListItem>
-        <ListItem>Be willing to move down when necessary</ListItem>
-        <ListItem>Don't let ego influence stake selection</ListItem>
-      </List>
+    <p className="text-white font-semibold mb-2">
+      Stake Selection:
+    </p>
+    <ul className="list-disc pl-8">
+      <li className="text-white">Play at stakes you're properly rolled for</li>
+      <li className="text-white">Move up only when ready both mentally and financially</li>
+      <li className="text-white">Be willing to move down when necessary</li>
+      <li className="text-white">Don't let ego influence stake selection</li>
+    </ul>
 
-      <Typography variant="h5" gutterBottom sx={{ mt: 3, color: 'white' }}>
-        Professional Approach
-      </Typography>
-      
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Record Keeping:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Track all sessions and results</ListItem>
-        <ListItem>Monitor win rates at different stakes</ListItem>
-        <ListItem>Keep notes on regular opponents</ListItem>
-        <ListItem>Analyze trends in your play</ListItem>
-      </List>
+    <h5 className="text-xl font-bold mb-3 mt-3 text-white">
+      Professional Approach
+    </h5>
+    
+    <p className="text-white font-semibold mb-2">
+      Record Keeping:
+    </p>
+    <ul className="list-disc pl-8">
+      <li className="text-white">Track all sessions and results</li>
+      <li className="text-white">Monitor win rates at different stakes</li>
+      <li className="text-white">Keep notes on regular opponents</li>
+      <li className="text-white">Analyze trends in your play</li>
+    </ul>
 
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Life Balance:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Maintain healthy lifestyle habits</ListItem>
-        <ListItem>Manage time effectively</ListItem>
-        <ListItem>Keep poker separate from personal life</ListItem>
-        <ListItem>Have interests outside of poker</ListItem>
-      </List>
+    <p className="text-white font-semibold mb-2">
+      Life Balance:
+    </p>
+    <ul className="list-disc pl-8">
+      <li className="text-white">Maintain healthy lifestyle habits</li>
+      <li className="text-white">Manage time effectively</li>
+      <li className="text-white">Keep poker separate from personal life</li>
+      <li className="text-white">Have interests outside of poker</li>
+    </ul>
 
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Continuous Improvement:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Stay humble and eager to learn</ListItem>
-        <ListItem>Network with other players</ListItem>
-        <ListItem>Adapt to changing game conditions</ListItem>
-        <ListItem>Regularly assess and adjust your game</ListItem>
-      </List>
-    </Box>
-  );
-};
+    <p className="text-white font-semibold mb-2">
+      Continuous Improvement:
+    </p>
+    <ul className="list-disc pl-8">
+      <li className="text-white">Stay humble and eager to learn</li>
+      <li className="text-white">Network with other players</li>
+      <li className="text-white">Adapt to changing game conditions</li>
+      <li className="text-white">Regularly assess and adjust your game</li>
+    </ul>
+  </div>
+);
 
-export default EssentialMindset; 
+export default function EssentialMindset() {
+  return <IndLessLayout><LessonContent /></IndLessLayout>;
+} 

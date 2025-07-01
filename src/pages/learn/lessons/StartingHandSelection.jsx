@@ -1,148 +1,112 @@
 import React from 'react';
-import { Typography, Box, List, ListItem } from '@mui/material';
+import IndLessLayout from '../../../components/layout/IndLessLayout';
 
-const StartingHandSelection = () => {
-  return (
-    <Box sx={{ color: 'white' }}>
-      <Typography variant="h4" gutterBottom sx={{ color: 'white' }}>
-        Starting Hand Selection
-      </Typography>
+const LessonContent = () => (
+  <div className="space-y-8">
+    <h1 className="text-4xl font-bold">Starting Hand Selection</h1>
 
-      <Typography paragraph sx={{ color: 'white' }}>
-        Starting hand selection is one of the most fundamental aspects of poker strategy. Your preflop decisions set the foundation for the rest of the hand and greatly impact your overall profitability.
-      </Typography>
+    <p>Starting hand selection is one of the most fundamental aspects of poker strategy. Your preflop decisions set the foundation for the rest of the hand and greatly impact your overall profitability.</p>
 
-      <Typography variant="h5" gutterBottom sx={{ mt: 3, color: 'white' }}>
-        Position-Based Selection
-      </Typography>
-      
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Early Position:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Play tighter ranges</ListItem>
-        <ListItem>Focus on strong hands that play well postflop</ListItem>
-        <ListItem>Premium pairs (TT+) and strong broadways</ListItem>
-        <ListItem>Suited connectors need to be more selective</ListItem>
-      </List>
+    <h2 className="text-2xl font-bold mt-8">Position-Based Selection</h2>
+    
+    <h3 className="text-xl font-bold mt-4 mb-2">Early Position:</h3>
+    <ul className="list-disc pl-8">
+      <li>Play tighter ranges</li>
+      <li>Focus on strong hands that play well postflop</li>
+      <li>Premium pairs (TT+) and strong broadways</li>
+      <li>Suited connectors need to be more selective</li>
+    </ul>
 
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Late Position:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Can play wider ranges</ListItem>
-        <ListItem>More suited connectors and one-gappers</ListItem>
-        <ListItem>More offsuit broadways</ListItem>
-        <ListItem>Can play more speculative hands</ListItem>
-      </List>
+    <h3 className="text-xl font-bold mt-4 mb-2">Late Position:</h3>
+    <ul className="list-disc pl-8">
+      <li>Can play wider ranges</li>
+      <li>More suited connectors and one-gappers</li>
+      <li>More offsuit broadways</li>
+      <li>Can play more speculative hands</li>
+    </ul>
 
-      <Typography variant="h5" gutterBottom sx={{ mt: 3, color: 'white' }}>
-        Stack Depth Considerations
-      </Typography>
-      
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Deep Stack Play (100BB+):
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Increase value of suited connectors</ListItem>
-        <ListItem>Play more hands that can make the nuts</ListItem>
-        <ListItem>Reduce frequency of offsuit broadways</ListItem>
-        <ListItem>Consider implied odds more heavily</ListItem>
-      </List>
+    <h2 className="text-2xl font-bold mt-8">Stack Depth Considerations</h2>
+    
+    <h3 className="text-xl font-bold mt-4 mb-2">Deep Stack Play (100BB+):</h3>
+    <ul className="list-disc pl-8">
+      <li>Increase value of suited connectors</li>
+      <li>Play more hands that can make the nuts</li>
+      <li>Reduce frequency of offsuit broadways</li>
+      <li>Consider implied odds more heavily</li>
+    </ul>
 
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Short Stack Play:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Focus on high card strength</ListItem>
-        <ListItem>Reduce suited connector frequency</ListItem>
-        <ListItem>Increase broadway hands</ListItem>
-        <ListItem>Value immediate equity more</ListItem>
-      </List>
+    <h3 className="text-xl font-bold mt-4 mb-2">Short Stack Play:</h3>
+    <ul className="list-disc pl-8">
+      <li>Focus on high card strength</li>
+      <li>Reduce suited connector frequency</li>
+      <li>Increase broadway hands</li>
+      <li>Value immediate equity more</li>
+    </ul>
 
-      <Typography variant="h5" gutterBottom sx={{ mt: 3, color: 'white' }}>
-        Hand Categories
-      </Typography>
-      
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Premium Pairs:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>TT+ are always playable</ListItem>
-        <ListItem>Consider 3-betting for value</ListItem>
-        <ListItem>Strong enough to play from any position</ListItem>
-        <ListItem>Can play aggressively postflop</ListItem>
-      </List>
+    <h2 className="text-2xl font-bold mt-8">Hand Categories</h2>
+    
+    <h3 className="text-xl font-bold mt-4 mb-2">Premium Pairs:</h3>
+    <ul className="list-disc pl-8">
+      <li>TT+ are always playable</li>
+      <li>Consider 3-betting for value</li>
+      <li>Strong enough to play from any position</li>
+      <li>Can play aggressively postflop</li>
+    </ul>
 
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Medium Pairs:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>77-99 are position dependent</ListItem>
-        <ListItem>Better as calls than 3-bets</ListItem>
-        <ListItem>Need careful postflop play</ListItem>
-        <ListItem>Value decreases multiway</ListItem>
-      </List>
+    <h3 className="text-xl font-bold mt-4 mb-2">Medium Pairs:</h3>
+    <ul className="list-disc pl-8">
+      <li>77-99 are position dependent</li>
+      <li>Better as calls than 3-bets</li>
+      <li>Need careful postflop play</li>
+      <li>Value decreases multiway</li>
+    </ul>
 
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Suited Connectors:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Great in position</ListItem>
-        <ListItem>Strong implied odds</ListItem>
-        <ListItem>Good for board coverage</ListItem>
-        <ListItem>Excellent in deep stack play</ListItem>
-      </List>
+    <h3 className="text-xl font-bold mt-4 mb-2">Suited Connectors:</h3>
+    <ul className="list-disc pl-8">
+      <li>Great in position</li>
+      <li>Strong implied odds</li>
+      <li>Good for board coverage</li>
+      <li>Excellent in deep stack play</li>
+    </ul>
 
-      <Typography variant="h5" gutterBottom sx={{ mt: 3, color: 'white' }}>
-        Game Type Adjustments
-      </Typography>
-      
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Cash Games:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Can play more speculative hands</ListItem>
-        <ListItem>Focus on implied odds</ListItem>
-        <ListItem>Position is extremely important</ListItem>
-        <ListItem>Can adjust based on table dynamics</ListItem>
-      </List>
+    <h2 className="text-2xl font-bold mt-8">Game Type Adjustments</h2>
+    
+    <h3 className="text-xl font-bold mt-4 mb-2">Cash Games:</h3>
+    <ul className="list-disc pl-8">
+      <li>Can play more speculative hands</li>
+      <li>Focus on implied odds</li>
+      <li>Position is extremely important</li>
+      <li>Can adjust based on table dynamics</li>
+    </ul>
 
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Tournaments:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Tighter early game selection</ListItem>
-        <ListItem>Stack size heavily impacts selection</ListItem>
-        <ListItem>Need to consider ICM implications</ListItem>
-        <ListItem>More emphasis on playability</ListItem>
-      </List>
+    <h3 className="text-xl font-bold mt-4 mb-2">Tournaments:</h3>
+    <ul className="list-disc pl-8">
+      <li>Tighter early game selection</li>
+      <li>Stack size heavily impacts selection</li>
+      <li>Need to consider ICM implications</li>
+      <li>More emphasis on playability</li>
+    </ul>
 
-      <Typography variant="h5" gutterBottom sx={{ mt: 3, color: 'white' }}>
-        Common Mistakes
-      </Typography>
-      
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Position Mistakes:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Playing too loose from early position</ListItem>
-        <ListItem>Not widening range enough in late position</ListItem>
-        <ListItem>Overvaluing suited hands from early position</ListItem>
-        <ListItem>Not considering table dynamics</ListItem>
-      </List>
+    <h2 className="text-2xl font-bold mt-8">Common Mistakes</h2>
+    
+    <h3 className="text-xl font-bold mt-4 mb-2">Position Mistakes:</h3>
+    <ul className="list-disc pl-8">
+      <li>Playing too loose from early position</li>
+      <li>Not widening range enough in late position</li>
+      <li>Overvaluing suited hands from early position</li>
+      <li>Not considering table dynamics</li>
+    </ul>
 
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Hand Selection Errors:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Playing too many weak suited hands</ListItem>
-        <ListItem>Overvaluing small pairs</ListItem>
-        <ListItem>Not adjusting to table conditions</ListItem>
-        <ListItem>Ignoring stack depth considerations</ListItem>
-      </List>
-    </Box>
-  );
-};
+    <h3 className="text-xl font-bold mt-4 mb-2">Hand Selection Errors:</h3>
+    <ul className="list-disc pl-8">
+      <li>Playing too many weak suited hands</li>
+      <li>Overvaluing small pairs</li>
+      <li>Not adjusting to table conditions</li>
+      <li>Ignoring stack depth considerations</li>
+    </ul>
+  </div>
+);
 
-export default StartingHandSelection; 
+export default function StartingHandSelection() {
+  return <IndLessLayout><LessonContent /></IndLessLayout>;
+} 

@@ -96,7 +96,7 @@ const PlayWithFriendsPage = () => {
           </div>
           <div className="flex gap-4">
             <Link 
-              to="/dashboard"
+              to="/"
               className="px-6 py-2 rounded-full bg-gradient-to-r from-indigo-500 to-indigo-700 text-white font-semibold hover:from-indigo-600 hover:to-indigo-800 transition-all duration-200"
             >
               Home

@@ -3,6 +3,8 @@ import CourseIntroduction from './CourseIntroduction';
 import SelfAssessment from './SelfAssessment';
 import EssentialMindset from './EssentialMindset';
 import CashVsTournaments from './CashVsTournaments';
+import BankrollManagement from './BankrollManagement';
+
 import TableSelection from './TableSelection';
 import StartingHandSelection from './StartingHandSelection';
 import PositionAndHandRanges from './PositionAndHandRanges';
@@ -20,7 +22,8 @@ const LessonComponents = {
   'found-0-2': SelfAssessment,
   'found-0-3': EssentialMindset,
   'fund-1': CashVsTournaments,
-  'fund-2': TableSelection,
+  'fund-2': BankrollManagement,
+  'fund-3': TableSelection,
   'pre-1': StartingHandSelection,
   'pre-2': PositionAndHandRanges,
   'pre-3': ThreeBettingStrategy,

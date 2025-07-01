@@ -1,0 +1,163 @@
+.tab {
+  padding: 8px 16px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.3s;
+}
+.tab.active {
+  border-bottom-color: #1a73e8;
+  color: #1a73e8;
+}
+.chat-container {
+  height: 300px;
+  min-height: 200px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+.message {
+  max-width: 80%;
+  margin: 8px;
+  padding: 12px;
+  border-radius: 12px;
+}
+.user-message {
+  background-color: #1a73e8;
+  color: white;
+  margin-left: auto;
+  text-align: right;
+}
+.bot-message {
+  background-color: #f8f9fa;
+  color: black;
+  font-size: 16px;
+  line-height: 1.6;
+}
+.typing-indicator {
+  background-color: #f0f0f0;
+  padding: 12px;
+  border-radius: 12px;
+  margin: 8px;
+  width: fit-content;
+  display: flex;
+  gap: 2px;
+}
+.suggestions-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.suggestion-item {
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.suggestion-item:hover {
+  background-color: #f7fafc;
+}
+.recent-hands-title {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  color: #718096;
+  background-color: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+.input-wrapper {
+  position: relative;
+}
+
+/* Fix input and button styles for visibility */
+input[type="text"], textarea {
+  background: #fff;
+  color: #222;
+}
+input[type="text"]:disabled, textarea:disabled {
+  background: #f3f3f3;
+  color: #888;
+}
+.flex.gap-2 {
+  margin-top: 16px;
+}
+button {
+  font-size: 1.2em;
+}
+
+/* Poker chip spin and bounce animation for floating button - smoother version */
+.poker-chip-anim {
+  box-shadow: 0 4px 24px 0 rgba(0,0,0,0.25), 0 0px 0px 4px #1a73e8;
+  border: 3px solid #fff;
+  position: relative;
+}
+.poker-chip-bounce-spin {
+  animation: chip-bounce-spin 0.4s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+}
+@keyframes chip-bounce-spin {
+  0% { transform: scale(1) rotate(0deg); box-shadow: 0 4px 24px 0 rgba(0,0,0,0.25); }
+  15% { transform: scale(1.08) rotate(60deg); }
+  30% { transform: scale(1.15) rotate(120deg); }
+  45% { transform: scale(1.05) rotate(180deg); }
+  60% { transform: scale(1.08) rotate(240deg); }
+  75% { transform: scale(1.02) rotate(300deg); }
+  90% { transform: scale(1) rotate(350deg); }
+  100% { transform: scale(1) rotate(360deg); box-shadow: 0 4px 24px 0 rgba(0,0,0,0.25); }
+}
+
+/* Poker card deal-in for popup - smoother version */
+.poker-popup-slide-in {
+  animation: card-deal-in 0.5s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+  transform-origin: bottom right;
+  box-shadow: 0 8px 32px 0 rgba(0,0,0,0.35), 0 0px 0px 2px #1a73e8;
+}
+@keyframes card-deal-in {
+  0% {
+    opacity: 0;
+    transform: translateY(120px) scale(0.92) rotateY(40deg) skewX(-6deg);
+    box-shadow: 0 0px 0px 0px #1a73e8;
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-8px) scale(1.03) rotateY(-6deg) skewX(1deg);
+    box-shadow: 0 12px 40px 0 rgba(0,0,0,0.40), 0 0px 0px 4px #1a73e8;
+  }
+  70% {
+    transform: translateY(2px) scale(1.01) rotateY(2deg) skewX(-0.5deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotateY(0deg) skewX(0deg);
+    box-shadow: 0 8px 32px 0 rgba(0,0,0,0.35), 0 0px 0px 2px #1a73e8;
+  }
+}
+
+/* Poker card deal-out for popup (reverse of deal-in) */
+.poker-popup-slide-out {
+  animation: card-deal-out 0.3s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+  transform-origin: bottom right;
+  box-shadow: 0 8px 32px 0 rgba(0,0,0,0.35), 0 0px 0px 2px #1a73e8;
+}
+@keyframes card-deal-out {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotateY(0deg) skewX(0deg);
+    box-shadow: 0 8px 32px 0 rgba(0,0,0,0.35), 0 0px 0px 2px #1a73e8;
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(8px) scale(1.03) rotateY(-6deg) skewX(1deg);
+    box-shadow: 0 12px 40px 0 rgba(0,0,0,0.40), 0 0px 0px 4px #1a73e8;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(120px) scale(0.92) rotateY(40deg) skewX(-6deg);
+    box-shadow: 0 0px 0px 0px #1a73e8;
+  }
+} 

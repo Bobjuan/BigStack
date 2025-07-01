@@ -1,148 +1,116 @@
 import React from 'react';
-import { Typography, Box, List, ListItem } from '@mui/material';
+import IndLessLayout from '../../../components/layout/IndLessLayout';
 
-const MentalGame = () => {
-  return (
-    <Box sx={{ color: 'white' }}>
-      <Typography variant="h4" gutterBottom sx={{ color: 'white' }}>
-        Mental Game
-      </Typography>
+const LessonContent = () => (
+  <div className="space-y-8">
+    <h1 className="text-4xl font-bold">Mental Game</h1>
 
-      <Typography paragraph sx={{ color: 'white' }}>
+    <p className="text-base">
         The mental game is a crucial aspect of poker success. Understanding and managing psychological factors can significantly impact your decision-making and long-term results.
-      </Typography>
+    </p>
 
-      <Typography variant="h5" gutterBottom sx={{ mt: 3, color: 'white' }}>
-        The Three Negative States
-      </Typography>
-      
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Tilt:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Loss of rational thinking</ListItem>
-        <ListItem>Emotional decision making</ListItem>
-        <ListItem>Inability to process information</ListItem>
-        <ListItem>Triggered by bad beats</ListItem>
-        <ListItem>Affected by variance</ListItem>
-      </List>
+    <h2 className="text-2xl font-bold mt-8">The Three Negative States</h2>
+    
+    <h3 className="text-xl font-bold mt-4 mb-2">Tilt:</h3>
+    <ul className="list-disc pl-8">
+      <li>Loss of rational thinking</li>
+      <li>Emotional decision making</li>
+      <li>Inability to process information</li>
+      <li>Triggered by bad beats</li>
+      <li>Affected by variance</li>
+    </ul>
 
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Pseudo Tilt:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Prioritizing wrong goals</ListItem>
-        <ListItem>Getting even mentality</ListItem>
-        <ListItem>Revenge-seeking behavior</ListItem>
-        <ListItem>Locking up wins</ListItem>
-        <ListItem>Rational but incorrect decisions</ListItem>
-      </List>
+    <h3 className="text-xl font-bold mt-4 mb-2">Pseudo Tilt:</h3>
+    <ul className="list-disc pl-8">
+      <li>Prioritizing wrong goals</li>
+      <li>Getting even mentality</li>
+      <li>Revenge-seeking behavior</li>
+      <li>Locking up wins</li>
+      <li>Rational but incorrect decisions</li>
+    </ul>
 
-      <Typography variant="h5" gutterBottom sx={{ mt: 3, color: 'white' }}>
-        Cognitive Biases
-      </Typography>
-      
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Common Biases:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Confirmation bias</ListItem>
-        <ListItem>Outcome bias</ListItem>
-        <ListItem>Gambler's fallacy</ListItem>
-        <ListItem>Dunning-Kruger effect</ListItem>
-        <ListItem>Results-oriented thinking</ListItem>
-      </List>
+    <h2 className="text-2xl font-bold mt-8">Cognitive Biases</h2>
+    
+    <h3 className="text-xl font-bold mt-4 mb-2">Common Biases:</h3>
+    <ul className="list-disc pl-8">
+      <li>Confirmation bias</li>
+      <li>Outcome bias</li>
+      <li>Gambler's fallacy</li>
+      <li>Dunning-Kruger effect</li>
+      <li>Results-oriented thinking</li>
+    </ul>
 
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Managing Biases:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Focus on process</ListItem>
-        <ListItem>Analyze decisions objectively</ListItem>
-        <ListItem>Understand variance</ListItem>
-        <ListItem>Accept uncertainty</ListItem>
-        <ListItem>Learn from mistakes</ListItem>
-      </List>
+    <h3 className="text-xl font-bold mt-4 mb-2">Managing Biases:</h3>
+    <ul className="list-disc pl-8">
+      <li>Focus on process</li>
+      <li>Analyze decisions objectively</li>
+      <li>Understand variance</li>
+      <li>Accept uncertainty</li>
+      <li>Learn from mistakes</li>
+    </ul>
 
-      <Typography variant="h5" gutterBottom sx={{ mt: 3, color: 'white' }}>
-        Confidence Management
-      </Typography>
-      
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Over-Confidence:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Unnecessary risk-taking</ListItem>
-        <ListItem>Playing above skill level</ListItem>
-        <ListItem>Ignoring learning opportunities</ListItem>
-        <ListItem>Overestimating abilities</ListItem>
-        <ListItem>Poor game selection</ListItem>
-      </List>
+    <h2 className="text-2xl font-bold mt-8">Confidence Management</h2>
+    
+    <h3 className="text-xl font-bold mt-4 mb-2">Over-Confidence:</h3>
+    <ul className="list-disc pl-8">
+      <li>Unnecessary risk-taking</li>
+      <li>Playing above skill level</li>
+      <li>Ignoring learning opportunities</li>
+      <li>Overestimating abilities</li>
+      <li>Poor game selection</li>
+    </ul>
 
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Under-Confidence:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Risk aversion</ListItem>
-        <ListItem>Missing value bets</ListItem>
-        <ListItem>Avoiding tough spots</ListItem>
-        <ListItem>Self-doubt impact</ListItem>
-        <ListItem>Missed opportunities</ListItem>
-      </List>
+    <h3 className="text-xl font-bold mt-4 mb-2">Under-Confidence:</h3>
+    <ul className="list-disc pl-8">
+      <li>Risk aversion</li>
+      <li>Missing value bets</li>
+      <li>Avoiding tough spots</li>
+      <li>Self-doubt impact</li>
+      <li>Missed opportunities</li>
+    </ul>
 
-      <Typography variant="h5" gutterBottom sx={{ mt: 3, color: 'white' }}>
-        Physical and Mental Fatigue
-      </Typography>
-      
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Physical Tiredness:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Can still think clearly</ListItem>
-        <ListItem>Decision quality maintained</ListItem>
-        <ListItem>Consider good opportunities</ListItem>
-        <ListItem>Take appropriate breaks</ListItem>
-        <ListItem>Manage session length</ListItem>
-      </List>
+    <h2 className="text-2xl font-bold mt-8">Physical and Mental Fatigue</h2>
+    
+    <h3 className="text-xl font-bold mt-4 mb-2">Physical Tiredness:</h3>
+    <ul className="list-disc pl-8">
+      <li>Can still think clearly</li>
+      <li>Decision quality maintained</li>
+      <li>Consider good opportunities</li>
+      <li>Take appropriate breaks</li>
+      <li>Manage session length</li>
+    </ul>
 
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Mental Fatigue:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Decision quality drops</ListItem>
-        <ListItem>Take necessary breaks</ListItem>
-        <ListItem>Avoid extended sessions</ListItem>
-        <ListItem>Recognize warning signs</ListItem>
-        <ListItem>Maintain work-life balance</ListItem>
-      </List>
+    <h3 className="text-xl font-bold mt-4 mb-2">Mental Fatigue:</h3>
+    <ul className="list-disc pl-8">
+      <li>Decision quality drops</li>
+      <li>Take necessary breaks</li>
+      <li>Avoid extended sessions</li>
+      <li>Recognize warning signs</li>
+      <li>Maintain work-life balance</li>
+    </ul>
 
-      <Typography variant="h5" gutterBottom sx={{ mt: 3, color: 'white' }}>
-        Long-Term Success
-      </Typography>
-      
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Study Habits:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Regular review sessions</ListItem>
-        <ListItem>Focus on improvement</ListItem>
-        <ListItem>Learn from mistakes</ListItem>
-        <ListItem>Stay updated with theory</ListItem>
-        <ListItem>Maintain discipline</ListItem>
-      </List>
+    <h2 className="text-2xl font-bold mt-8">Long-Term Success</h2>
+    
+    <h3 className="text-xl font-bold mt-4 mb-2">Study Habits:</h3>
+    <ul className="list-disc pl-8">
+      <li>Regular review sessions</li>
+      <li>Focus on improvement</li>
+      <li>Learn from mistakes</li>
+      <li>Stay updated with theory</li>
+      <li>Maintain discipline</li>
+    </ul>
 
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Lifestyle Balance:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Proper rest and recovery</ListItem>
-        <ListItem>Healthy routines</ListItem>
-        <ListItem>Stress management</ListItem>
-        <ListItem>Bankroll discipline</ListItem>
-        <ListItem>Life-poker balance</ListItem>
-      </List>
-    </Box>
-  );
-};
+    <h3 className="text-xl font-bold mt-4 mb-2">Lifestyle Balance:</h3>
+    <ul className="list-disc pl-8">
+      <li>Proper rest and recovery</li>
+      <li>Healthy routines</li>
+      <li>Stress management</li>
+      <li>Bankroll discipline</li>
+      <li>Life-poker balance</li>
+    </ul>
+  </div>
+);
 
-export default MentalGame; 
+export default function MentalGame() {
+  return <IndLessLayout><LessonContent /></IndLessLayout>;
+} 

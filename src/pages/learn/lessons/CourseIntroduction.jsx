@@ -1,94 +1,94 @@
 import React from 'react';
-import { Typography, Box, List, ListItem } from '@mui/material';
+import IndLessLayout from '../../../components/layout/IndLessLayout';
 
-const CourseIntroduction = () => {
-  return (
-    <Box sx={{ color: 'white' }}>
-      <Typography variant="h4" gutterBottom sx={{ color: 'white' }}>
-        Course Introduction & Your Poker Development
-      </Typography>
+const LessonContent = () => (
+  <div className="space-y-8">
+    <h4 className="text-2xl font-bold text-white">
+      Course Introduction & Your Poker Development
+    </h4>
 
-      <Typography variant="h5" gutterBottom sx={{ mt: 3, color: 'white' }}>
-        Setting Up for Success
-      </Typography>
-      <Typography paragraph sx={{ color: 'white' }}>
-        Poker is a simple game to learn but a difficult game to master. Success in poker requires more than just understanding the rules - it demands a comprehensive approach to the game that includes both strategic knowledge and proper preparation.
-      </Typography>
+    <h5 className="text-xl font-bold text-white mt-3">
+      Setting Up for Success
+    </h5>
+    <p className="text-white">
+      Poker is a simple game to learn but a difficult game to master. Success in poker requires more than just understanding the rules - it demands a comprehensive approach to the game that includes both strategic knowledge and proper preparation.
+    </p>
 
-      <Typography variant="h5" gutterBottom sx={{ mt: 3, color: 'white' }}>
-        Core Principles
-      </Typography>
-      
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Key Concepts:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Master the basic concepts before moving on to advanced strategies. A solid foundation in fundamentals is crucial for long-term success</ListItem>
-        <ListItem>To succeed long-term, focus on learning rather than money. If you want to make money, you must continuously improve as other players will evolve</ListItem>
-        <ListItem>Setting yourself up for success before sitting at the table is just as important as playing a sound strategy</ListItem>
-      </List>
+    <h5 className="text-xl font-bold text-white mt-3">
+      Core Principles
+    </h5>
+    
+    <h6 className="text-base font-bold text-white mt-2 mb-1">
+      Key Concepts:
+    </h6>
+    <ul className="list-disc pl-4">
+      <li className="text-white">Master the basic concepts before moving on to advanced strategies. A solid foundation in fundamentals is crucial for long-term success</li>
+      <li className="text-white">To succeed long-term, focus on learning rather than money. If you want to make money, you must continuously improve as other players will evolve</li>
+      <li className="text-white">Setting yourself up for success before sitting at the table is just as important as playing a sound strategy</li>
+    </ul>
 
-      <Typography variant="h5" gutterBottom sx={{ mt: 3, color: 'white' }}>
-        Key Areas of Focus
-      </Typography>
-      
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Strategic Development:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Understanding position and ranges</ListItem>
-        <ListItem>Mastering preflop and postflop play</ListItem>
-        <ListItem>Developing hand reading skills</ListItem>
-        <ListItem>Learning bet sizing and board texture analysis</ListItem>
-      </List>
+    <h5 className="text-xl font-bold text-white mt-3">
+      Key Areas of Focus
+    </h5>
+    
+    <h6 className="text-base font-bold text-white mt-2 mb-1">
+      Strategic Development:
+    </h6>
+    <ul className="list-disc pl-4">
+      <li className="text-white">Understanding position and ranges</li>
+      <li className="text-white">Mastering preflop and postflop play</li>
+      <li className="text-white">Developing hand reading skills</li>
+      <li className="text-white">Learning bet sizing and board texture analysis</li>
+    </ul>
 
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Mental Game:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Managing variance and emotions</ListItem>
-        <ListItem>Maintaining focus during sessions</ListItem>
-        <ListItem>Understanding that losing days are normal</ListItem>
-        <ListItem>Building resilience against downswings</ListItem>
-      </List>
+    <h6 className="text-base font-bold text-white mt-2 mb-1">
+      Mental Game:
+    </h6>
+    <ul className="list-disc pl-4">
+      <li className="text-white">Managing variance and emotions</li>
+      <li className="text-white">Maintaining focus during sessions</li>
+      <li className="text-white">Understanding that losing days are normal</li>
+      <li className="text-white">Building resilience against downswings</li>
+    </ul>
 
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Game Selection:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Choosing profitable games</ListItem>
-        <ListItem>Understanding table dynamics</ListItem>
-        <ListItem>Recognizing player types</ListItem>
-        <ListItem>Adapting to different stake levels</ListItem>
-      </List>
+    <h6 className="text-base font-bold text-white mt-2 mb-1">
+      Game Selection:
+    </h6>
+    <ul className="list-disc pl-4">
+      <li className="text-white">Choosing profitable games</li>
+      <li className="text-white">Understanding table dynamics</li>
+      <li className="text-white">Recognizing player types</li>
+      <li className="text-white">Adapting to different stake levels</li>
+    </ul>
 
-      <Typography variant="h5" gutterBottom sx={{ mt: 3, color: 'white' }}>
-        Course Structure
-      </Typography>
-      
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Learning Approach:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>The course is structured to build your skills progressively, starting with fundamentals and moving to more advanced concepts</ListItem>
-        <ListItem>Each lesson includes practical examples and scenarios to help you apply the concepts in real game situations</ListItem>
-        <ListItem>From basic hand selection to advanced multi-street planning, the course covers all aspects needed to become a winning player</ListItem>
-      </List>
+    <h5 className="text-xl font-bold text-white mt-3">
+      Course Structure
+    </h5>
+    
+    <h6 className="text-base font-bold text-white mt-2 mb-1">
+      Learning Approach:
+    </h6>
+    <ul className="list-disc pl-4">
+      <li className="text-white">The course is structured to build your skills progressively, starting with fundamentals and moving to more advanced concepts</li>
+      <li className="text-white">Each lesson includes practical examples and scenarios to help you apply the concepts in real game situations</li>
+      <li className="text-white">From basic hand selection to advanced multi-street planning, the course covers all aspects needed to become a winning player</li>
+    </ul>
 
-      <Typography variant="h5" gutterBottom sx={{ mt: 3, color: 'white' }}>
-        Keys to Success
-      </Typography>
-      
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Essential Habits:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Success requires diligent study and practice. Take time to review concepts and analyze your play regularly</ListItem>
-        <ListItem>Follow strict bankroll management guidelines to protect yourself from variance and enable long-term success</ListItem>
-        <ListItem>Regularly evaluate your game, identify leaks, and make adjustments based on your findings</ListItem>
-      </List>
-    </Box>
-  );
-};
+    <h5 className="text-xl font-bold text-white mt-3">
+      Keys to Success
+    </h5>
+    
+    <h6 className="text-base font-bold text-white mt-2 mb-1">
+      Essential Habits:
+    </h6>
+    <ul className="list-disc pl-4">
+      <li className="text-white">Success requires diligent study and practice. Take time to review concepts and analyze your play regularly</li>
+      <li className="text-white">Follow strict bankroll management guidelines to protect yourself from variance and enable long-term success</li>
+      <li className="text-white">Regularly evaluate your game, identify leaks, and make adjustments based on your findings</li>
+    </ul>
+  </div>
+);
 
-export default CourseIntroduction; 
+export default function CourseIntroduction() {
+  return <IndLessLayout><LessonContent /></IndLessLayout>;
+} 

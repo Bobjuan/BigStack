@@ -1,137 +1,137 @@
 import React from 'react';
-import { Typography, Box, List, ListItem } from '@mui/material';
+import IndLessLayout from '../../../components/layout/IndLessLayout';
 
-const SelfAssessment = () => {
-  return (
-    <Box sx={{ color: 'white' }}>
-      <Typography variant="h4" gutterBottom sx={{ color: 'white' }}>
-        Self-Assessment: Your Current Cash Game Understanding
-      </Typography>
+const LessonContent = () => (
+  <div className="space-y-8">
+    <h4 className="text-2xl font-bold mb-4 text-white">
+      Self-Assessment: Your Current Cash Game Understanding
+    </h4>
 
-      <Typography paragraph sx={{ color: 'white' }}>
-        Before diving deeper into advanced concepts, it's crucial to honestly assess your current skill level and identify areas for improvement. This self-assessment will help guide your poker development journey.
-      </Typography>
+    <p className="text-white">
+      Before diving deeper into advanced concepts, it's crucial to honestly assess your current skill level and identify areas for improvement. This self-assessment will help guide your poker development journey.
+    </p>
 
-      <Typography variant="h5" gutterBottom sx={{ mt: 3, color: 'white' }}>
-        Preflop Play Assessment
-      </Typography>
-      
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Starting Hand Selection:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Do you have clear reasons for playing/folding hands?</ListItem>
-        <ListItem>Are your ranges position-dependent?</ListItem>
-        <ListItem>Do you adjust based on table dynamics?</ListItem>
-        <ListItem>Can you articulate why certain hands play better in different positions?</ListItem>
-      </List>
+    <h5 className="text-xl font-bold mt-6 mb-3 text-white">
+      Preflop Play Assessment
+    </h5>
+    
+    <h6 className="text-base font-medium mt-2 mb-1 text-white">
+      Starting Hand Selection:
+    </h6>
+    <ul className="list-disc pl-8">
+      <li className="text-white">Do you have clear reasons for playing/folding hands?</li>
+      <li className="text-white">Are your ranges position-dependent?</li>
+      <li className="text-white">Do you adjust based on table dynamics?</li>
+      <li className="text-white">Can you articulate why certain hands play better in different positions?</li>
+    </ul>
 
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        3-Betting Strategy:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Do you have a balanced 3-betting range?</ListItem>
-        <ListItem>Are you 3-betting for value and as bluffs?</ListItem>
-        <ListItem>Do you adjust your 3-betting range by position?</ListItem>
-        <ListItem>Can you explain your 3-betting strategy against different player types?</ListItem>
-      </List>
+    <h6 className="text-base font-medium mt-2 mb-1 text-white">
+      3-Betting Strategy:
+    </h6>
+    <ul className="list-disc pl-8">
+      <li className="text-white">Do you have a balanced 3-betting range?</li>
+      <li className="text-white">Are you 3-betting for value and as bluffs?</li>
+      <li className="text-white">Do you adjust your 3-betting range by position?</li>
+      <li className="text-white">Can you explain your 3-betting strategy against different player types?</li>
+    </ul>
 
-      <Typography variant="h5" gutterBottom sx={{ mt: 3, color: 'white' }}>
-        Postflop Skills
-      </Typography>
-      
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Board Texture Reading:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Can you quickly identify wet vs dry boards?</ListItem>
-        <ListItem>Do you understand how board texture affects ranges?</ListItem>
-        <ListItem>Are you adjusting your strategy based on board texture?</ListItem>
-        <ListItem>Do you consider turn and river cards that could change board texture?</ListItem>
-      </List>
+    <h5 className="text-xl font-bold mt-6 mb-3 text-white">
+      Postflop Skills
+    </h5>
+    
+    <h6 className="text-base font-medium mt-2 mb-1 text-white">
+      Board Texture Reading:
+    </h6>
+    <ul className="list-disc pl-8">
+      <li className="text-white">Can you quickly identify wet vs dry boards?</li>
+      <li className="text-white">Do you understand how board texture affects ranges?</li>
+      <li className="text-white">Are you adjusting your strategy based on board texture?</li>
+      <li className="text-white">Do you consider turn and river cards that could change board texture?</li>
+    </ul>
 
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Bet Sizing:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Do you use different bet sizes for different purposes?</ListItem>
-        <ListItem>Can you explain why you choose specific bet sizes?</ListItem>
-        <ListItem>Do you adjust sizing based on stack-to-pot ratio?</ListItem>
-        <ListItem>Are you considering opponent tendencies in your sizing?</ListItem>
-      </List>
+    <h6 className="text-base font-medium mt-2 mb-1 text-white">
+      Bet Sizing:
+    </h6>
+    <ul className="list-disc pl-8">
+      <li className="text-white">Do you use different bet sizes for different purposes?</li>
+      <li className="text-white">Can you explain why you choose specific bet sizes?</li>
+      <li className="text-white">Do you adjust sizing based on stack-to-pot ratio?</li>
+      <li className="text-white">Are you considering opponent tendencies in your sizing?</li>
+    </ul>
 
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Hand Reading:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Can you put opponents on logical hand ranges?</ListItem>
-        <ListItem>Do you narrow ranges as hands progress?</ListItem>
-        <ListItem>Are you considering blockers in your analysis?</ListItem>
-        <ListItem>Do you track betting patterns to inform future decisions?</ListItem>
-      </List>
+    <h6 className="text-base font-medium mt-2 mb-1 text-white">
+      Hand Reading:
+    </h6>
+    <ul className="list-disc pl-8">
+      <li className="text-white">Can you put opponents on logical hand ranges?</li>
+      <li className="text-white">Do you narrow ranges as hands progress?</li>
+      <li className="text-white">Are you considering blockers in your analysis?</li>
+      <li className="text-white">Do you track betting patterns to inform future decisions?</li>
+    </ul>
 
-      <Typography variant="h5" gutterBottom sx={{ mt: 3, color: 'white' }}>
-        Game Selection and Table Dynamics
-      </Typography>
-      
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Table Selection:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Do you actively look for profitable games?</ListItem>
-        <ListItem>Can you identify player types quickly?</ListItem>
-        <ListItem>Are you aware of your win rate at different stakes?</ListItem>
-        <ListItem>Do you maintain records of your sessions?</ListItem>
-      </List>
+    <h5 className="text-xl font-bold mt-6 mb-3 text-white">
+      Game Selection and Table Dynamics
+    </h5>
+    
+    <h6 className="text-base font-medium mt-2 mb-1 text-white">
+      Table Selection:
+    </h6>
+    <ul className="list-disc pl-8">
+      <li className="text-white">Do you actively look for profitable games?</li>
+      <li className="text-white">Can you identify player types quickly?</li>
+      <li className="text-white">Are you aware of your win rate at different stakes?</li>
+      <li className="text-white">Do you maintain records of your sessions?</li>
+    </ul>
 
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Position Awareness:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Do you understand positional advantages?</ListItem>
-        <ListItem>Are you more aggressive in position?</ListItem>
-        <ListItem>Do you adjust your ranges based on position?</ListItem>
-        <ListItem>Can you exploit positional advantages postflop?</ListItem>
-      </List>
+    <h6 className="text-base font-medium mt-2 mb-1 text-white">
+      Position Awareness:
+    </h6>
+    <ul className="list-disc pl-8">
+      <li className="text-white">Do you understand positional advantages?</li>
+      <li className="text-white">Are you more aggressive in position?</li>
+      <li className="text-white">Do you adjust your ranges based on position?</li>
+      <li className="text-white">Can you exploit positional advantages postflop?</li>
+    </ul>
 
-      <Typography variant="h5" gutterBottom sx={{ mt: 3, color: 'white' }}>
-        Mental Game and Bankroll
-      </Typography>
-      
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Emotional Control:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Can you play your A-game while losing?</ListItem>
-        <ListItem>Do you avoid tilting after bad beats?</ListItem>
-        <ListItem>Are you able to quit when not playing your best?</ListItem>
-        <ListItem>Do you maintain focus throughout sessions?</ListItem>
-      </List>
+    <h5 className="text-xl font-bold mt-6 mb-3 text-white">
+      Mental Game and Bankroll
+    </h5>
+    
+    <h6 className="text-base font-medium mt-2 mb-1 text-white">
+      Emotional Control:
+    </h6>
+    <ul className="list-disc pl-8">
+      <li className="text-white">Can you play your A-game while losing?</li>
+      <li className="text-white">Do you avoid tilting after bad beats?</li>
+      <li className="text-white">Are you able to quit when not playing your best?</li>
+      <li className="text-white">Do you maintain focus throughout sessions?</li>
+    </ul>
 
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Bankroll Management:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Do you follow strict bankroll guidelines?</ListItem>
-        <ListItem>Are you playing within your means?</ListItem>
-        <ListItem>Do you track your results accurately?</ListItem>
-        <ListItem>Can you handle downswings professionally?</ListItem>
-      </List>
+    <h6 className="text-base font-medium mt-2 mb-1 text-white">
+      Bankroll Management:
+    </h6>
+    <ul className="list-disc pl-8">
+      <li className="text-white">Do you follow strict bankroll guidelines?</li>
+      <li className="text-white">Are you playing within your means?</li>
+      <li className="text-white">Do you track your results accurately?</li>
+      <li className="text-white">Can you handle downswings professionally?</li>
+    </ul>
 
-      <Typography variant="h5" gutterBottom sx={{ mt: 3, color: 'white' }}>
-        Action Items
-      </Typography>
-      
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Key Steps:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Start keeping detailed records of your play, including specific hands that gave you trouble and situations where you were unsure of the correct play</ListItem>
-        <ListItem>Based on your self-assessment, create a focused study plan that addresses your weakest areas first</ListItem>
-        <ListItem>Schedule regular review sessions to track your progress and adjust your study plan as needed</ListItem>
-      </List>
-    </Box>
-  );
-};
+    <h5 className="text-xl font-bold mt-6 mb-3 text-white">
+      Action Items
+    </h5>
+    
+    <h6 className="text-base font-medium mt-2 mb-1 text-white">
+      Key Steps:
+    </h6>
+    <ul className="list-disc pl-8">
+      <li className="text-white">Start keeping detailed records of your play, including specific hands that gave you trouble and situations where you were unsure of the correct play</li>
+      <li className="text-white">Based on your self-assessment, create a focused study plan that addresses your weakest areas first</li>
+      <li className="text-white">Schedule regular review sessions to track your progress and adjust your study plan as needed</li>
+    </ul>
+  </div>
+);
 
-export default SelfAssessment; 
+export default function SelfAssessment() {
+  return <IndLessLayout><LessonContent /></IndLessLayout>;
+} 
