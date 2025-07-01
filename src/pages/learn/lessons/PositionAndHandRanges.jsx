@@ -1,148 +1,148 @@
 import React from 'react';
-import { Typography, Box, List, ListItem } from '@mui/material';
+import IndLessLayout from '../../../components/layout/IndLessLayout';
 
-const PositionAndHandRanges = () => {
-  return (
-    <Box sx={{ color: 'white' }}>
-      <Typography variant="h4" gutterBottom sx={{ color: 'white' }}>
-        Position and Hand Ranges
-      </Typography>
+const LessonContent = () => (
+  <div className="space-y-8">
+    <h4 className="text-2xl font-bold text-white">
+      Position and Hand Ranges
+    </h4>
 
-      <Typography paragraph sx={{ color: 'white' }}>
-        Understanding position and hand ranges is crucial for success in poker. Position is one of your biggest advantages, and properly constructing ranges based on position will significantly improve your win rate.
-      </Typography>
+    <p className="text-white">
+      Understanding position and hand ranges is crucial for success in poker. Position is one of your biggest advantages, and properly constructing ranges based on position will significantly improve your win rate.
+    </p>
 
-      <Typography variant="h5" gutterBottom sx={{ mt: 3, color: 'white' }}>
-        Position Fundamentals
-      </Typography>
-      
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        In Position (IP) Advantages:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Act last on all postflop streets</ListItem>
-        <ListItem>More control over pot size</ListItem>
-        <ListItem>Better bluffing opportunities</ListItem>
-        <ListItem>More information for decisions</ListItem>
-        <ListItem>Can pot control with marginal hands</ListItem>
-      </List>
+    <h5 className="text-xl font-bold text-white mt-6">
+      Position Fundamentals
+    </h5>
+    
+    <h6 className="text-base font-semibold text-white mt-4 mb-2">
+      In Position (IP) Advantages:
+    </h6>
+    <ul className="list-disc pl-8">
+      <li className="text-white">Act last on all postflop streets</li>
+      <li className="text-white">More control over pot size</li>
+      <li className="text-white">Better bluffing opportunities</li>
+      <li className="text-white">More information for decisions</li>
+      <li className="text-white">Can pot control with marginal hands</li>
+    </ul>
 
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Out of Position (OOP) Adjustments:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Need stronger hands to play</ListItem>
-        <ListItem>More emphasis on strong made hands</ListItem>
-        <ListItem>Less bluffing frequency</ListItem>
-        <ListItem>More check-raising to gain initiative</ListItem>
-        <ListItem>Must play more defensively</ListItem>
-      </List>
+    <h6 className="text-base font-semibold text-white mt-4 mb-2">
+      Out of Position (OOP) Adjustments:
+    </h6>
+    <ul className="list-disc pl-8">
+      <li className="text-white">Need stronger hands to play</li>
+      <li className="text-white">More emphasis on strong made hands</li>
+      <li className="text-white">Less bluffing frequency</li>
+      <li className="text-white">More check-raising to gain initiative</li>
+      <li className="text-white">Must play more defensively</li>
+    </ul>
 
-      <Typography variant="h5" gutterBottom sx={{ mt: 3, color: 'white' }}>
-        Range Construction
-      </Typography>
-      
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Early Position Ranges:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Tighter opening ranges</ListItem>
-        <ListItem>Premium hands and strong broadways</ListItem>
-        <ListItem>Less suited connectors</ListItem>
-        <ListItem>Focus on hands that play well multiway</ListItem>
-        <ListItem>Emphasis on high card strength</ListItem>
-      </List>
+    <h5 className="text-xl font-bold text-white mt-6">
+      Range Construction
+    </h5>
+    
+    <h6 className="text-base font-semibold text-white mt-4 mb-2">
+      Early Position Ranges:
+    </h6>
+    <ul className="list-disc pl-8">
+      <li className="text-white">Tighter opening ranges</li>
+      <li className="text-white">Premium hands and strong broadways</li>
+      <li className="text-white">Less suited connectors</li>
+      <li className="text-white">Focus on hands that play well multiway</li>
+      <li className="text-white">Emphasis on high card strength</li>
+    </ul>
 
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Late Position Ranges:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Wider opening ranges</ListItem>
-        <ListItem>More speculative hands</ListItem>
-        <ListItem>More suited connectors and gappers</ListItem>
-        <ListItem>Can play more marginal hands</ListItem>
-        <ListItem>More bluffing opportunities</ListItem>
-      </List>
+    <h6 className="text-base font-semibold text-white mt-4 mb-2">
+      Late Position Ranges:
+    </h6>
+    <ul className="list-disc pl-8">
+      <li className="text-white">Wider opening ranges</li>
+      <li className="text-white">More speculative hands</li>
+      <li className="text-white">More suited connectors and gappers</li>
+      <li className="text-white">Can play more marginal hands</li>
+      <li className="text-white">More bluffing opportunities</li>
+    </ul>
 
-      <Typography variant="h5" gutterBottom sx={{ mt: 3, color: 'white' }}>
-        Range Advantages
-      </Typography>
-      
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Understanding Range Advantage:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Which range has greater equity</ListItem>
-        <ListItem>How equity shifts throughout hand</ListItem>
-        <ListItem>Impact of board texture</ListItem>
-        <ListItem>Effect of position on range advantage</ListItem>
-        <ListItem>Importance of nut advantage</ListItem>
-      </List>
+    <h5 className="text-xl font-bold text-white mt-6">
+      Range Advantages
+    </h5>
+    
+    <h6 className="text-base font-semibold text-white mt-4 mb-2">
+      Understanding Range Advantage:
+    </h6>
+    <ul className="list-disc pl-8">
+      <li className="text-white">Which range has greater equity</li>
+      <li className="text-white">How equity shifts throughout hand</li>
+      <li className="text-white">Impact of board texture</li>
+      <li className="text-white">Effect of position on range advantage</li>
+      <li className="text-white">Importance of nut advantage</li>
+    </ul>
 
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Nut Advantage:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Having more nutted combinations</ListItem>
-        <ListItem>Affects betting and leading strategies</ListItem>
-        <ListItem>Important for multiway pots</ListItem>
-        <ListItem>Influences check-raising frequency</ListItem>
-        <ListItem>Key for aggressive play</ListItem>
-      </List>
+    <h6 className="text-base font-semibold text-white mt-4 mb-2">
+      Nut Advantage:
+    </h6>
+    <ul className="list-disc pl-8">
+      <li className="text-white">Having more nutted combinations</li>
+      <li className="text-white">Affects betting and leading strategies</li>
+      <li className="text-white">Important for multiway pots</li>
+      <li className="text-white">Influences check-raising frequency</li>
+      <li className="text-white">Key for aggressive play</li>
+    </ul>
 
-      <Typography variant="h5" gutterBottom sx={{ mt: 3, color: 'white' }}>
-        Board Texture Considerations
-      </Typography>
-      
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        High Card Boards:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Ace-high boards favor preflop raiser</ListItem>
-        <ListItem>King-high boards need more protection</ListItem>
-        <ListItem>Queen/Jack-high boards more balanced</ListItem>
-        <ListItem>Consider range vs range equity</ListItem>
-        <ListItem>Adjust continuation betting accordingly</ListItem>
-      </List>
+    <h5 className="text-xl font-bold text-white mt-6">
+      Board Texture Considerations
+    </h5>
+    
+    <h6 className="text-base font-semibold text-white mt-4 mb-2">
+      High Card Boards:
+    </h6>
+    <ul className="list-disc pl-8">
+      <li className="text-white">Ace-high boards favor preflop raiser</li>
+      <li className="text-white">King-high boards need more protection</li>
+      <li className="text-white">Queen/Jack-high boards more balanced</li>
+      <li className="text-white">Consider range vs range equity</li>
+      <li className="text-white">Adjust continuation betting accordingly</li>
+    </ul>
 
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Connected Boards:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>More favorable for defending ranges</ListItem>
-        <ListItem>Requires careful range construction</ListItem>
-        <ListItem>More check-raising opportunities</ListItem>
-        <ListItem>Important for straight possibilities</ListItem>
-        <ListItem>Consider backdoor possibilities</ListItem>
-      </List>
+    <h6 className="text-base font-semibold text-white mt-4 mb-2">
+      Connected Boards:
+    </h6>
+    <ul className="list-disc pl-8">
+      <li className="text-white">More favorable for defending ranges</li>
+      <li className="text-white">Requires careful range construction</li>
+      <li className="text-white">More check-raising opportunities</li>
+      <li className="text-white">Important for straight possibilities</li>
+      <li className="text-white">Consider backdoor possibilities</li>
+    </ul>
 
-      <Typography variant="h5" gutterBottom sx={{ mt: 3, color: 'white' }}>
-        Multiway Considerations
-      </Typography>
-      
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Adjusting Ranges:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Play tighter in multiway pots</ListItem>
-        <ListItem>Value strong hands more</ListItem>
-        <ListItem>Reduce bluffing frequency</ListItem>
-        <ListItem>Need stronger hands to continue</ListItem>
-        <ListItem>More emphasis on nutted hands</ListItem>
-      </List>
+    <h5 className="text-xl font-bold text-white mt-6">
+      Multiway Considerations
+    </h5>
+    
+    <h6 className="text-base font-semibold text-white mt-4 mb-2">
+      Adjusting Ranges:
+    </h6>
+    <ul className="list-disc pl-8">
+      <li className="text-white">Play tighter in multiway pots</li>
+      <li className="text-white">Value strong hands more</li>
+      <li className="text-white">Reduce bluffing frequency</li>
+      <li className="text-white">Need stronger hands to continue</li>
+      <li className="text-white">More emphasis on nutted hands</li>
+    </ul>
 
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Position Impact:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Position even more crucial multiway</ListItem>
-        <ListItem>Last to act has significant advantage</ListItem>
-        <ListItem>Need stronger continuing ranges</ListItem>
-        <ListItem>More careful with marginal hands</ListItem>
-        <ListItem>Consider all players' ranges</ListItem>
-      </List>
-    </Box>
-  );
-};
+    <h6 className="text-base font-semibold text-white mt-4 mb-2">
+      Position Impact:
+    </h6>
+    <ul className="list-disc pl-8">
+      <li className="text-white">Position even more crucial multiway</li>
+      <li className="text-white">Last to act has significant advantage</li>
+      <li className="text-white">Need stronger continuing ranges</li>
+      <li className="text-white">More careful with marginal hands</li>
+      <li className="text-white">Consider all players' ranges</li>
+    </ul>
+  </div>
+);
 
-export default PositionAndHandRanges; 
+export default function PositionAndHandRanges() {
+  return <IndLessLayout><LessonContent /></IndLessLayout>;
+} 

@@ -57,6 +57,8 @@ npm install
 3. Start the development server:
 ```bash
 npm run dev
+
+run app.py in poker-chatbot to get access to chatbot.
 ```
 
 4. Build for production:

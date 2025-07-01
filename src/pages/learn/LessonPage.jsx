@@ -670,7 +670,7 @@ const LessonPage = () => {
         </div>
 
         {/* Content */}
-        <div className="bg-[#1F2127] rounded-xl p-6">
+        <div className="bg-[#0F1115] rounded-xl p-6">
           <LessonComponent />
           
           {/* Lesson Navigation */}

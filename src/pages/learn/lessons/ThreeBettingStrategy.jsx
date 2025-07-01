@@ -1,153 +1,110 @@
 import React from 'react';
-import { Typography, Box, List, ListItem } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import IndLessLayout from '../../../components/layout/IndLessLayout';
 
-const ThreeBettingStrategy = () => {
-  const navigate = useNavigate();
+const LessonContent = () => (
+  <div className="space-y-8">
+    <section>
+      <h2 className="text-3xl font-bold mb-2">3-Betting Strategy</h2>
+      <p className="mb-4">3-betting is one of the most powerful weapons in poker. A well-constructed 3-betting strategy allows you to build bigger pots with your strong hands and put pressure on your opponents with well-chosen bluffs.</p>
+    </section>
+    <section>
+      <h3 className="text-2xl font-semibold mb-2 mt-4">Position-Based 3-Betting</h3>
+      <h4 className="text-xl font-semibold mt-2 mb-1">In Position 3-Betting:</h4>
+      <ul className="list-disc ml-6 mb-4">
+        <li>More aggressive frequencies</li>
+        <li>Wider value range</li>
+        <li>More bluffing opportunities</li>
+        <li>Can include more speculative hands</li>
+        <li>Better post-flop playability</li>
+      </ul>
+      <h4 className="text-xl font-semibold mt-2 mb-1">Out of Position 3-Betting:</h4>
+      <ul className="list-disc ml-6 mb-4">
+        <li>Tighter value range</li>
+        <li>More polarized strategy</li>
+        <li>Premium hands and strong bluffs</li>
+        <li>Less speculative hands</li>
+        <li>Focus on strong playability</li>
+      </ul>
+    </section>
+    <section>
+      <h3 className="text-2xl font-semibold mb-2 mt-4">Hand Selection</h3>
+      <h4 className="text-xl font-semibold mt-2 mb-1">Value 3-Bets:</h4>
+      <ul className="list-disc ml-6 mb-4">
+        <li>Premium pairs (QQ+)</li>
+        <li>Strong broadway hands (AK, AQs)</li>
+        <li>Position-dependent strength</li>
+        <li>Hands that play well multiway</li>
+        <li>Good post-flop playability</li>
+      </ul>
+      <h4 className="text-xl font-semibold mt-2 mb-1">Bluff 3-Bets:</h4>
+      <ul className="list-disc ml-6 mb-4">
+        <li>Suited connectors in position</li>
+        <li>Blocker effects (AXs, KXs)</li>
+        <li>Good removal properties</li>
+        <li>Playable post-flop</li>
+        <li>Balance with value range</li>
+      </ul>
+    </section>
+    <section>
+      <h3 className="text-2xl font-semibold mb-2 mt-4">Sizing Considerations</h3>
+      <h4 className="text-xl font-semibold mt-2 mb-1">Standard Sizing:</h4>
+      <ul className="list-disc ml-6 mb-4">
+        <li>Usually 3x the original raise</li>
+        <li>Adjust based on position</li>
+        <li>Consider stack depths</li>
+        <li>Account for antes if present</li>
+        <li>Larger vs limpers</li>
+      </ul>
+      <h4 className="text-xl font-semibold mt-2 mb-1">Situational Adjustments:</h4>
+      <ul className="list-disc ml-6 mb-4">
+        <li>Larger sizes out of position</li>
+        <li>Smaller sizes in position</li>
+        <li>Adjust for opponent tendencies</li>
+        <li>Consider table dynamics</li>
+        <li>Account for stack-to-pot ratio</li>
+      </ul>
+    </section>
+    <section>
+      <h3 className="text-2xl font-semibold mb-2 mt-4">Post-Flop Strategy</h3>
+      <h4 className="text-xl font-semibold mt-2 mb-1">C-Betting Strategy:</h4>
+      <ul className="list-disc ml-6 mb-4">
+        <li>Higher frequency on favorable boards</li>
+        <li>Smaller sizes on dry boards</li>
+        <li>Larger sizes on wet boards</li>
+        <li>Consider range advantage</li>
+        <li>Adjust based on opponent's calling range</li>
+      </ul>
+      <h4 className="text-xl font-semibold mt-2 mb-1">When Called:</h4>
+      <ul className="list-disc ml-6 mb-4">
+        <li>Continue with strong value hands</li>
+        <li>Have clear bluffing strategy</li>
+        <li>Consider board texture</li>
+        <li>Plan for multiple streets</li>
+        <li>Maintain balanced ranges</li>
+      </ul>
+    </section>
+    <section>
+      <h3 className="text-2xl font-semibold mb-2 mt-4">Common Mistakes</h3>
+      <h4 className="text-xl font-semibold mt-2 mb-1">Strategic Errors:</h4>
+      <ul className="list-disc ml-6 mb-4">
+        <li>3-betting too wide out of position</li>
+        <li>Not having enough bluffs</li>
+        <li>Poor hand selection for bluffs</li>
+        <li>Incorrect sizing adjustments</li>
+        <li>Not considering stack depths</li>
+      </ul>
+      <h4 className="text-xl font-semibold mt-2 mb-1">Post-Flop Mistakes:</h4>
+      <ul className="list-disc ml-6 mb-4">
+        <li>C-betting too frequently</li>
+        <li>Wrong sizing choices</li>
+        <li>Not planning for turns</li>
+        <li>Poor bluff selection</li>
+        <li>Giving up too easily</li>
+      </ul>
+    </section>
+  </div>
+);
 
-  return (
-    <Box sx={{ color: 'white' }}>
-      
-
-      <Typography variant="h4" gutterBottom sx={{ color: 'white' }}>
-        3-Betting Strategy
-      </Typography>
-
-      <Typography paragraph sx={{ color: 'white' }}>
-        3-betting is one of the most powerful weapons in poker. A well-constructed 3-betting strategy allows you to build bigger pots with your strong hands and put pressure on your opponents with well-chosen bluffs.
-      </Typography>
-
-      <Typography variant="h5" gutterBottom sx={{ mt: 3, color: 'white' }}>
-        Position-Based 3-Betting
-      </Typography>
-      
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        In Position 3-Betting:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>More aggressive frequencies</ListItem>
-        <ListItem>Wider value range</ListItem>
-        <ListItem>More bluffing opportunities</ListItem>
-        <ListItem>Can include more speculative hands</ListItem>
-        <ListItem>Better post-flop playability</ListItem>
-      </List>
-
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Out of Position 3-Betting:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Tighter value range</ListItem>
-        <ListItem>More polarized strategy</ListItem>
-        <ListItem>Premium hands and strong bluffs</ListItem>
-        <ListItem>Less speculative hands</ListItem>
-        <ListItem>Focus on strong playability</ListItem>
-      </List>
-
-      <Typography variant="h5" gutterBottom sx={{ mt: 3, color: 'white' }}>
-        Hand Selection
-      </Typography>
-      
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Value 3-Bets:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Premium pairs (QQ+)</ListItem>
-        <ListItem>Strong broadway hands (AK, AQs)</ListItem>
-        <ListItem>Position-dependent strength</ListItem>
-        <ListItem>Hands that play well multiway</ListItem>
-        <ListItem>Good post-flop playability</ListItem>
-      </List>
-
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Bluff 3-Bets:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Suited connectors in position</ListItem>
-        <ListItem>Blocker effects (AXs, KXs)</ListItem>
-        <ListItem>Good removal properties</ListItem>
-        <ListItem>Playable post-flop</ListItem>
-        <ListItem>Balance with value range</ListItem>
-      </List>
-
-      <Typography variant="h5" gutterBottom sx={{ mt: 3, color: 'white' }}>
-        Sizing Considerations
-      </Typography>
-      
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Standard Sizing:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Usually 3x the original raise</ListItem>
-        <ListItem>Adjust based on position</ListItem>
-        <ListItem>Consider stack depths</ListItem>
-        <ListItem>Account for antes if present</ListItem>
-        <ListItem>Larger vs limpers</ListItem>
-      </List>
-
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Situational Adjustments:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Larger sizes out of position</ListItem>
-        <ListItem>Smaller sizes in position</ListItem>
-        <ListItem>Adjust for opponent tendencies</ListItem>
-        <ListItem>Consider table dynamics</ListItem>
-        <ListItem>Account for stack-to-pot ratio</ListItem>
-      </List>
-
-      <Typography variant="h5" gutterBottom sx={{ mt: 3, color: 'white' }}>
-        Post-Flop Strategy
-      </Typography>
-      
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        C-Betting Strategy:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Higher frequency on favorable boards</ListItem>
-        <ListItem>Smaller sizes on dry boards</ListItem>
-        <ListItem>Larger sizes on wet boards</ListItem>
-        <ListItem>Consider range advantage</ListItem>
-        <ListItem>Adjust based on opponent's calling range</ListItem>
-      </List>
-
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        When Called:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>Continue with strong value hands</ListItem>
-        <ListItem>Have clear bluffing strategy</ListItem>
-        <ListItem>Consider board texture</ListItem>
-        <ListItem>Plan for multiple streets</ListItem>
-        <ListItem>Maintain balanced ranges</ListItem>
-      </List>
-
-      <Typography variant="h5" gutterBottom sx={{ mt: 3, color: 'white' }}>
-        Common Mistakes
-      </Typography>
-      
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Strategic Errors:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>3-betting too wide out of position</ListItem>
-        <ListItem>Not having enough bluffs</ListItem>
-        <ListItem>Poor hand selection for bluffs</ListItem>
-        <ListItem>Incorrect sizing adjustments</ListItem>
-        <ListItem>Not considering stack depths</ListItem>
-      </List>
-
-      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, color: 'white' }}>
-        Post-Flop Mistakes:
-      </Typography>
-      <List sx={{ listStyleType: 'disc', pl: 4, '& .MuiListItem-root': { display: 'list-item', color: 'white' } }}>
-        <ListItem>C-betting too frequently</ListItem>
-        <ListItem>Wrong sizing choices</ListItem>
-        <ListItem>Not planning for turns</ListItem>
-        <ListItem>Poor bluff selection</ListItem>
-        <ListItem>Giving up too easily</ListItem>
-      </List>
-    </Box>
-  );
-};
-
-export default ThreeBettingStrategy; 
+export default function ThreeBettingStrategy() {
+  return <IndLessLayout><LessonContent /></IndLessLayout>;
+} 

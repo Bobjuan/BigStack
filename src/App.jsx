@@ -27,6 +27,8 @@ import CustomersPage from './pages/CustomersPage';
 import PracticeMenuPage from './pages/learn/practice/PracticeMenuPage';
 import PracticeScenarioPage from './pages/learn/practice/PracticeScenarioPage';
 import MainLayout from './components/layout/MainLayout';
+import AiReviewPage from './pages/AiReviewPage';
+import FloatingChatWidget from './components/ai-review/FloatingChatWidget';
 
 function App() {
   return (
@@ -42,6 +44,7 @@ function App() {
           <Route path="/product" element={<ProductPage />} />
           <Route path="/resources" element={<ResourcesPage />} />
           <Route path="/customers" element={<CustomersPage />} />
+          <Route path="/ai-review" element={<AiReviewPage />} />
 
           {/* Protected routes with MainLayout */}
           <Route path="/dashboard" element={
@@ -172,6 +175,7 @@ function App() {
           } />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        <FloatingChatWidget />
       </AuthProvider>
     </Router>
   );

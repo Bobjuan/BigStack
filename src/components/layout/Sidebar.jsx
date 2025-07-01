@@ -90,7 +90,7 @@ const Sidebar = () => {
 
       <div className="p-4 space-y-3">
         <Link
-          to="/dashboard"
+          to="/"
           className={`flex items-center ${isSidebarOpen ? 'justify-start w-full' : 'justify-center w-full'} py-3 px-4 rounded-lg hover:bg-gray-800 transition-colors text-xl font-bold ${isActive('/dashboard') ? 'bg-gray-800' : ''} hover:shadow-lg hover:shadow-indigo-500/40`}
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">

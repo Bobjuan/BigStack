@@ -1,5 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import TopNavBar from '../components/layout/TopNavBar';
+import Footer from '../components/layout/Footer';
 
 const CustomersPage = () => {
   const institutionalClients = [
@@ -55,30 +57,7 @@ const CustomersPage = () => {
 
   return (
     <div className="min-h-screen bg-[#0F1115] text-white font-inter">
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-[#0F1115]/80 backdrop-blur-xl">
-        <div className="flex items-center justify-between px-6 md:px-12 h-20">
-          <Link to="/" className="text-xl font-semibold tracking-tight flex-shrink-0">
-            BigStack Poker
-          </Link>
-          <div className="flex items-center space-x-4">
-            <Link
-              to="/login"
-              className="text-base text-gray-300 hover:text-white transition-colors duration-150 px-4 py-3 leading-normal rounded-full hover:bg-white/5 whitespace-nowrap"
-            >
-              Log In
-            </Link>
-            <Link
-              to="/signup"
-              className="text-base bg-white text-[#0F1115] px-6 py-3 leading-normal rounded-full hover:bg-gray-100 transition-all duration-150 hover:-translate-y-0.5 whitespace-nowrap"
-            >
-              Sign Up
-            </Link>
-          </div>
-        </div>
-      </nav>
-
-      {/* Main Content */}
+      <TopNavBar />
       <main className="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
@@ -146,6 +125,7 @@ const CustomersPage = () => {
           </div>
         </div>
       </main>
+      <Footer />
     </div>
   );
 };
