@@ -148,17 +148,17 @@ const evaluateHand = (holeCards, communityCards) => {
     }
 };
 
-function PokerGame() {
+function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = null }) {
     const [numPlayers, setNumPlayers] = useState(initialGameState.numPlayers);
     const [gameState, setGameState] = useState(() => {
         let state = JSON.parse(JSON.stringify(initialGameState));
         state.numPlayers = numPlayers;
         return startNewHand(state);
     });
-    const [isTestMode, setIsTestMode] = useState(false);
-    const [showAllCards, setShowAllCards] = useState(false);
+    const [isTestMode, setIsTestMode] = useState(isPracticeMode);
+    const [showAllCards, setShowAllCards] = useState(isPracticeMode);
     const [showSettings, setShowSettings] = useState(false);
-    const [tableTheme, setTableTheme] = useState('dark'); // 'dark', 'light', or 'classic'
+    const [tableTheme, setTableTheme] = useState('dark');
     const tableRef = useRef(null);
     const [tableDimensions, setTableDimensions] = useState({ width: 0, height: 0 });
 
@@ -185,6 +185,23 @@ function PokerGame() {
             observer.unobserve(tableElement);
         };
     }, []);
+
+    // Initialize game state with scenario setup if in practice mode
+    useEffect(() => {
+        if (isPracticeMode && scenarioSetup) {
+            setGameState(prevState => {
+                const newState = JSON.parse(JSON.stringify(prevState));
+                // Apply all scenario setup properties
+                Object.keys(scenarioSetup).forEach(key => {
+                    newState[key] = scenarioSetup[key];
+                });
+                return newState;
+            });
+            // Ensure test mode is enabled in practice mode
+            setIsTestMode(true);
+            setShowAllCards(true);
+        }
+    }, [isPracticeMode, scenarioSetup]);
 
     function startNewHand(currentState) {
         if (currentState.players.length !== currentState.numPlayers) {
@@ -588,12 +605,26 @@ function PokerGame() {
         return state;
     }
 
-    // ----- Action Handlers -----
+    // Modify action handlers to support practice mode
     const handleAction = useCallback((actionFn) => {
+        // Get the action name and amount before executing
+        const actionName = actionFn.name.replace('handle', '').toUpperCase();
+        const amount = actionFn.amount;
+
+        // Execute the action to get the new state
+        const newState = actionFn.execute(JSON.parse(JSON.stringify(gameState)));
+
+        if (isPracticeMode && onAction) {
+            // In practice mode, notify parent component of action
+            onAction(actionName, amount);
+            // Also update the game state to show the action
+            setGameState(newState);
+        } else {
+            // Normal game mode logic
         setGameState(prevState => {
             if (prevState.currentBettingRound === GamePhase.HAND_OVER) return prevState;
             
-            let stateAfterAction = actionFn(JSON.parse(JSON.stringify(prevState)));
+                let stateAfterAction = actionFn.execute(JSON.parse(JSON.stringify(prevState)));
 
             const nonFolded = stateAfterAction.players.filter(p => !p.isFolded);
             if (nonFolded.length === 1) {
@@ -606,10 +637,14 @@ function PokerGame() {
                 return progressTurn(stateAfterAction);
             }
         });
-    }, []);
+        }
+    }, [isPracticeMode, onAction, gameState]);
 
     const handleCheck = useCallback(() => {
-        handleAction(prevState => {
+        handleAction({
+            name: 'Check',
+            amount: 0,
+            execute: (prevState) => {
             const playerIndex = prevState.currentPlayerIndex;
             const player = prevState.players[playerIndex];
 
@@ -621,11 +656,14 @@ function PokerGame() {
             newState.players[playerIndex].hasActedThisRound = true;
             newState.players[playerIndex].isTurn = false;
             return newState;
+            }
         });
     }, [handleAction]);
 
     const handleCall = useCallback(() => {
-        handleAction(prevState => {
+        handleAction({
+            name: 'Call',
+            execute: (prevState) => {
             const playerIndex = prevState.currentPlayerIndex;
             const player = prevState.players[playerIndex];
             const callAmount = prevState.currentHighestBet - player.currentBet;
@@ -647,11 +685,16 @@ function PokerGame() {
             newState.pot += actualCallAmount;
             
             return newState;
+            },
+            amount: gameState.currentHighestBet - (gameState.players[gameState.currentPlayerIndex]?.currentBet || 0)
         });
-    }, [handleAction]);
+    }, [handleAction, gameState]);
 
     const handleBet = useCallback((amount) => {
-        handleAction(prevState => {
+        handleAction({
+            name: 'Raise',
+            amount,
+            execute: (prevState) => {
             const playerIndex = prevState.currentPlayerIndex;
             const player = prevState.players[playerIndex];
             const currentBet = player.currentBet || 0;
@@ -683,30 +726,24 @@ function PokerGame() {
             if (!newState.players[playerIndex].isAllIn || raiseAmount >= prevState.minRaiseAmount) { 
                 newState.minRaiseAmount = raiseAmount > 0 ? raiseAmount : prevState.minRaiseAmount;
             }
-            
-            let closingIdx = (playerIndex - 1 + newState.players.length) % newState.players.length;
-            let guard = 0;
-            while(newState.players[closingIdx].isFolded || newState.players[closingIdx].isAllIn) {
-                closingIdx = (closingIdx - 1 + newState.players.length) % newState.players.length;
-                guard++;
-                if (guard > newState.players.length * 2) break;
-            }
-            newState.actionClosingPlayerIndex = closingIdx;
 
             return newState;
+            }
         });
     }, [handleAction]);
 
     const handleFold = useCallback(() => {
-        handleAction(prevState => {
+        handleAction({
+            name: 'Fold',
+            amount: 0,
+            execute: (prevState) => {
             const playerIndex = prevState.currentPlayerIndex;
-            const player = prevState.players[playerIndex];
-
             const newState = JSON.parse(JSON.stringify(prevState));
             newState.players[playerIndex].isFolded = true;
             newState.players[playerIndex].hasActedThisRound = true;
             newState.players[playerIndex].isTurn = false;
             return newState;
+            }
         });
     }, [handleAction]);
 
@@ -864,6 +901,13 @@ function PokerGame() {
 
     return (
         <div className="poker-wrapper w-full h-full fixed inset-0" style={{backgroundColor:'#111111',display:'flex',alignItems:'center',justifyContent:'center'}}>
+            {/* Add practice mode UI elements if needed */}
+            {isPracticeMode && (
+                <div className="absolute top-0 left-0 z-50 bg-blue-500 text-white px-4 py-2">
+                    Practice Mode
+                </div>
+            )}
+            
           <div
             ref={tableRef}
             className="poker-table relative overflow-hidden"
@@ -877,7 +921,9 @@ function PokerGame() {
 
             {/* Test Mode / Player Count Controls - Top Right */}
             <div className="absolute top-4 right-4 z-20 flex flex-col items-end space-y-1">
-                 {/* Test Mode Buttons */}
+                    {/* Test Mode Buttons - Only show if not in practice mode */}
+                    {!isPracticeMode && (
+                        <>
                 <div className="flex space-x-2">
                     <button
                         onClick={() => setIsTestMode(prev => !prev)}
@@ -907,6 +953,8 @@ function PokerGame() {
                         </button>
                     ))}
                  </div>
+                        </>
+                    )}
             </div>
 
             {/* Central Area for Community Cards & Pot */}

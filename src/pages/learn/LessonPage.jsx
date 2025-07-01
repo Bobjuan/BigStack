@@ -1,5 +1,8 @@
-import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { categories } from './practice/data/scenarios/index';
+import LessonComponents from './lessons/indexForLessons';
+import { Box, Button } from '@mui/material';
 
 // Dummy function to get lesson details - replace with actual data fetching or structure
 const getLessonDetails = (categoryName, lessonId) => {
@@ -486,7 +489,7 @@ At the same time, selective aggression can flip his own style back on him. Littl
 
 Maniacs come in flavours. One variety prefers the gargantuan three bet turning a $7 open into $35 with holdings as weak as 7 5 suited. Recognising the difference between that pattern and a tight player's rare monster save stacks and earns windfalls. Versus the maniac three bettor, hands like 9 9 and A Q play for stacks profitably; versus the nit doing it five times a night, they are easy folds. Against the maniac you may either smooth call to keep his trash in or four bet/jam if you think he will snap with worse.
 
-All of this is volatile. You will lose some large pots when the maniac's 40 percent range happens to wake up with aces or spikes a river. Your job is to keep perspective. If someone literally volunteers to shovel money in with 40 percent equity, your bankroll grows every time you accept the gamble. Emotional stability refusing to tighten up in fear after a bad beat is as much a skill edge as any technical line you choose.`,
+All of this is volatile. You will lose some large pots when the maniac's 40 percent range happens to wake up with aces or spikes a river. Your job is to keep perspective. If someone literally volunteered to shovel money in with 40 percent equity, your bankroll grows every time you accept the gamble. Emotional stability refusing to tighten up in fear after a bad beat is as much a skill edge as any technical line you choose.`,
         keyCharacteristics: [
           "Opens and three bets an extremely wide range, firing multi street bluffs at the first sign of passivity",
           "Adjusts only when you show real strength; otherwise assumes folds are weakness",
@@ -609,87 +612,88 @@ Finally, keep tilt in check. Stations will outdraw you sometimes-two-outer on th
   return allLessons[categoryName]?.[lessonId] || null;
 };
 
-const LessonPage = () => {
-  const { categoryName, lessonId } = useParams();
-  const navigate = useNavigate();
-  const lesson = getLessonDetails(categoryName, lessonId);
+const LESSON_ORDER = [
+  'found-0-1', // Course Introduction
+  'found-0-2', // Self-Assessment
+  'found-0-3', // Essential Mindset
+  'fund-1',    // Cash vs Tournaments
+  'fund-2',    // Table Selection
+  'pre-1',     // Starting Hand Selection
+  'pre-2',     // Position and Hand Ranges
+  'pre-3',     // 3-Betting Strategy
+  'post-1',    // Board Texture Analysis
+  'post-2',    // Bet Sizing
+  'post-3',    // Hand Reading
+  'adv-1',     // Exploitative Play
+  'adv-2',     // Multi-Street Planning
+  'adv-3'      // Mental Game
+];
 
-  if (!lesson) {
+const LessonPage = () => {
+  const { courseId, moduleId, lessonId } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState('content');
+
+  // Get the lesson component based on lessonId
+  const LessonComponent = LessonComponents[lessonId];
+
+  // Find current lesson index
+  const currentIndex = LESSON_ORDER.indexOf(lessonId);
+  const previousLesson = currentIndex > 0 ? LESSON_ORDER[currentIndex - 1] : null;
+  const nextLesson = currentIndex < LESSON_ORDER.length - 1 ? LESSON_ORDER[currentIndex + 1] : null;
+
+  if (!LessonComponent) {
     return (
-      <div className="min-h-screen bg-black text-white p-6">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-2xl font-bold mb-4">Lesson Not Found</h1>
-          <p className="mb-4">The requested lesson could not be found.</p>
-          <button
-            onClick={() => navigate(`/learn/${categoryName}`)}
-            className="bg-white text-black px-4 py-2 rounded-lg hover:bg-indigo-100 transition-colors duration-200"
-          >
-            Back to Category
-          </button>
-        </div>
+      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
+        <div>Lesson not found</div>
       </div>
     );
   }
 
-  const formattedCategoryName = categoryName
-    .split('-')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-
   return (
-    <div className="min-h-screen bg-black text-white p-6">
-      <div className="max-w-4xl mx-auto">
-        <button
-          onClick={() => navigate(`/learn/${categoryName}`)}
-          className="mb-6 flex items-center text-white hover:text-indigo-400 transition-colors duration-200"
-        >
-          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div className="min-h-screen bg-gray-900 text-white">
+      <div className="container mx-auto px-4 py-8">
+        {/* Navigation */}
+        <div className="mb-8">
+          <button
+            onClick={() => {
+              navigate('/learn', { state: { activeSection: 'lessons' } });
+            }}            
+            className="text-gray-400 hover:text-white transition-colors flex items-center mb-4"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
-          Back to Lessons
-        </button>
-
-        <h1 className="text-3xl font-bold mb-6">{lesson.title}</h1>
-
-        <div className="bg-white text-black rounded-xl p-6 mb-8">
-          <p className="text-lg mb-6 whitespace-pre-line">{lesson.content}</p>
-          
-          {lesson.keyCharacteristics && (
-            <div className="mb-6">
-              <h2 className="text-xl font-bold mb-3">Key Characteristics</h2>
-              <ul className="list-disc list-inside space-y-2">
-                {lesson.keyCharacteristics.map((characteristic, index) => (
-              <li key={index}>{characteristic}</li>
-            ))}
-          </ul>
-            </div>
-          )}
-
-          {lesson.howToExploit && (
-            <div className="mb-6">
-              <h2 className="text-xl font-bold mb-3">How to Exploit</h2>
-              <ul className="list-disc list-inside space-y-2">
-                {lesson.howToExploit.map((tip, index) => (
-                  <li key={index}>{tip}</li>
-              ))}
-            </ul>
-            </div>
-          )}
-        </div>
-        
-        <div className="flex justify-between">
-          <button
-            onClick={() => navigate(`/learn/${categoryName}`)}
-            className="bg-white text-black px-6 py-3 rounded-lg hover:bg-indigo-100 transition-colors duration-200"
-          >
             Back to Lessons
           </button>
-          <button
-            onClick={() => navigate('/quiz')}
-            className="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition-colors duration-200"
-            >
-            Take Quiz
-          </button>
+        </div>
+
+        {/* Content */}
+        <div className="bg-[#1F2127] rounded-xl p-6">
+          <LessonComponent />
+          
+          {/* Lesson Navigation */}
+          <Box sx={{ mt: 4, display: 'flex', justifyContent: 'space-between' }}>
+            {previousLesson && (
+              <Button
+                variant="contained"
+                onClick={() => navigate(`/learn/lessons/${previousLesson}`)}
+                sx={{ bgcolor: 'blue.600', '&:hover': { bgcolor: 'blue.700' } }}
+              >
+                Previous Lesson
+              </Button>
+            )}
+            {nextLesson && (
+              <Button
+                variant="contained"
+                onClick={() => navigate(`/learn/lessons/${nextLesson}`)}
+                sx={{ bgcolor: 'blue.600', '&:hover': { bgcolor: 'blue.700' } }}
+              >
+                Next Lesson
+              </Button>
+            )}
+          </Box>
         </div>
       </div>
     </div>
