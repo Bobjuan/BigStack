@@ -59,6 +59,12 @@ function App() {
               </ProtectedRoute>
           } />
           <Route path="/play-with-friends" element={
+=======
+            }
+          />
+          <Route
+            path="/play-with-friends/:gameId?"
+            element={
               <ProtectedRoute>
               <MainLayout>
                 <PlayWithFriendsPage />

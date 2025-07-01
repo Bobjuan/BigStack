@@ -16,13 +16,18 @@
     "@heroicons/react": "^2.2.0",
     "@mui/material": "^5.15.11",
     "@supabase/supabase-js": "^2.49.8",
+    "dotenv": "^16.6.0",
     "framer-motion": "^12.12.2",
     "pokersolver": "^2.1.4",
     "prop-types": "^15.8.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-icons": "^5.5.0",
     "react-markdown": "^10.1.0",
     "react-router-dom": "^6.22.3"
+=======
+    "react-router-dom": "^6.22.3",
+    "socket.io-client": "^4.8.1"
   },
   "devDependencies": {
     "@eslint/js": "^8.56.0",
