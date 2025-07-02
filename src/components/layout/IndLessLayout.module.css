@@ -96,4 +96,40 @@
   justify-content: center;
   align-items: center;
   box-shadow: 0 2px 8px 0 rgba(0,0,0,0.04);
+}
+
+.resizerBar {
+  width: 12px;
+  cursor: col-resize;
+  background: #23273a;
+  z-index: 10;
+  border-radius: 8px;
+  align-self: stretch;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  user-select: none;
+  box-shadow: 0 0 8px 0 rgba(0,0,0,0.10);
+  transition: background 0.2s;
+  height: auto;
+  margin: 0;
+  border-left: 1.5px solid #374151;
+  border-right: 1.5px solid #374151;
+}
+
+.resizerBar:hover {
+  background: #2d3142;
+}
+
+.resizerHandle {
+  width: 4px;
+  height: 48px;
+  background: #374151;
+  border-radius: 2px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 4px 0 rgba(0,0,0,0.12);
 } 

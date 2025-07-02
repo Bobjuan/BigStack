@@ -84,34 +84,11 @@ const IndLessLayout = ({ children }) => {
         </div>
         {/* Resizer Bar */}
         <div
-          style={{
-            width: 12,
-            cursor: 'col-resize',
-            background: '#23273a',
-            zIndex: 10,
-            margin: '0 0.75rem',
-            borderRadius: 6,
-            alignSelf: 'stretch',
-            position: 'relative',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            userSelect: 'none',
-          }}
+          className={styles.resizerBar}
           onMouseDown={startDrag}
           title="Drag to resize"
         >
-          {/* Centered resizer line */}
-          <div style={{
-            width: 4,
-            height: 40,
-            background: '#374151',
-            borderRadius: 2,
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-          }} />
+          <div className={styles.resizerHandle} />
         </div>
         {/* Chatbot Section */}
         <div

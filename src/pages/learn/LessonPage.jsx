@@ -3,6 +3,10 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { categories } from './practice/data/scenarios/index';
 import LessonComponents from './lessons/indexForLessons';
 import { Box, Button } from '@mui/material';
+import { useAuth } from '../../context/AuthContext';
+import { supabase } from '../../config/supabase';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 
 // Dummy function to get lesson details - replace with actual data fetching or structure
 const getLessonDetails = (categoryName, lessonId) => {
@@ -634,6 +638,9 @@ const LessonPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState('content');
+  const { user } = useAuth();
+  const [completion, setCompletion] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   // Get the lesson component based on lessonId
   const LessonComponent = LessonComponents[lessonId];
@@ -642,6 +649,40 @@ const LessonPage = () => {
   const currentIndex = LESSON_ORDER.indexOf(lessonId);
   const previousLesson = currentIndex > 0 ? LESSON_ORDER[currentIndex - 1] : null;
   const nextLesson = currentIndex < LESSON_ORDER.length - 1 ? LESSON_ORDER[currentIndex + 1] : null;
+
+  // Fetch completion status for this lesson
+  useEffect(() => {
+    const fetchCompletion = async () => {
+      if (!user || !lessonId) return;
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('lesson_progress')
+        .select('completed')
+        .eq('user_id', user.id)
+        .eq('lesson_id', lessonId)
+        .single();
+      if (error || !data) {
+        setCompletion(false);
+      } else {
+        setCompletion(!!data.completed);
+      }
+      setLoading(false);
+    };
+    fetchCompletion();
+  }, [user, lessonId]);
+
+  // Toggle completion
+  const toggleCompletion = async () => {
+    if (!user || !lessonId) return;
+    const newValue = !completion;
+    setCompletion(newValue);
+    await supabase.from('lesson_progress').upsert({
+      user_id: user.id,
+      lesson_id: lessonId,
+      completed: newValue,
+      completed_at: newValue ? new Date().toISOString() : null,
+    }, { onConflict: ['user_id', 'lesson_id'] });
+  };
 
   if (!LessonComponent) {
     return (
@@ -652,7 +693,7 @@ const LessonPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-000000 text-white">
       <div className="container mx-auto px-4 py-8">
         {/* Navigation */}
         <div className="mb-8">
@@ -670,8 +711,20 @@ const LessonPage = () => {
         </div>
 
         {/* Content */}
-        <div className="bg-[#0F1115] rounded-xl p-6">
+        <div className="bg-[#000000] rounded-xl p-4">
           <LessonComponent />
+
+          {/* Mark Complete/Incomplete Button */}
+          <div className="flex flex-col items-center my-6">
+            <button
+              type="button"
+              onClick={toggleCompletion}
+              disabled={loading}
+              className={`px-6 py-2 rounded-lg text-base font-semibold transition-colors focus:outline-none ${completion ? 'bg-gray-600 text-white hover:bg-gray-700' : 'bg-green-600 text-white hover:bg-green-700'} ${loading ? 'opacity-60 cursor-not-allowed' : ''}`}
+            >
+              {completion ? 'Mark Incomplete' : 'Mark Complete'}
+            </button>
+          </div>
           
           {/* Lesson Navigation */}
           <Box sx={{ mt: 4, display: 'flex', justifyContent: 'space-between' }}>
@@ -681,6 +734,7 @@ const LessonPage = () => {
                 onClick={() => {
                   window.dispatchEvent(new Event('minimizeSidebar'));
                   navigate(`/learn/lessons/${previousLesson}`);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 sx={{ bgcolor: 'blue.600', '&:hover': { bgcolor: 'blue.700' } }}
               >
@@ -693,6 +747,7 @@ const LessonPage = () => {
                 onClick={() => {
                   window.dispatchEvent(new Event('minimizeSidebar'));
                   navigate(`/learn/lessons/${nextLesson}`);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 sx={{ bgcolor: 'blue.600', '&:hover': { bgcolor: 'blue.700' } }}
               >
