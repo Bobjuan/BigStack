@@ -678,7 +678,10 @@ const LessonPage = () => {
             {previousLesson && (
               <Button
                 variant="contained"
-                onClick={() => navigate(`/learn/lessons/${previousLesson}`)}
+                onClick={() => {
+                  window.dispatchEvent(new Event('minimizeSidebar'));
+                  navigate(`/learn/lessons/${previousLesson}`);
+                }}
                 sx={{ bgcolor: 'blue.600', '&:hover': { bgcolor: 'blue.700' } }}
               >
                 Previous Lesson
@@ -687,7 +690,10 @@ const LessonPage = () => {
             {nextLesson && (
               <Button
                 variant="contained"
-                onClick={() => navigate(`/learn/lessons/${nextLesson}`)}
+                onClick={() => {
+                  window.dispatchEvent(new Event('minimizeSidebar'));
+                  navigate(`/learn/lessons/${nextLesson}`);
+                }}
                 sx={{ bgcolor: 'blue.600', '&:hover': { bgcolor: 'blue.700' } }}
               >
                 Next Lesson

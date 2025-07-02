@@ -110,24 +110,46 @@ const HandReviewChat = () => {
         <div className="chat-container overflow-y-auto mb-4 bg-[#1b1f2b] rounded-lg p-4 border border-gray-700" style={{ minHeight: 300, maxHeight: 400 }}>
           {messages.map((msg, i) => (
             <div key={i} className={
-              msg.sender === 'user'
-                ? 'bg-blue-700 text-white rounded-lg p-3 mb-2 ml-auto max-w-[80%] text-right'
-                : 'bg-[#2f3542] text-white rounded-lg p-3 mb-2 max-w-[80%]'
+              'flex items-end mb-2 ' + (msg.sender === 'user' ? 'justify-end' : 'justify-start')
             }>
-              {msg.sender === 'bot' ? (
-                <span dangerouslySetInnerHTML={{
-                  __html: DOMPurify.sanitize(marked.parse(msg.text))
-                }} />
-              ) : (
-                <pre className="whitespace-pre-wrap">{msg.text}</pre>
+              {msg.sender === 'bot' && (
+                <span className="mr-2 flex-shrink-0" title="Bot">
+                  {/* Robot SVG */}
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="36" height="36" className="text-blue-400"><circle cx="12" cy="12" r="10" fill="#23273a"/><rect x="7" y="9" width="10" height="6" rx="3" fill="#60a5fa"/><circle cx="9" cy="12" r="1" fill="#fff"/><circle cx="15" cy="12" r="1" fill="#fff"/><rect x="11" y="6" width="2" height="3" rx="1" fill="#60a5fa"/></svg>
+                </span>
+              )}
+              <div className={
+                msg.sender === 'user'
+                  ? 'bg-blue-700 text-white rounded-lg p-3 max-w-[80%] text-right'
+                  : 'bg-[#2f3542] text-white rounded-lg p-3 max-w-[80%]'
+              }>
+                {msg.sender === 'bot' ? (
+                  <span dangerouslySetInnerHTML={{
+                    __html: DOMPurify.sanitize(marked.parse(msg.text))
+                  }} />
+                ) : (
+                  <pre className="whitespace-pre-wrap">{msg.text}</pre>
+                )}
+              </div>
+              {msg.sender === 'user' && (
+                <span className="ml-2 flex-shrink-0" title="User">
+                  {/* Human outline SVG */}
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width="28" height="28" className="text-white"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 7.5a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 19.5a7.5 7.5 0 1115 0v.75a.75.75 0 01-.75.75h-13.5a.75.75 0 01-.75-.75v-.75z" /></svg>
+                </span>
               )}
             </div>
           ))}
           {loading && (
-            <div className="bg-[#2f3542] text-white rounded-lg p-3 mb-2 max-w-[80%] flex gap-1 items-center">
-              <span className="inline-block w-2 h-2 bg-blue-400 rounded-full animate-bounce mr-1"></span>
-              <span className="inline-block w-2 h-2 bg-blue-400 rounded-full animate-bounce mr-1"></span>
-              <span className="inline-block w-2 h-2 bg-blue-400 rounded-full animate-bounce"></span>
+            <div className="flex items-end mb-2 justify-start">
+              <span className="mr-2 flex-shrink-0" title="Bot">
+                {/* Robot SVG (36px) */}
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="36" height="36" className="text-blue-400"><circle cx="12" cy="12" r="10" fill="#23273a"/><rect x="7" y="9" width="10" height="6" rx="3" fill="#60a5fa"/><circle cx="9" cy="12" r="1" fill="#fff"/><circle cx="15" cy="12" r="1" fill="#fff"/><rect x="11" y="6" width="2" height="3" rx="1" fill="#60a5fa"/></svg>
+              </span>
+              <div className="bg-[#2f3542] text-white rounded-lg p-3 max-w-[80%] flex gap-1 items-center">
+                <span className="inline-block w-2 h-2 bg-blue-400 rounded-full animate-bounce mr-1"></span>
+                <span className="inline-block w-2 h-2 bg-blue-400 rounded-full animate-bounce mr-1"></span>
+                <span className="inline-block w-2 h-2 bg-blue-400 rounded-full animate-bounce"></span>
+              </div>
             </div>
           )}
           <div ref={chatEndRef} />

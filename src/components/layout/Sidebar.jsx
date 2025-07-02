@@ -15,6 +15,12 @@ const Sidebar = () => {
     );
   }, [isSidebarOpen]);
 
+  useEffect(() => {
+    const handler = () => setSidebarOpen(false);
+    window.addEventListener('minimizeSidebar', handler);
+    return () => window.removeEventListener('minimizeSidebar', handler);
+  }, []);
+
   return (
     <div 
       className={`bg-[#1a1a1a] transition-all duration-300 ease-in-out ${

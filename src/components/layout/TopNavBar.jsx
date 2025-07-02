@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 const navItems = [
   { name: 'Product', href: '/product' },
@@ -52,6 +53,17 @@ const TopNavBar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const productDropdownTimeout = useRef();
   const resourcesDropdownTimeout = useRef();
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      navigate('/');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-[#0F1115]/80 backdrop-blur-xl">
@@ -160,18 +172,37 @@ const TopNavBar = () => {
 
         {/* Right side - Auth buttons and mobile menu */}
         <div className="flex items-center space-x-4">
-          <Link
-            to="/login"
-            className="text-base font-medium text-gray-300 transition-colors duration-150 px-3 py-2 leading-normal rounded-full hover:bg-gray-800 hover:text-white whitespace-nowrap"
-          >
-            Log In
-          </Link>
-          <Link
-            to="/signup"
-            className="text-base font-medium bg-white text-[#0F1115] px-4 py-2 leading-normal rounded-full transition-all duration-150 hover:-translate-y-0.5 hover:bg-gray-200 hover:text-[#0F1115] whitespace-nowrap"
-          >
-            Sign Up
-          </Link>
+          {user ? (
+            <>
+              <Link
+                to="/profile"
+                className="text-base font-medium text-gray-300 transition-colors duration-150 px-3 py-2 leading-normal rounded-full hover:bg-gray-800 hover:text-white whitespace-nowrap"
+              >
+                Profile
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="text-base font-medium bg-white text-[#0F1115] px-4 py-2 leading-normal rounded-full transition-all duration-150 hover:-translate-y-0.5 hover:bg-gray-200 hover:text-[#0F1115] whitespace-nowrap"
+              >
+                Logout
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                to="/login"
+                className="text-base font-medium text-gray-300 transition-colors duration-150 px-3 py-2 leading-normal rounded-full hover:bg-gray-800 hover:text-white whitespace-nowrap"
+              >
+                Log In
+              </Link>
+              <Link
+                to="/signup"
+                className="text-base font-medium bg-white text-[#0F1115] px-4 py-2 leading-normal rounded-full transition-all duration-150 hover:-translate-y-0.5 hover:bg-gray-200 hover:text-[#0F1115] whitespace-nowrap"
+              >
+                Sign Up
+              </Link>
+            </>
+          )}
           {/* Hamburger menu icon for mobile (shows below lg) */}
           <button
             className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-white/5 transition-colors duration-150 lg:hidden"

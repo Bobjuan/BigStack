@@ -1186,6 +1186,7 @@ Thank you for taking this course. Stay focused, keep learning, and enjoy the jou
   };
 
   const handleModuleClick = (module) => {
+    window.dispatchEvent(new Event('minimizeSidebar'));
     navigate(`/learn/course/${courseId}/module/${module.id}`, {
       state: { module, course }
     });

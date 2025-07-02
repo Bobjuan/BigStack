@@ -111,40 +111,49 @@ const CoursePage = () => {
   const LessonComponent = selectedLesson ? LessonComponents[selectedLesson.id] : null;
 
   return (
-    <div className="flex h-screen bg-gray-900">
+    <div className="flex h-screen  bg-0F1115">
       {/* Sidebar */}
-      <div className={`bg-[#1F2127] w-80 flex-shrink-0 transition-all duration-300 ${isSidebarOpen ? '' : '-ml-80'}`}>
+      <div className={`bg-[#1F2127] ${isSidebarOpen ? 'w-80' : 'w-20'} flex-shrink-0 transition-all duration-300 flex flex-col`}>
         <div className="p-4">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-white">{module?.title}</h2>
-            <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="text-gray-400 hover:text-white">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
+          <div className="flex items-center mb-6">
+            {isSidebarOpen && (
+              <h2 className="text-xl font-bold text-white transition-all duration-300 flex-1">{module?.title}</h2>
+            )}
+            <div className={`flex ${isSidebarOpen ? 'flex-1 justify-end' : 'w-full justify-center mt-6'}`}>
+              <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="text-gray-400 hover:text-white">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+            </div>
           </div>
-          <div className="space-y-2">
-            {lessons?.map((lesson) => (
-              <div key={lesson.id} className="mb-2">
-                <button
-                  type="button"
-                  onClick={() => setSelectedLesson(lesson)}
-                  className={`w-full text-left p-3 rounded-lg transition-colors cursor-pointer ${
-                    selectedLesson?.id === lesson.id
-                      ? 'bg-blue-600 text-white border-2 border-white'
-                      : 'hover:bg-[#2a2d36] text-gray-400'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span>{lesson.title}</span>
-                    {lesson.completed && (
-                      <span className="ml-2 text-green-400" title="Completed">✔</span>
-                    )}
-                  </div>
-                </button>
-              </div>
-            ))}
-          </div>
+          {isSidebarOpen && (
+            <div className="space-y-2">
+              {lessons?.map((lesson) => (
+                <div key={lesson.id} className="mb-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      window.dispatchEvent(new Event('minimizeSidebar'));
+                      setSelectedLesson(lesson);
+                    }}
+                    className={`w-full text-left p-3 rounded-lg transition-colors cursor-pointer ${
+                      selectedLesson?.id === lesson.id
+                        ? 'bg-blue-600 text-white border-2 border-white'
+                        : 'hover:bg-[#2a2d36] text-gray-400'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span>{lesson.title}</span>
+                      {lesson.completed && (
+                        <span className="ml-2 text-green-400" title="Completed">✔</span>
+                      )}
+                    </div>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

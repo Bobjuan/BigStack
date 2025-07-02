@@ -340,7 +340,10 @@ Source of Profit:
               module.lessons.map(lesson => (
                 <div
                   key={lesson.id}
-                  onClick={() => navigate(`/learn/lessons/${lesson.id}`)}
+                  onClick={() => {
+                    window.dispatchEvent(new Event('minimizeSidebar'));
+                    navigate(`/learn/lessons/${lesson.id}`);
+                  }}
                   className="bg-[#1F2127] rounded-xl p-6 hover:bg-[#252831] transition-all cursor-pointer transform hover:scale-105"
                 >
                   <h3 className="text-xl font-bold text-white mb-2">{lesson.title}</h3>

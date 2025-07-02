@@ -101,7 +101,17 @@ const IndLessLayout = ({ children }) => {
           onMouseDown={startDrag}
           title="Drag to resize"
         >
-          <div style={{width: 4, height: 40, background: '#374151', borderRadius: 2}} />
+          {/* Centered resizer line */}
+          <div style={{
+            width: 4,
+            height: 40,
+            background: '#374151',
+            borderRadius: 2,
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+          }} />
         </div>
         {/* Chatbot Section */}
         <div
@@ -112,8 +122,16 @@ const IndLessLayout = ({ children }) => {
             maxWidth: `calc(100% - ${MIN_LESSON_WIDTH + 16}px)`
           }}
         >
-          <h2 className={styles.chatbotTitle}>Ask the Poker Chatbot</h2>
-          <RandomQuestionsChat isWidget inputValue={chatInput} setInputValue={setChatInput} lessonsMode={true} />
+          {/* Explanation area above chatbot */}
+          <div className={styles.chatbotExplanation}>
+            <span>
+              <b>How to use the Chatbot:</b> Highlight any text in the lesson to ask a question about it, or type your own question below. The chatbot can help clarify concepts, explain strategies, or answer anything about the lesson content!
+            </span>
+          </div>
+          <div style={{flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflowY: 'auto'}}>
+            <h2 className={styles.chatbotTitle}>Ask the Poker Chatbot</h2>
+            <RandomQuestionsChat isWidget inputValue={chatInput} setInputValue={setChatInput} lessonsMode={true} />
+          </div>
         </div>
       </div>
     </div>

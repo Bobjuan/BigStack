@@ -1,7 +1,7 @@
 .indLessLayout {
   min-height: 100vh;
   width: 100%;
-  background: #0F1115;
+  background: #000000;
   color: white;
   font-family: 'Inter', sans-serif;
   display: flex;
@@ -19,6 +19,9 @@
   padding-bottom: 0rem;
   padding-left: 0rem;
   padding-right: 0rem;
+  height: 100vh;
+  min-height: 100vh;
+  align-items: stretch;
 }
 
 .lessonContent {
@@ -40,20 +43,22 @@
 }
 
 .chatbotSection {
-  background: #23273a;
+  background: #1b1f2b;
   border-radius: 0.5rem;
   padding: 1rem;
   border: 1px solid #374151;
-  height: fit-content;
   min-width: 0;
   overflow-x: auto;
+  flex: 1;
+  height: 100%;
+  position: sticky;
+  top: 1rem;
 }
 
 @media (min-width: 768px) {
   .chatbotSection {
     width: 33.3333%;
     position: sticky;
-    top: 7rem;
   }
 }
 
@@ -63,4 +68,32 @@
   margin-bottom: 1rem;
   color: white;
   text-align: center;
+}
+
+.chatbotExplanation {
+  background: #23273a;
+  color: #cbd5e1;
+  border: 1px solid #374151;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.97rem;
+  text-align: center;
+  font-weight: 500;
+  box-shadow: 0 2px 8px 0 rgba(0,0,0,0.04);
+  width: 100%;
+  display: block;
+}
+
+.chatbotTitleContainer {
+  border: 1.5px solid #374151;
+  border-radius: 1.5rem;
+  background: #1b1f2b;
+  padding: 1.25rem 0;
+  margin: 2rem 0 1.5rem 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 2px 8px 0 rgba(0,0,0,0.04);
 } 
