@@ -22,10 +22,12 @@ function PotDisplay({ amount, label = 'Pot', subtext = null, pots = [] }) {
   
   // Single pot display
   return (
-    <div className="pot-display text-center my-1">
-      <p className="text-lg font-semibold text-green-300">{label}: ${amount}</p>
+    <div className="pot-display flex flex-col items-center my-1">
+      <span className="bg-gray-800 text-yellow-300 text-base font-bold rounded-full px-5 py-2 shadow-md border-2 border-yellow-400 drop-shadow-xl">
+        {label}: ${amount}
+      </span>
       {subtext && (
-        <p className="text-xs text-gray-400">{subtext}</p>
+        <p className="text-xs text-gray-400 mt-1">{subtext}</p>
       )}
     </div>
   );

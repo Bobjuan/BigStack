@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 // Helper function to map card notation to SVG filename (copied from PlayerHand)
 const getCardSvgFilename = (card) => {
@@ -44,7 +44,7 @@ const getCardSvgFilename = (card) => {
 
 
 // Updated Card component for community cards
-function Card({ card, cardWidth }) {
+function Card({ card, cardWidth, animate, highlight }) {
   const svgSrc = getCardSvgFilename(card);
   if (!svgSrc) return null; // Don't render if card is invalid
 
@@ -52,13 +52,28 @@ function Card({ card, cardWidth }) {
     <img
       src={svgSrc}
       alt={card}
-      className="inline-block mx-0.5 shadow-2xl rounded-sm"
-      style={{ width: `${cardWidth}px`, height: 'auto' }}
+      className={`inline-block mx-0.5 shadow-2xl rounded-sm${animate ? ' card-flip-animate' : ''}${highlight ? ' winner-glow-bounce' : ''}`}
+      style={{ width: `${cardWidth}px`, height: 'auto', zIndex: highlight ? 10 : undefined }}
     />
   );
 }
 
-function CommunityCards({ cards = [], cardWidth = 50, ritFirstRun = null, ritSecondRun = null }) { // Default width if not provided
+function CommunityCards({ cards = [], cardWidth = 50, ritFirstRun = null, ritSecondRun = null, highlightedIndices = [] }) { // Default width if not provided
+  // Animation state: track which cards have been revealed
+  const [revealed, setRevealed] = useState([]);
+  const prevCardsRef = useRef([]);
+
+  useEffect(() => {
+    // When cards prop changes, update revealed state
+    setRevealed(prev => {
+      // If cards array shrinks (new hand), reset
+      if (cards.length < prev.length) return cards.map(() => false);
+      // Mark new cards as revealed
+      return cards.map((card, i) => prev[i] || prevCardsRef.current[i] !== card);
+    });
+    prevCardsRef.current = cards;
+  }, [cards]);
+
   // If we have RIT runs, display both
   if (ritFirstRun && ritSecondRun) {
     return (
@@ -68,7 +83,7 @@ function CommunityCards({ cards = [], cardWidth = 50, ritFirstRun = null, ritSec
             <p className="text-xs text-gray-400 mb-1">First Run</p>
             <div className="flex justify-center items-center">
               {ritFirstRun.map((card, index) => (
-                <Card key={`first-${index}`} card={card} cardWidth={cardWidth} />
+                <Card key={`first-${index}`} card={card} cardWidth={cardWidth} animate={true} highlight={highlightedIndices.includes(index)} />
               ))}
             </div>
           </div>
@@ -76,7 +91,7 @@ function CommunityCards({ cards = [], cardWidth = 50, ritFirstRun = null, ritSec
             <p className="text-xs text-gray-400 mb-1">Second Run</p>
             <div className="flex justify-center items-center">
               {ritSecondRun.map((card, index) => (
-                <Card key={`second-${index}`} card={card} cardWidth={cardWidth} />
+                <Card key={`second-${index}`} card={card} cardWidth={cardWidth} animate={true} highlight={highlightedIndices.includes(index)} />
               ))}
             </div>
           </div>
@@ -88,9 +103,9 @@ function CommunityCards({ cards = [], cardWidth = 50, ritFirstRun = null, ritSec
   // Normal single run display
   return (
     <div className="community-cards text-center my-2">
-      <div className="flex justify-center items-center h-full gap-x-4">
+      <div className="flex justify-center items-center h-full gap-x-2">
         {cards.map((card, index) => (
-          <Card key={index} card={card} cardWidth={cardWidth} />
+          <Card key={index} card={card} cardWidth={cardWidth} animate={revealed[index]} highlight={highlightedIndices.includes(index)} />
         ))}
       </div>
     </div>

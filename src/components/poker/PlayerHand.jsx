@@ -50,14 +50,14 @@ function Card({ card, show }) {
     <img
       src={svgSrc}
       alt={show ? card : 'Card Back'}
-      className="w-full inline-block mx-[-8px] shadow-5xl rounded-sm" // Even more shadow and separation
-      style={{ transition: 'transform 0.15s ease-out' }} // Removed height style
+      className="inline-block mx-[-4px] shadow-5xl rounded-sm" // Removed w-full
+      style={{ width: '85px', transition: 'transform 0.15s ease-out' }} // Set fixed width
     />
   );
 }
 
 // Updated PlayerHand component
-function PlayerHand({ cards = [], showAll = false, cardContainerStyle = {} }) {
+function PlayerHand({ cards = [], showAll = false, cardContainerStyle = {}, isWinner = false }) {
   // Ensure we always render 2 card slots, even if dealt fewer (e.g., during deal)
   const displayCards = [
       cards.length > 0 ? cards[0] : null, 
@@ -65,17 +65,17 @@ function PlayerHand({ cards = [], showAll = false, cardContainerStyle = {} }) {
   ];
 
   return (
-    <div className="player-hand mt-1 flex justify-center items-end" style={{ pointerEvents: 'none', zIndex: 20, ...cardContainerStyle }}>
+    <div className={`player-hand mt-1 flex justify-center items-end${isWinner ? ' winner-glow-bounce' : ''}`} style={{ pointerEvents: 'none', zIndex: 20, ...cardContainerStyle }}>
       {/* Horizontally overlap cards like real poker, with more spacing and higher position */}
       {displayCards.map((card, index) => (
         <div
           key={index}
-          className={index > 0 ? '-ml-2' : ''}
+          className={index > 0 ? '-ml-2 flex-shrink-0' : 'flex-shrink-0'} // Add flex-shrink-0
           style={{
             zIndex: 20 + index,
             pointerEvents: 'auto',
-            transform: index === 0 ? 'rotate(-2deg)' : 'rotate(2deg)',
-            boxShadow: index === 1 ? '-16px 0 32px -4px rgba(0,0,0,0.85)' : 'none', // Shadow only between cards
+            transform: index === 0 ? 'rotate(-1deg)' : 'rotate(1deg)',
+            boxShadow: index === 1 ? '-6px 0 16px -4px rgba(88, 87, 87, 0.85)' : 'none', // Shadow only between cards
           }}
         >
           <Card card={card} show={showAll} />

@@ -148,6 +148,206 @@ const evaluateHand = (holeCards, communityCards) => {
     }
 };
 
+// Helper to get indices of community cards used in the winning hand
+function getWinningCommunityCardIndices(winningHandCards, communityCards) {
+  // Return indices in communityCards that are present in winningHandCards
+  return communityCards.map((card, idx) => winningHandCards.includes(card) ? idx : -1).filter(idx => idx !== -1);
+}
+
+// --- Helper Functions ---
+
+// Player Positioning Logic
+function getPlayerPosition(index, totalPlayers, currentTableWidth, currentTableHeight) {
+    if (currentTableWidth === 0 || currentTableHeight === 0) {
+        const defaultStyle = { position: 'absolute', left: '0%', top: '0%', width: '0px', height: '0px', opacity: 0, zIndex: 0 };
+        return { infoStyle: defaultStyle, cardStyle: defaultStyle, betStyle: defaultStyle, cardWidth: 0, playerAngle: 0 };
+    }
+
+    // Calculate the polar angle for this player's seat (0 at top, clockwise)
+    const angle = (index / totalPlayers) * 2 * Math.PI;
+
+    const tableWidth = currentTableWidth;
+    const tableHeight = currentTableHeight;
+    const horizontalRadius = tableWidth * 0.46;
+    const verticalRadius = tableHeight * 0.38;
+    
+    // Make card dimensions relative to table size
+    const cardWidth = Math.min(tableWidth * 0.10, 180); // Increased from 0.08, 90px for ~2x size
+    const cardHeight = cardWidth * 0.72; // Maintain card aspect ratio
+    const infoWidth = cardWidth * 1.4; // Info box slightly wider than cards
+    const infoHeight = cardHeight * 0.8; // Info box height relative to card height
+    
+    const centerX = tableWidth / 2;
+    const centerY = tableHeight / 2;
+    let baseX = centerX + horizontalRadius * Math.cos(angle - Math.PI / 2);
+    let baseY = centerY + verticalRadius * Math.sin(angle - Math.PI / 2);
+
+    // Shift everything slightly downward to prevent top clipping
+    baseY += tableHeight * 0.05;
+
+    // Calculate Info Box Position 
+    let infoX = baseX - infoWidth / 2;
+    let infoY = baseY - infoHeight / 2 + infoHeight * 0.30; // Keep nameplate slightly lower
+    const infoLeftPercent = (infoX / tableWidth) * 100;
+    const infoTopPercent = (infoY / tableHeight) * 100;
+    const infoStyle = {
+        position: 'absolute',
+        left: `${infoLeftPercent}%`,
+        top: `${infoTopPercent}%`,
+        width: `${infoWidth}px`,
+        zIndex: 10, // Nameplate above cards
+    };
+
+    // Calculate Card Hand Position 
+    let cardX = baseX - cardWidth / 2;
+    let cardY = infoY - cardHeight * 1.08; // Restore original logic
+    const cardLeftPercent = (cardX / tableWidth) * 100;
+    const cardTopPercent = (cardY / tableHeight) * 100;
+    const cardStyle = {
+        position: 'absolute',
+        left: `${cardLeftPercent}%`,
+        top: `${cardTopPercent}%`,
+        width: `${cardWidth}px`,
+        height: `${cardHeight}px`,
+        zIndex: 5, // Cards below nameplate
+    };
+    
+    // Calculate Bet Amount Position
+    const betPositionFactor = 0.8;
+    let betX = centerX + betPositionFactor * (baseX - centerX);
+    let betY = centerY + betPositionFactor * (baseY - centerY);
+
+    // Overlap Check for Bottom Players
+    const cardBottomY = cardY + cardHeight;
+    const playerAngle = angle; // Reuse computed angle
+    const bottomAngle = Math.PI;
+    const angleTolerance = 0.9;
+
+    if (Math.abs(playerAngle - bottomAngle) < angleTolerance && betY < cardBottomY) {
+         betY = cardBottomY + -100;
+    }
+
+    const betLeftPercent = (betX / tableWidth) * 100;
+    const betTopPercent = (betY / tableHeight) * 100;
+    let betStyle = {
+        position: 'absolute',
+        left: `${betLeftPercent}%`,
+        top: `${betTopPercent}%`,
+        transform: 'translateX(-50%) translateY(-50%)',
+        zIndex: 15,
+    };
+
+    // Dynamic offset for bet chip based on angle (top, bottom, sides)
+    // 0 = top, PI = bottom, PI/2 = right, 3PI/2 = left
+    const offset = 1.8; // em units, slightly closer
+    if (angle > Math.PI * 1.75 || angle < Math.PI * 0.25) {
+        // Top (angle near 0)
+        betStyle.top = `calc(${betStyle.top} + ${offset}em)`;
+    } else if (angle > Math.PI * 0.75 && angle < Math.PI * 1.25) {
+        // Bottom (angle near PI)
+        betStyle.top = `calc(${betStyle.top} - ${offset}em)`;
+    } else if (angle >= Math.PI * 0.25 && angle <= Math.PI * 0.75) {
+        // Right side
+        betStyle.left = `calc(${betStyle.left} - ${offset}em)`;
+    } else if (angle >= Math.PI * 1.25 && angle <= Math.PI * 1.75) {
+        // Left side
+        betStyle.left = `calc(${betStyle.left} + ${offset}em)`;
+    }
+
+    return { infoStyle, cardStyle, betStyle, cardWidth, playerAngle: angle };
+}
+
+// Table Style Logic
+function getTableStyle(tableTheme) {
+    const style = {
+        width: '180vmin',
+        aspectRatio: '16/9',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        position: 'relative',
+        overflow: 'visible',
+        backgroundImage: `url(${tableBg})`,
+    };
+    switch (tableTheme) {
+        case 'light':
+            style.backgroundColor = '#f0f0f0';
+            style.filter = 'brightness(1.2) contrast(0.9)';
+            break;
+        case 'classic':
+            style.backgroundColor = 'transparent';
+            style.filter = 'hue-rotate(100deg) saturate(1.3)';
+            break;
+        case 'dark':
+        default:
+            style.backgroundColor = 'transparent';
+            break;
+    }
+    return style;
+}
+
+// Winner Highlight Logic
+function getWinnerHighlight(gameState) {
+    let highlightedCommunityIndices = [];
+    let winnerPlayerIds = [];
+    let winnerHandCards = [];
+    const isShowdownOrHandOver =
+        (gameState.currentBettingRound === 'SHOWDOWN' || gameState.currentBettingRound === 'HAND_OVER')
+        && gameState.calculatedPots.length > 0;
+    if (isShowdownOrHandOver) {
+        const mainPot = gameState.calculatedPots[0];
+        if (mainPot && mainPot.winnerIds && mainPot.winnerIds.length > 0) {
+            winnerPlayerIds = mainPot.winnerIds;
+            const winner = gameState.players.find(p => winnerPlayerIds.includes(p.id));
+            // Only try to solve if there are at least 5 cards (2 hole + 3 community)
+            if (winner && winner.cards && (winner.cards.length + gameState.communityCards.length) >= 5) {
+                try {
+                    const Hand = require('pokersolver').Hand;
+                    const solved = Hand.solve([...winner.cards, ...gameState.communityCards]);
+                    winnerHandCards = solved.cards;
+                    highlightedCommunityIndices = getWinningCommunityCardIndices(winnerHandCards, gameState.communityCards);
+                } catch (e) {
+                    // Defensive: do nothing, just don't highlight
+                }
+            }
+        }
+    }
+    return { highlightedCommunityIndices, winnerPlayerIds, winnerHandCards, isShowdownOrHandOver };
+}
+
+// Action Button State Helper
+function getActionButtonState(gameState) {
+    const currentPlayer = gameState.currentPlayerIndex >= 0 ? gameState.players[gameState.currentPlayerIndex] : null;
+    const canCheck = currentPlayer?.currentBet === gameState.currentHighestBet;
+    const callAmount = gameState.currentHighestBet - (currentPlayer?.currentBet || 0);
+    const canCall = callAmount > 0 && (currentPlayer?.stack || 0) > 0 && !currentPlayer?.isAllIn;
+    const minNewTotalBet = gameState.currentHighestBet + gameState.minRaiseAmount;
+    const minChipsToAdd = Math.max(1, minNewTotalBet - (currentPlayer?.currentBet || 0));
+    const maxChipsToAdd = currentPlayer?.stack || 0;
+    const canBet = (currentPlayer?.stack || 0) > 0 && !currentPlayer?.isAllIn;
+    return {
+        currentPlayer,
+        canCheck,
+        canCall,
+        callAmount,
+        canBet,
+        minBetAmount: minChipsToAdd,
+        maxBetAmount: maxChipsToAdd,
+    };
+}
+
+// Player Info Class Helper
+function getPlayerInfoClasses(player, tableTheme, isShowdownOrHandOver, winnerPlayerIds) {
+    return [
+        'player-info-container relative p-1 border rounded',
+        'transition-all duration-300',
+        player.isTurn ? 'border-yellow-400 ring-4 ring-yellow-300 ring-opacity-50' : 'border-gray-700 bg-gray-900 bg-opacity-80',
+        tableTheme === 'light' ? 'text-black bg-white bg-opacity-90' : 'text-white',
+        (isShowdownOrHandOver && winnerPlayerIds.includes(player.id)) ? 'winner-glow-bounce' : ''
+    ].filter(Boolean).join(' ');
+}
+// --- End Helper Functions ---
+
 function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = null }) {
     const [numPlayers, setNumPlayers] = useState(initialGameState.numPlayers);
     const [gameState, setGameState] = useState(() => {
@@ -161,6 +361,7 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
     const [tableTheme, setTableTheme] = useState('dark');
     const tableRef = useRef(null);
     const [tableDimensions, setTableDimensions] = useState({ width: 0, height: 0 });
+    const [showWinnerAnimation, setShowWinnerAnimation] = useState(false);
 
     useEffect(() => {
         const tableElement = tableRef.current;
@@ -582,10 +783,15 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
             state.currentPlayerIndex = -1; 
             state.players.forEach(p => p.isTurn = false);
              if (nextPhase === GamePhase.SHOWDOWN) {
-                 return awardPot(state);
+                 // Set flags to trigger animation and pending pot award
+                 state.justAwardedPot = true;
+                 state.pendingPotAward = true;
+                 return state; // Do NOT call awardPot yet
              } else {
                  if (state.pot > 0) {
-                    state = awardPot(state);
+                    state.justAwardedPot = true;
+                    state.pendingPotAward = true;
+                    return state; // Do NOT call awardPot yet
                  }
              }
         }
@@ -737,12 +943,17 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
             name: 'Fold',
             amount: 0,
             execute: (prevState) => {
-            const playerIndex = prevState.currentPlayerIndex;
-            const newState = JSON.parse(JSON.stringify(prevState));
-            newState.players[playerIndex].isFolded = true;
-            newState.players[playerIndex].hasActedThisRound = true;
-            newState.players[playerIndex].isTurn = false;
-            return newState;
+                const playerIndex = prevState.currentPlayerIndex;
+                const newState = JSON.parse(JSON.stringify(prevState));
+                newState.players[playerIndex].isFolded = true;
+                newState.players[playerIndex].hasActedThisRound = true;
+                newState.players[playerIndex].isTurn = false;
+                // Immediately award pot if only one player remains
+                const nonFolded = newState.players.filter(p => !p.isFolded);
+                if (nonFolded.length === 1) {
+                    return awardPot(newState);
+                }
+                return newState;
             }
         });
     }, [handleAction]);
@@ -759,145 +970,71 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
         });
     };
 
-    // --- Player Positioning Logic ---
-    const getPlayerPosition = (index, totalPlayers, currentTableWidth, currentTableHeight) => {
-        if (currentTableWidth === 0 || currentTableHeight === 0) {
-            const defaultStyle = { position: 'absolute', left: '0%', top: '0%', width: '0px', height: '0px', opacity: 0, zIndex: 0 };
-            return { infoStyle: defaultStyle, cardStyle: defaultStyle, betStyle: defaultStyle, cardWidth: 0 };
-        }
+    // Remove duplicate action button state logic
+    const {
+        currentPlayer,
+        canCheck,
+        canCall,
+        callAmount,
+        canBet,
+        minBetAmount,
+        maxBetAmount
+    } = getActionButtonState(gameState);
 
-        // Calculate the polar angle for this player's seat (0 at top, clockwise)
-        const angle = (index / totalPlayers) * 2 * Math.PI;
-
-        const tableWidth = currentTableWidth;
-        const tableHeight = currentTableHeight;
-        const horizontalRadius = tableWidth * 0.46;
-        const verticalRadius = tableHeight * 0.38;
-        
-        // Make card dimensions relative to table size
-        const cardWidth = Math.min(tableWidth * 0.10, 180); // Increased from 0.08, 90px for ~2x size
-        const cardHeight = cardWidth * 0.72; // Maintain card aspect ratio
-        const infoWidth = cardWidth * 1.4; // Info box slightly wider than cards
-        const infoHeight = cardHeight * 0.8; // Info box height relative to card height
-        
-        const centerX = tableWidth / 2;
-        const centerY = tableHeight / 2;
-        let baseX = centerX + horizontalRadius * Math.cos(angle - Math.PI / 2);
-        let baseY = centerY + verticalRadius * Math.sin(angle - Math.PI / 2);
-
-        // Shift everything slightly downward to prevent top clipping
-        baseY += tableHeight * 0.05;
-
-        // Calculate Info Box Position 
-        let infoX = baseX - infoWidth / 2;
-        let infoY = baseY - infoHeight / 2 + infoHeight * 0.25; // Keep nameplate slightly lower
-        const infoLeftPercent = (infoX / tableWidth) * 100;
-        const infoTopPercent = (infoY / tableHeight) * 100;
-        const infoStyle = {
-            position: 'absolute',
-            left: `${infoLeftPercent}%`,
-            top: `${infoTopPercent}%`,
-            width: `${infoWidth}px`,
-            zIndex: 10, // Nameplate above cards
-        };
-
-        // Calculate Card Hand Position 
-        let cardX = baseX - cardWidth / 2;
-        let cardY = infoY - cardHeight * 1.05; // Restore original logic
-        const cardLeftPercent = (cardX / tableWidth) * 100;
-        const cardTopPercent = (cardY / tableHeight) * 100;
-        const cardStyle = {
-            position: 'absolute',
-            left: `${cardLeftPercent}%`,
-            top: `${cardTopPercent}%`,
-            width: `${cardWidth}px`,
-            height: `${cardHeight}px`,
-            zIndex: 5, // Cards below nameplate
-        };
-        
-        // Calculate Bet Amount Position
-        const betPositionFactor = 0.8;
-        let betX = centerX + betPositionFactor * (baseX - centerX);
-        let betY = centerY + betPositionFactor * (baseY - centerY);
-
-        // Overlap Check for Bottom Players
-        const cardBottomY = cardY + cardHeight;
-        const playerAngle = angle; // Reuse computed angle
-        const bottomAngle = Math.PI;
-        const angleTolerance = 0.9;
-
-        if (Math.abs(playerAngle - bottomAngle) < angleTolerance && betY < cardBottomY) {
-             betY = cardBottomY + -100;
-        }
-
-        const betLeftPercent = (betX / tableWidth) * 100;
-        const betTopPercent = (betY / tableHeight) * 100;
-        const betStyle = {
-            position: 'absolute',
-            left: `${betLeftPercent}%`,
-            top: `${betTopPercent}%`,
-            transform: 'translateX(-50%) translateY(-50%)',
-            zIndex: 15,
-        };
-
-        return { infoStyle, cardStyle, betStyle, cardWidth };
-    };
-    // --- End Player Positioning ---
-
-    const currentPlayer = gameState.currentPlayerIndex >= 0 ? gameState.players[gameState.currentPlayerIndex] : null;
-    
-    const canCheck = currentPlayer?.currentBet === gameState.currentHighestBet;
-    const callAmount = gameState.currentHighestBet - (currentPlayer?.currentBet || 0);
-    const canCall = callAmount > 0 && (currentPlayer?.stack || 0) > 0 && !currentPlayer?.isAllIn;
-    const minNewTotalBet = gameState.currentHighestBet + gameState.minRaiseAmount;
-    const minChipsToAdd = Math.max(1, minNewTotalBet - (currentPlayer?.currentBet || 0));
-    const maxChipsToAdd = currentPlayer?.stack || 0;
-    const canBet = (currentPlayer?.stack || 0) > 0 && !currentPlayer?.isAllIn;
-
-    const minNewTotalBetRender = gameState.currentHighestBet + gameState.minRaiseAmount;
-    const minChipsToAddRender = Math.max(1, minNewTotalBetRender - (currentPlayer?.currentBet || 0));
-    const maxChipsToAddRender = currentPlayer?.stack || 0;
-    const canBetRender = (currentPlayer?.stack || 0) > 0 && !currentPlayer?.isAllIn;
+    // Winner highlight logic
+    const { highlightedCommunityIndices, winnerPlayerIds, isShowdownOrHandOver } = getWinnerHighlight(gameState);
 
     const getPlayerId = (index) => `player${index + 1}`;
 
-    // const bgMap = {
-    //     dark: feltDark,
-    //     classic: feltGreen,
-    //     // light: lightFeltSvg, // Add if a light SVG exists
-    // };
-
-    const getTableStyle = () => {
-        const style = {
-            width: '180vmin', // Increased from 90vmin to make the game area larger
-            aspectRatio: '16/9',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat',
-            position: 'relative',
-            overflow: 'visible',
-        };
-
-        // Always use tableBg for now
-        style.backgroundImage = `url(${tableBg})`;
-
-        switch (tableTheme) {
-            case 'light':
-                style.backgroundColor = '#f0f0f0'; // Light background for light theme letterbox
-                style.filter = 'brightness(1.2) contrast(0.9)'; 
-                break;
-            case 'classic':
-                style.backgroundColor = 'transparent';
-                style.filter = 'hue-rotate(100deg) saturate(1.3)'; 
-                break;
-            case 'dark':
-            default:
-                style.backgroundColor = 'transparent';
-                // No filter for dark, use the PNG as is, on the #111111 background
-                break;
+    // Add useEffect to handle delayed pot award
+    useEffect(() => {
+        if (gameState.pendingPotAward) {
+            const timer = setTimeout(() => {
+                setGameState(prev => {
+                    // Actually award the pot now and clear flags, but set pendingHandOver for next delay
+                    const awarded = awardPot({ ...prev, justAwardedPot: false, pendingPotAward: false });
+                    // Only set pendingHandOver if we just finished SHOWDOWN
+                    if (awarded.currentBettingRound === 'HAND_OVER') {
+                        return { ...awarded, pendingHandOver: true };
+                    }
+                    return awarded;
+                });
+            }, 1200); // 1.2 seconds for the animation
+            return () => clearTimeout(timer);
         }
-        return style;
-    };
+    }, [gameState.pendingPotAward]);
+
+    // Add useEffect to handle delayed transition to HAND_OVER after pot award
+    useEffect(() => {
+        if (gameState.pendingHandOver) {
+            const timer = setTimeout(() => {
+                setGameState(prev => {
+                    // Only transition if still pendingHandOver and not already HAND_OVER
+                    if (prev.pendingHandOver && prev.currentBettingRound === 'HAND_OVER') {
+                        return { ...prev, pendingHandOver: false };
+                    }
+                    return prev;
+                });
+            }, 1200); // 1.2 seconds for post-showdown animation
+            return () => clearTimeout(timer);
+        }
+    }, [gameState.pendingHandOver]);
+
+    // Add useEffect to handle winner animation after pot is awarded
+    useEffect(() => {
+        let timer;
+        if (gameState.currentBettingRound === 'HAND_OVER' && gameState.calculatedPots.length > 0) {
+            setShowWinnerAnimation(false); // Force toggle off first
+            timer = setTimeout(() => {
+                setShowWinnerAnimation(true);
+                const innerTimer = setTimeout(() => setShowWinnerAnimation(false), 1200);
+                return () => clearTimeout(innerTimer);
+            }, 10); // Short delay to ensure React re-applies the class
+        } else {
+            setShowWinnerAnimation(false);
+        }
+        return () => clearTimeout(timer);
+    }, [gameState.currentBettingRound, gameState.calculatedPots.length]);
 
     return (
         <div className="poker-wrapper w-full h-full fixed inset-0" style={{backgroundColor:'#111111',display:'flex',alignItems:'center',justifyContent:'center'}}>
@@ -910,7 +1047,7 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
              <div
                 ref={tableRef}
                 className="poker-table relative overflow-hidden"
-                style={getTableStyle()}
+                style={getTableStyle(tableTheme)}
             >
                 {/* Game Info - Top Left */}
                 <div className="absolute top-4 left-4 z-20 text-left max-w-xs">
@@ -959,7 +1096,11 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
                 {/* Central Area for Community Cards & Pot */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none">
                     {/* Use the same cardWidth as PlayerHand for community cards */}
-                    <CommunityCards cards={gameState.communityCards} cardWidth={tableDimensions.width ? Math.min(tableDimensions.width * 0.07, 126) : 63} />
+                    <CommunityCards 
+                      cards={gameState.communityCards} 
+                      cardWidth={tableDimensions.width ? Math.min(tableDimensions.width * 0.07, 126) : 63}
+                      highlightedIndices={highlightedCommunityIndices}
+                    />
                     {/* Display Main Pot OR Calculated Pots at Showdown/End */}
                     {gameState.calculatedPots.length === 0 ? (
                         <PotDisplay amount={gameState.pot} label="Pot" />
@@ -981,40 +1122,31 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
                 <div className="players-area absolute inset-0 w-full h-full z-0">
                     {gameState.players.map((player, index) => {
                         const { infoStyle, cardStyle, betStyle, cardWidth: currentPlayerCardWidth } = getPlayerPosition(index, gameState.players.length, tableDimensions.width, tableDimensions.height);
-
-                        // Determine combined classes for styling the info box
-                        const infoClasses = [
-                            'player-info-container relative p-1 border rounded',
-                            'transition-all duration-300',
-                            player.isTurn ? 'border-yellow-400 ring-4 ring-yellow-300 ring-opacity-50' : 'border-gray-700 bg-gray-900 bg-opacity-80',
-                            tableTheme === 'light' ? 'text-black bg-white bg-opacity-90' : 'text-white'
-                        ].filter(Boolean).join(' ');
-
+                        const infoClasses = getPlayerInfoClasses(player, tableTheme, isShowdownOrHandOver && showWinnerAnimation, winnerPlayerIds);
                         return (
                             <React.Fragment key={player.id}>
                                 {/* Player Hand (Cards) - Positioned Separately */}
-                                <div style={cardStyle} className={`${player.isFolded ? 'opacity-30 grayscale' : ''}`}>
+                                <div style={cardStyle} className={`${player.isFolded && gameState.currentBettingRound !== GamePhase.HAND_OVER ? 'opacity-30 grayscale' : ''}`}>
                                     <PlayerHand 
                                         cards={player.cards} 
                                         showAll={player.id === 'player1' || (isTestMode && showAllCards)}
+                                        isWinner={winnerPlayerIds.includes(player.id) && showWinnerAnimation}
                                     />
                                 </div>
-
                                 {/* Player Info Box - Positioned Separately */}
                                 <div style={infoStyle} className={infoClasses}>
                                     {/* Status Overlay (Folded / All-In) - Inside info container */}
-                                    {(player.isFolded || player.isAllIn) && (
+                                    {(player.isFolded && gameState.currentBettingRound !== GamePhase.HAND_OVER || player.isAllIn) && (
                                         <div className="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center z-20 rounded">
                                             <span className={`font-bold text-lg ${player.isAllIn ? 'text-red-500' : 'text-gray-400'}`}>
                                                 {player.isAllIn ? 'ALL-IN' : 'FOLDED'}
                                             </span>
                                         </div>
                                     )}
-                                    
                                     {/* Dealer Chip - Position relative to info container */}
                                     {player.isDealer && (() => {
-                                        const dealerChipSize = currentPlayerCardWidth * 0.4; // Example: 40% of card width
-                                        const dealerChipOffset = dealerChipSize * 0.4;    // Example: offset by 40% of its own size
+                                        const dealerChipSize = currentPlayerCardWidth * 0.4;
+                                        const dealerChipOffset = dealerChipSize * 0.4;
                                         return (
                                             <img
                                                 src={dealerChip}
@@ -1030,19 +1162,32 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
                                             />
                                         );
                                     })()}
-                                    
-                                    {/* Actual Player Info Component */}
                                     <PlayerInfo
                                         position={player.positionName}
                                         stack={player.stack}
                                         isTurn={player.isTurn}
+                                        handDescription={
+                                            (player.id === 'player1' || isTestMode || isPracticeMode)
+                                                ? (() => {
+                                                    if (gameState.currentBettingRound === GamePhase.PREFLOP) return null;
+                                                    if (player.cards.length < 2) return 'No Hand Yet';
+                                                    const hand = evaluateHand(player.cards, gameState.communityCards);
+                                                    if (!hand || hand.rank === -1 || gameState.communityCards.length < 3) {
+                                                        return 'No Hand Yet';
+                                                    }
+                                                    if (hand && hand.name && hand.descr) {
+                                                        return `${hand.name.toUpperCase()}${hand.descr ? ' (' + hand.descr + ')' : ''}`;
+                                                    }
+                                                    return null;
+                                                })()
+                                                : null
+                                        }
                                     />
                                 </div>
-                                
                                 {/* Player Bet Amount - Positioned Separately */}
                                 {player.currentBet > 0 && !player.isFolded && (
                                     <div style={betStyle} className="player-bet-amount">
-                                        <span className="bg-gray-700 text-yellow-300 text-xs font-bold rounded-full px-2 py-0.5 shadow-md border border-yellow-600">
+                                        <span className="bg-gray-800 text-yellow-300 text-base font-bold rounded-full px-3 py-1.5 shadow-md border border-yellow-400">
                                             {player.currentBet}
                                         </span>
                                     </div>
@@ -1075,10 +1220,12 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
                             canCheck={canCheck}
                             canCall={canCall}
                             callAmount={callAmount}
-                            canBet={canBetRender}
-                            minBetAmount={minChipsToAddRender} 
-                            maxBetAmount={maxChipsToAddRender} 
+                            canBet={canBet}
+                            minBetAmount={minBetAmount} 
+                            maxBetAmount={maxBetAmount} 
                             potSize={gameState.pot}
+                            isPreflop={gameState.currentBettingRound === 'PREFLOP'}
+                            currentHighestBet={gameState.currentHighestBet}
                         />
                     )}
 
