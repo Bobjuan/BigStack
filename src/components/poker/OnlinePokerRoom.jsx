@@ -6,6 +6,8 @@ import OnlinePokerTableDisplay from './OnlinePokerTableDisplay'; // Import the n
 import ActionButtons from './ActionButtons'; // Import ActionButtons
 import GameSettingsModal from './GameSettingsModal'; // Import the new modal component
 import RitVoteModal from './RitVoteModal'; // Import RIT vote modal
+import HandHistoryTab from './HandHistoryTab';
+import dayjs from 'dayjs';
 import tableBg from '/src/assets/blacktable.png'; // Import table background
 
 // Connect to your backend server. Make sure the port matches your server.js
@@ -30,6 +32,7 @@ function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
   const [inputGameId, setInputGameId] = useState(joinWithGameId || ''); // Initialize if provided
   const [messages, setMessages] = useState([]);
   const [chatMessages, setChatMessages] = useState([]);
+  const [handRows, setHandRows] = useState([]); // history rows
   const [gameState, setGameState] = useState(null); // To hold the game state from the server
   const [playerName, setPlayerName] = useState(user?.user_metadata?.full_name || user?.email || 'Player');
   const [playerStats, setPlayerStats] = useState({}); // NEW: State for player stats
@@ -43,6 +46,8 @@ function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [ritVoteOpen, setRitVoteOpen] = useState(false);
   const [isEligibleForRit, setIsEligibleForRit] = useState(false);
+
+  const SERVER_API = SERVER_URL; // same origin for dev
 
   // Effect for setting player name from user auth
   useEffect(() => {
@@ -70,8 +75,9 @@ function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
         logMessage = data.actionLog.message;
       }
       // If hand is over, prioritize the handOverMessage for the log
-      if (newState && newState.currentBettingRound === GamePhase.HAND_OVER && newState.handOverMessage) {
+      if (newState && newState.currentBettingRound === GamePhase.HAND_OVER) {
         logMessage = newState.handOverMessage; 
+        if (gameId) fetchHandRows(gameId);
       }
 
       if (logMessage) {
@@ -133,6 +139,7 @@ function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
       sock.emit('createGame', { playerInfo: playerDetails, gameSettings: settings || initialGameSettings }, (response) => {
         if (response.status === 'ok') {
           setGameId(response.gameId);
+          fetchHandRows(response.gameId);
           setInputGameId(response.gameId);
           setMessages(prev => [...prev, `Game room ${response.gameId} created! Share ID.`]);
           setError('');
@@ -156,6 +163,7 @@ function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
       sock.emit('joinGame', { gameId: idToJoin, playerInfo: playerDetails }, (response) => {
         if (response.status === 'ok' || response.status === 'already_joined') {
           setGameId(idToJoin);
+          fetchHandRows(idToJoin);
           setMessages(prev => [...prev, response.message || `Joined ${idToJoin}!`]);
           setError('');
           // NEW: Fetch stats for all players in the game
@@ -334,6 +342,23 @@ function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
     }
   }, [socket, gameId]);
 
+  const fetchHandRows = async (gId) => {
+    try {
+      const res = await fetch(`${SERVER_API}/api/games/${gId}/hands?limit=20`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setHandRows(data);
+    } catch (e) {
+      console.error('fetchHandRows error', e);
+    }
+  };
+
+  useEffect(() => {
+    if (gameId) {
+      fetchHandRows(gameId);
+    }
+  }, [gameId]);
+
   // Basic UI for creating/joining and displaying messages/game state
   if (!socket) {
     return (
@@ -499,6 +524,15 @@ function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
                         <span className="absolute top-2 right-2 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-gray-900"></span>
                     )}
                 </button>
+                <button
+                    onClick={() => {
+                      setActiveTab('history');
+                      if (!isLogVisible) setIsLogVisible(true);
+                    }}
+                    className={`px-4 py-2 text-sm font-medium transition-colors duration-200 ${activeTab === 'history' ? 'bg-gray-800 text-white' : 'text-gray-400 hover:text-white'}`}
+                >
+                    History
+                </button>
                 <div className="flex-grow"></div>
                 <button onClick={() => setIsLogVisible(!isLogVisible)} className="p-2 text-gray-400 hover:text-white">
                     <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 transition-transform duration-300 ${isLogVisible ? 'rotate-0' : 'rotate-180'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -544,6 +578,16 @@ function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
                                 </div>
                             )}
                         </>
+                    )}
+                    {activeTab === 'history' && (
+                       <HandHistoryTab
+                          rows={handRows}
+                          heroId={user?.id}
+                          onAnalyze={(handId)=>{
+                             console.log('analyze', handId);
+                             // Future: open modal or emit socket
+                          }}
+                       />
                     )}
                 </div>
             </div>

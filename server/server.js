@@ -6,17 +6,20 @@ const { createClient } = require('@supabase/supabase-js');
 const gameEngine = require('./gameEngine'); // NEW import
 const { GamePhase, SocketEvents } = require('./constants');
 const statsTracker = require('./game/statsTracker'); // CORRECT PATH
+const handHistory = require('./game/handHistory');
 
 // Load environment variables and initialize Supabase
 require('dotenv').config();
+let supabase; // make accessible for routes
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
 if (!supabaseUrl || !supabaseKey) {
     console.error("FATAL: Supabase URL or Service Key is missing. Please check your .env file in the /server directory.");
     process.exit(1); // Exit if Supabase isn't configured, as stats are a core feature.
 } else {
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    supabase = createClient(supabaseUrl, supabaseKey);
     statsTracker.init(supabase); // Initialize the stats tracker with the client
+    handHistory.init(supabase);
     console.log("Supabase client initialized and passed to statsTracker.");
 }
 
@@ -556,6 +559,50 @@ io.on(SocketEvents.CONNECT, (socket) => {
     }
   });
 });
+
+// ---------------- REST endpoints for hand history ----------------
+
+// List recent hands for a table
+app.get('/api/games/:gameId/hands', async (req, res) => {
+  if (!supabase) return res.status(500).json({ error: 'DB not ready' });
+  const { gameId } = req.params;
+  const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+
+  const { data, error } = await supabase
+    .from('hand_histories')
+    .select('hand_id, hand_number, played_at, history')
+    .eq('game_id', gameId)
+    .order('hand_number', { ascending: false })
+    .limit(limit);
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  const rows = (data || []).map(row => ({
+    handId: row.hand_id,
+    handNumber: row.hand_number,
+    startedAt: row.played_at,
+    potSize: row.history?.potSize ?? null,
+  }));
+
+  res.json(rows);
+});
+
+// Fetch full history for a specific hand
+app.get('/api/hands/:handId', async (req, res) => {
+  if (!supabase) return res.status(500).json({ error: 'DB not ready' });
+  const { handId } = req.params;
+
+  const { data, error } = await supabase
+    .from('hand_histories')
+    .select('history')
+    .eq('hand_id', handId)
+    .single();
+
+  if (error) return res.status(404).json({ error: 'Hand not found' });
+
+  res.json(data.history);
+});
+// -----------------------------------------------------------------
 
 server.listen(PORT, () => {
   console.log(`Server listening on *:${PORT}`);

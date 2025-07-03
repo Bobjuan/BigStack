@@ -5,6 +5,7 @@ const { createInitialState, getSeatedPlayers, getActivePlayers } = require('./ga
 const actionProcessor = require('./game/actionProcessor');
 const showdown = require('./game/showdown');
 const statsTracker = require('./game/statsTracker');
+const handHistory = require('./game/handHistory');
 
 // Default blind amounts (can be overridden by gameSettings)
 const BIG_BLIND_AMOUNT_DEFAULT = 10;
@@ -42,13 +43,43 @@ function startHand(game) {
   }
 
   game.handStats = {};
+  game.handActions = [];
   // NEW: Add a shared state object for tracking hand-wide events.
   game.handStats.sharedState = {
     preflopRaiseMade: false,
   };
+
+  // increment hand counter and timestamp
+  game.handCounter = (game.handCounter || 0) + 1;
+  game.handStartTime = Date.now();
+
   players.forEach(p => {
     if (p && p.userId) {
       game.handStats[p.userId] = statsTracker.createHandStatsObject(p.userId);
+    }
+  });
+
+  // --- assign positions for this hand ---
+  game.dealerIndex = (game.dealerIndex + 1) % players.length;
+  assignPositions(players, game.dealerIndex);
+
+  // --- seed per-position VPIP/PFR opportunities ---
+  players.forEach(p => {
+    if (p && p.userId) {
+      const stats = game.handStats[p.userId];
+      if (stats && stats.positionIncrements) {
+        const pos = p.positionName || '';
+        if (!stats.positionIncrements[pos]) {
+          stats.positionIncrements[pos] = {
+            vpip_opportunities: 0,
+            vpip_actions: 0,
+            pfr_opportunities: 0,
+            pfr_actions: 0,
+          };
+        }
+        stats.positionIncrements[pos].vpip_opportunities = 1;
+        stats.positionIncrements[pos].pfr_opportunities = 1;
+      }
     }
   });
 
@@ -73,10 +104,6 @@ function startHand(game) {
   delete game.ritSecondRun;
   delete game.ritFirstWinners;
   delete game.ritSecondWinners;
-  
-  // rotate dealer
-  game.dealerIndex = (game.dealerIndex + 1) % players.length;
-  assignPositions(players, game.dealerIndex);
   
   // deal 2 cards each
   players.forEach(p => {
@@ -130,6 +157,23 @@ function processAction(game, playerId, action, details = {}) {
   
   if (player && player.userId) {
     statsTracker.trackAction(game.handStats, game, player, action);
+    // Log action for hand history
+    try {
+      if (game.handActions) {
+        const actionEntry = {
+          street: game.currentBettingRound,
+          actorId: player?.userId,
+          actorName: player?.name,
+          position: player?.positionName,
+          action,
+          amount: details?.amount || null,
+          potAfter: game.pot
+        };
+        game.handActions.push(actionEntry);
+      }
+    } catch (e) {
+      console.error('[handHistory] error logging action', e);
+    }
   }
   
   checkGameAndProceed(game);
@@ -304,11 +348,13 @@ function proceedRound(game, forceShowdown = false) {
       game.handOverMessage = `${winner.name} wins ${potWon} as everyone else folded.`;
       
       statsTracker.commitHandStats(game.handStats);
+      handHistory.saveHandHistory(game);
       return;
     }
     game.currentBettingRound = GamePhase.HAND_OVER;
     
     statsTracker.commitHandStats(game.handStats);
+    handHistory.saveHandHistory(game);
     return;
   }
 
@@ -416,6 +462,7 @@ function resolveShowdown(game) {
     game.handOverMessage = 'No contenders for showdown.';
     game.currentBettingRound = GamePhase.HAND_OVER;
     statsTracker.commitHandStats(game.handStats);
+    handHistory.saveHandHistory(game);
     return;
   }
 
@@ -427,6 +474,7 @@ function resolveShowdown(game) {
     game.handOverMessage = `${winner.name} wins the pot of ${game.pot}.`;
     game.currentBettingRound = GamePhase.HAND_OVER;
     statsTracker.commitHandStats(game.handStats);
+    handHistory.saveHandHistory(game);
     return;
   }
 
@@ -439,6 +487,7 @@ function resolveShowdown(game) {
   game.showdownPlayers = showdownPlayers;
   game.currentBettingRound = GamePhase.HAND_OVER;
   statsTracker.commitHandStats(game.handStats);
+  handHistory.saveHandHistory(game);
 }
 
 function resolveShowdownRIT(game) {
@@ -511,6 +560,7 @@ function resolveShowdownRIT(game) {
   game.pots = [];
   game.currentBettingRound = GamePhase.HAND_OVER;
   game.showdownPlayers = contenders.map(p => p.id);
+  handHistory.saveHandHistory(game);
 }
 
 function evaluateHands(contenders, communityCards) {

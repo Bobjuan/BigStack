@@ -12,6 +12,21 @@ function init(supabaseConnection) {
   supabase = supabaseConnection;
 }
 
+const POSITIONS = ['BTN', 'SB', 'BB', 'BTN/SB', 'UTG', 'UTG+1', 'MP', 'LJ', 'HJ', 'CO'];
+
+function createBlankPositionStats() {
+  return POSITIONS.reduce((acc, pos) => {
+    acc[pos] = {
+      // Pre-flop positional counters (can extend later)
+      vpip_opportunities: 0,
+      vpip_actions: 0,
+      pfr_opportunities: 0,
+      pfr_actions: 0,
+    };
+    return acc;
+  }, {});
+}
+
 /**
  * Creates a fresh, temporary statistics object for a single hand.
  * This is called at the beginning of each new hand for all players involved.
@@ -71,6 +86,7 @@ function createHandStatsObject(playerId) {
       wwsf_opportunities: 0,
       wwsf_actions: 0,
     },
+    positionIncrements: createBlankPositionStats(),
     // Internal state for tracking complex stats within this hand only
     handState: {
       saw_flop: false,
@@ -103,14 +119,23 @@ function trackAction(handStats, game, player, action) {
   const isBBOption = player.isBB && game.currentHighestBet === game.bigBlind && action === 'check';
   if (isBBOption) {
     // If the BB checks their option for free, it was not a voluntary action.
-    // We correctly remove the opportunity we granted them at the start of the hand.
+    // Remove overall and positional opportunity.
     stats.increments.vpip_opportunities = 0;
+    if (stats.positionIncrements[player.positionName]) {
+      stats.positionIncrements[player.positionName].vpip_opportunities = 0;
+    }
     console.log(`[StatsTracker] Game ${game.id}: VPIP opportunity revoked for ${player.name} due to BB option check.`);
   }
   
   // If an opportunity existed, check if they took a voluntary action.
   if (action === 'call' || action === 'bet' || action === 'raise') {
       stats.increments.vpip_actions = 1;
+      // Position-specific VPIP
+      const posStats = stats.positionIncrements[player.positionName] || { vpip_opportunities: 0, vpip_actions: 0, pfr_opportunities: 0, pfr_actions: 0 };
+      if (posStats.vpip_actions === 0) {
+        posStats.vpip_actions = 1;
+      }
+      stats.positionIncrements[player.positionName] = posStats;
       console.log(`[StatsTracker] Game ${game.id}: VPIP action taken by ${player.name}.`);
   }
 
@@ -121,6 +146,10 @@ function trackAction(handStats, game, player, action) {
 
   if (isPreflopRaise && !stats.handState.hasRaisedPreflop) {
     stats.increments.pfr_actions = 1;
+    // Position-specific PFR
+    const posStats = stats.positionIncrements[player.positionName] || { vpip_opportunities: 0, vpip_actions: 0, pfr_opportunities: 0, pfr_actions: 0 };
+    posStats.pfr_actions = 1;
+    stats.positionIncrements[player.positionName] = posStats;
     stats.handState.hasRaisedPreflop = true; // Mark that they have now raised.
     
     // We still set this shared flag for other stats that depend on it (like 3-Bet opportunities).
@@ -153,14 +182,16 @@ async function commitHandStats(handStats) {
   // Construct the exact payload the 'batch_update_player_stats' function expects.
   // It requires a single object with a key 'updates' that holds an array.
   const updatesPayload = playersToUpdate.map(playerStat => {
-    // Each item in the array must be an object matching the 'player_stat_update' type.
     return {
       p_player_id: playerStat.playerId,
-      p_increments: playerStat.increments, // This object now matches the 'player_stat_increments' type
+      p_increments: playerStat.increments,
+      p_position_increments: playerStat.positionIncrements,
     };
   });
 
-  // Make a single RPC call with the correctly structured batch payload.
+  // Debug: uncomment if needed
+  console.log('Payload to batch_update_player_stats:', JSON.stringify(updatesPayload, null, 2));
+
   const { error } = await supabase.rpc('batch_update_player_stats', {
     updates: updatesPayload,
   });
