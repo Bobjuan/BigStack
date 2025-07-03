@@ -3,15 +3,16 @@ import React from 'react';
 // Helper function to map card notation to SVG filename
 const getCardSvgFilename = (card) => {
   if (!card || card === '?') {
-    // Assuming a card back image exists
-    return '/src/assets/Card_back_01.svg';
+    // Use the old card back if no modern back is present
+    return '/src/assets/back_blue.svg';
   }
 
+  // Modern SVG naming: e.g., 'AS.svg' for Ace of Spades, 'TD.svg' for Ten of Diamonds
   const rankMap = {
-    'A': 'ace',
-    'K': 'king',
-    'Q': 'queen',
-    'J': 'jack',
+    'A': 'A',
+    'K': 'K',
+    'Q': 'Q',
+    'J': 'J',
     'T': '10',
     '9': '9',
     '8': '8',
@@ -23,10 +24,10 @@ const getCardSvgFilename = (card) => {
     '2': '2',
   };
   const suitMap = {
-    'h': 'hearts',
-    'd': 'diamonds',
-    'c': 'clubs',
-    's': 'spades',
+    'h': 'H',
+    'd': 'D',
+    'c': 'C',
+    's': 'S',
   };
 
   const rank = rankMap[card[0]];
@@ -37,11 +38,8 @@ const getCardSvgFilename = (card) => {
     return '/src/assets/Card_back_01.svg';
   }
 
-  // Check if the file exists (simple check for demonstration)
-  // More robust checking might be needed depending on bundler setup
-  const filename = `${rank}_of_${suit}.svg`;
-  // NOTE: The file path assumes your assets are served correctly relative to the public path
-  return `/src/assets/SVG-cards-1.3/${filename}`;
+  const filename = `${rank}${suit}.svg`;
+  return `/src/assets/SVG-cards-modern/${filename}`;
 };
 
 // Updated Card component to display SVG image
@@ -52,14 +50,14 @@ function Card({ card, show }) {
     <img
       src={svgSrc}
       alt={show ? card : 'Card Back'}
-      className="w-full inline-block mx-[-4px] shadow-md rounded-sm" // Changed w-auto to w-full
+      className="w-full inline-block mx-[-8px] shadow-5xl rounded-sm" // Even more shadow and separation
       style={{ transition: 'transform 0.15s ease-out' }} // Removed height style
     />
   );
 }
 
 // Updated PlayerHand component
-function PlayerHand({ cards = [], showAll = false }) {
+function PlayerHand({ cards = [], showAll = false, cardContainerStyle = {} }) {
   // Ensure we always render 2 card slots, even if dealt fewer (e.g., during deal)
   const displayCards = [
       cards.length > 0 ? cards[0] : null, 
@@ -67,18 +65,22 @@ function PlayerHand({ cards = [], showAll = false }) {
   ];
 
   return (
-    <div className="player-hand mt-1"> {/* Removed h-full */}
-      {/* Removed <p>Hand:</p> */}
-      <div className="flex justify-center items-center"> {/* Removed h-full */}
-        {displayCards.map((card, index) => (
-          <div
-            key={index}
-            style={{ transform: `rotate(${index === 0 ? -8 : 8}deg)` }}
-          >
-            <Card card={card} show={showAll} />
-          </div>
-        ))}
-      </div>
+    <div className="player-hand mt-1 flex justify-center items-end" style={{ pointerEvents: 'none', zIndex: 20, ...cardContainerStyle }}>
+      {/* Horizontally overlap cards like real poker, with more spacing and higher position */}
+      {displayCards.map((card, index) => (
+        <div
+          key={index}
+          className={index > 0 ? '-ml-2' : ''}
+          style={{
+            zIndex: 20 + index,
+            pointerEvents: 'auto',
+            transform: index === 0 ? 'rotate(-2deg)' : 'rotate(2deg)',
+            boxShadow: index === 1 ? '-16px 0 32px -4px rgba(0,0,0,0.85)' : 'none', // Shadow only between cards
+          }}
+        >
+          <Card card={card} show={showAll} />
+        </div>
+      ))}
     </div>
   );
 }
