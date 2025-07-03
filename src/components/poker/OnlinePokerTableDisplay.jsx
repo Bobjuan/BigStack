@@ -33,6 +33,7 @@ const PlayerDisplay = ({ player, positionStyles, showPlayerCards, isTurn, cardWi
                 <PlayerHand 
                     cards={player.cards || []} 
                     showAll={showPlayerCards}
+                    cardContainerStyle={cardStyle}
                 />
             </div>
 
@@ -191,8 +192,8 @@ function OnlinePokerTableDisplay({ gameState, currentSocketId, GamePhase, onTake
         let baseX = centerX + horizontalRadius * Math.cos(angle);
         let baseY = centerY + verticalRadius * Math.sin(angle);
 
-        let infoX = baseX - infoWidth / 2;
-        let infoY = baseY - infoHeight / 2;
+        const nameplateOffset = cardHeight * 0.2;
+        let infoY = baseY - infoHeight / 2 + nameplateOffset;
 
         // For players in the bottom half of the screen, shift the entire element cluster down to prevent overlap.
         // This moves the info box, and the cards will follow as they are relative to it.
@@ -203,7 +204,7 @@ function OnlinePokerTableDisplay({ gameState, currentSocketId, GamePhase, onTake
 
         const infoStyle = {
             position: 'absolute',
-            left: `${infoX}px`,
+            left: `${baseX - infoWidth / 2}px`,
             top: `${infoY}px`,
             width: `${infoWidth}px`,
             zIndex: 10,
@@ -211,7 +212,7 @@ function OnlinePokerTableDisplay({ gameState, currentSocketId, GamePhase, onTake
 
         const sitButtonStyle = {
             position: 'absolute',
-            left: `${infoX}px`,
+            left: `${baseX - infoWidth / 2}px`,
             top: `${infoY}px`,
             width: `${infoWidth}px`,
             height: `${infoHeight}px`,
@@ -220,14 +221,14 @@ function OnlinePokerTableDisplay({ gameState, currentSocketId, GamePhase, onTake
 
         let cardX = baseX - cardWidth / 2;
         // Position cards relative to the (now correctly shifted) info box, with less overlap.
-        let cardY = infoY - cardHeight * 0.7;
+        let cardY = infoY - cardHeight;
 
         const cardStyle = {
             position: 'absolute',
             left: `${cardX}px`,
             top: `${cardY}px`,
             width: `${cardWidth}px`,
-            zIndex: 5,
+            zIndex: 15,
         };
         
         const betPositionFactor = 0.75;

@@ -3,15 +3,16 @@ import React from 'react';
 // Helper function to map card notation to SVG filename (copied from PlayerHand)
 const getCardSvgFilename = (card) => {
   if (!card || card === '?') {
-    // Community cards should ideally never be '?'
-    return ''; // Or a placeholder? Error?
+    // Use the old card back if no modern back is present
+    return '/src/assets/back_blue.svg';
   }
 
+  // Modern SVG naming: e.g., 'AS.svg' for Ace of Spades, 'TD.svg' for Ten of Diamonds
   const rankMap = {
-    'A': 'ace',
-    'K': 'king',
-    'Q': 'queen',
-    'J': 'jack',
+    'A': 'A',
+    'K': 'K',
+    'Q': 'Q',
+    'J': 'J',
     'T': '10',
     '9': '9',
     '8': '8',
@@ -23,10 +24,10 @@ const getCardSvgFilename = (card) => {
     '2': '2',
   };
   const suitMap = {
-    'h': 'hearts',
-    'd': 'diamonds',
-    'c': 'clubs',
-    's': 'spades',
+    'h': 'H',
+    'd': 'D',
+    'c': 'C',
+    's': 'S',
   };
 
   const rank = rankMap[card[0]];
@@ -34,11 +35,11 @@ const getCardSvgFilename = (card) => {
 
   if (!rank || !suit) {
     console.error(`Invalid community card string: ${card}`);
-    return ''; // Return empty or handle error appropriately
+    return '/src/assets/Card_back_01.svg';
   }
 
-  const filename = `${rank}_of_${suit}.svg`;
-  return `/src/assets/SVG-cards-1.3/${filename}`;
+  const filename = `${rank}${suit}.svg`;
+  return `/src/assets/SVG-cards-modern/${filename}`;
 };
 
 
@@ -51,7 +52,7 @@ function Card({ card, cardWidth }) {
     <img
       src={svgSrc}
       alt={card}
-      className="inline-block mx-0.5 shadow-md rounded-sm"
+      className="inline-block mx-0.5 shadow-2xl rounded-sm"
       style={{ width: `${cardWidth}px`, height: 'auto' }}
     />
   );
@@ -87,7 +88,7 @@ function CommunityCards({ cards = [], cardWidth = 50, ritFirstRun = null, ritSec
   // Normal single run display
   return (
     <div className="community-cards text-center my-2">
-      <div className="flex justify-center items-center h-full">
+      <div className="flex justify-center items-center h-full gap-x-4">
         {cards.map((card, index) => (
           <Card key={index} card={card} cardWidth={cardWidth} />
         ))}
