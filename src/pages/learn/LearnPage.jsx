@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
+import { supabase } from '../../config/supabase';
 
 const LearnPage = () => {
   const navigate = useNavigate();
@@ -198,6 +201,50 @@ Source of Profit:
     }
   ]);
 
+  // Add local completion state for lessons
+  const [lessonCompletion, setLessonCompletion] = useState({});
+  const [loadingProgress, setLoadingProgress] = useState(true);
+  const [openModule, setOpenModule] = useState(null);
+
+  // Fetch lesson progress from Supabase on mount
+  useEffect(() => {
+    const fetchLessonProgress = async () => {
+      if (!user) return;
+      setLoadingProgress(true);
+      const { data, error } = await supabase
+        .from('lesson_progress')
+        .select('lesson_id, completed')
+        .eq('user_id', user.id);
+      if (error) {
+        setLoadingProgress(false);
+        return;
+      }
+      const progressMap = {};
+      data.forEach(row => {
+        progressMap[row.lesson_id] = row.completed;
+      });
+      setLessonCompletion(progressMap);
+      setLoadingProgress(false);
+    };
+    fetchLessonProgress();
+  }, [user]);
+
+  const toggleLessonCompletion = async (lessonId) => {
+    if (!user) return;
+    const newValue = !lessonCompletion[lessonId];
+    setLessonCompletion((prev) => ({
+      ...prev,
+      [lessonId]: newValue,
+    }));
+    // Upsert to Supabase
+    await supabase.from('lesson_progress').upsert({
+      user_id: user.id,
+      lesson_id: lessonId,
+      completed: newValue,
+      completed_at: newValue ? new Date().toISOString() : null,
+    }, { onConflict: ['user_id', 'lesson_id'] });
+  };
+
   const handleCourseClick = (course) => {
     navigate(`/learn/course/${course.id}`);
   };
@@ -212,6 +259,11 @@ Source of Profit:
     }
   };
 
+  // Calculate completed lessons for dashboard tally
+  const allLessonIds = courses.flatMap(course => course.modules.flatMap(module => module.lessons.map(lesson => lesson.id)));
+  const completedLessonsCount = allLessonIds.filter(id => lessonCompletion[id]).length;
+  const totalLessonsCount = allLessonIds.length;
+
   return (
     <div className="p-8">
       {/* Dashboard Header */}
@@ -224,16 +276,16 @@ Source of Profit:
           <div>
             <div className="flex justify-between items-center mb-1">
               <span className="text-gray-300 text-sm">Weekly Goal</span>
-              <span className="text-xs text-gray-400">{learningGoals.weekly.completed}/{learningGoals.weekly.target}</span>
+              <span className="text-xs text-gray-400">{completedLessonsCount}/{learningGoals.weekly.target}</span>
             </div>
             <div className="h-2 bg-[#2a2d36] rounded-full overflow-hidden border border-gray-700">
               <div 
                 className="h-full bg-gradient-to-r from-indigo-500 to-indigo-700 transition-all duration-500"
-                style={{ width: `${(learningGoals.weekly.completed / learningGoals.weekly.target) * 100}%` }}
+                style={{ width: `${(completedLessonsCount / learningGoals.weekly.target) * 100}%` }}
               />
             </div>
             <p className="text-xs text-gray-400 mt-1 mb-2">{learningGoals.weekly.description}</p>
-            {learningGoals.weekly.completed >= learningGoals.weekly.target && (
+            {completedLessonsCount >= learningGoals.weekly.target && (
               <span className="text-green-400 text-xs font-medium">✓ Weekly Goal Completed!</span>
             )}
           </div>
@@ -242,16 +294,16 @@ Source of Profit:
           <div>
             <div className="flex justify-between items-center mb-1">
               <span className="text-gray-300 text-sm">Monthly Goal</span>
-              <span className="text-xs text-gray-400">{learningGoals.monthly.completed}/{learningGoals.monthly.target}</span>
+              <span className="text-xs text-gray-400">{completedLessonsCount}/{learningGoals.monthly.target}</span>
             </div>
             <div className="h-2 bg-[#2a2d36] rounded-full overflow-hidden border border-gray-700">
               <div 
                 className="h-full bg-gradient-to-r from-purple-500 to-purple-700 transition-all duration-500"
-                style={{ width: `${(learningGoals.monthly.completed / learningGoals.monthly.target) * 100}%` }}
+                style={{ width: `${(completedLessonsCount / learningGoals.monthly.target) * 100}%` }}
               />
             </div>
             <p className="text-xs text-gray-400 mt-1 mb-2">{learningGoals.monthly.description}</p>
-            {learningGoals.monthly.completed >= learningGoals.monthly.target && (
+            {completedLessonsCount >= learningGoals.monthly.target && (
               <span className="text-green-400 text-xs font-medium">✓ Monthly Goal Completed!</span>
             )}
           </div>
@@ -288,11 +340,11 @@ Source of Profit:
         // Courses section
         <div className="grid grid-cols-1 gap-6">
           {courses.map((course) => {
-            const totalLessons = course.modules.reduce((acc, module) => acc + module.lessons.length, 0);
-            const completedLessons = course.modules.reduce((acc, module) => 
-              acc + module.lessons.filter(lesson => lesson.completed).length, 0
-            );
-            const progress = Math.round((completedLessons / totalLessons) * 100);
+            // Get all lesson IDs for this course
+            const courseLessonIds = course.modules.flatMap(module => module.lessons.map(lesson => lesson.id));
+            const completedLessons = courseLessonIds.filter(id => lessonCompletion[id]).length;
+            const totalLessons = courseLessonIds.length;
+            const progress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
 
             return (
               <div
@@ -303,27 +355,22 @@ Source of Profit:
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <h4 className="text-xl font-bold text-white mb-2">{course.title}</h4>
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getLevelColor(course.level)}`}>
-                      {course.level}
-                    </span>
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getLevelColor(course.level)}`}>{course.level}</span>
                   </div>
                   <div className="text-right">
                     <div className="text-2xl font-bold text-white">{progress}%</div>
                     <div className="text-sm text-gray-400">Complete</div>
                   </div>
                 </div>
-                
                 <p className="text-gray-300 mb-4">{course.description}</p>
-                
                 <div className="mb-4">
                   <div className="h-2 bg-[#2a2d36] rounded-full overflow-hidden border border-gray-700">
-                    <div 
+                    <div
                       className={`h-full bg-gradient-to-r ${course.color} transition-all duration-500`}
                       style={{ width: `${progress}%` }}
                     />
                   </div>
                 </div>
-                
                 <div className="flex justify-between text-sm text-gray-400">
                   <span>{completedLessons}/{totalLessons} lessons</span>
                   <span>{course.estimatedTime}</span>
@@ -334,28 +381,83 @@ Source of Profit:
         </div>
       ) : (
         // Individual lessons section
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {courses.map(course => 
-            course.modules.map(module =>
-              module.lessons.map(lesson => (
-                <div
-                  key={lesson.id}
-                  onClick={() => {
-                    window.dispatchEvent(new Event('minimizeSidebar'));
-                    navigate(`/learn/lessons/${lesson.id}`);
-                  }}
-                  className="bg-[#1F2127] rounded-xl p-6 hover:bg-[#252831] transition-all cursor-pointer transform hover:scale-105"
-                >
-                  <h3 className="text-xl font-bold text-white mb-2">{lesson.title}</h3>
-                  <p className="text-gray-400 mb-4">{lesson.content.split('\n')[0]}</p>
-                  <div className="flex justify-between items-center text-sm text-gray-400">
-                    <span>{module.title}</span>
-                    {lesson.completed && (
-                      <span className="text-green-400">✓ Completed</span>
+        <div className="space-y-6">
+          {loadingProgress ? (
+            <div className="text-center text-gray-400 py-12">Loading lesson progress...</div>
+          ) : (
+            courses.map(course =>
+              course.modules.map(module => {
+                const isOpen = openModule === module.id;
+                // Calculate module progress
+                const moduleLessonIds = module.lessons.map(lesson => lesson.id);
+                const moduleCompleted = moduleLessonIds.filter(id => lessonCompletion[id]).length;
+                const moduleTotal = moduleLessonIds.length;
+                const modulePercent = moduleTotal > 0 ? Math.round((moduleCompleted / moduleTotal) * 100) : 0;
+                return (
+                  <div key={module.id} className="bg-[#1F2127] rounded-xl">
+                    <button
+                      className="w-full flex justify-between items-center px-6 py-5 text-left text-white text-xl font-bold focus:outline-none hover:bg-[#23273a] transition-colors rounded-xl"
+                      onClick={() => setOpenModule(isOpen ? null : module.id)}
+                    >
+                      <span className="flex items-center gap-5">
+                        {module.title}
+                        <span className="text-base font-normal text-gray-400">{moduleTotal} lesson{moduleTotal !== 1 ? 's' : ''}</span>
+                      </span>
+                      <div className="flex flex-col items-end min-w-[80px]">
+                        <span className="text-sm text-gray-400">{moduleCompleted}/{moduleTotal} lessons</span>
+                        <span className="text-xs text-gray-400">{modulePercent}% complete</span>
+                        <div className="w-20 h-1 bg-[#2a2d36] rounded-full overflow-hidden border border-gray-700 mt-1">
+                          <div className="h-full bg-gradient-to-r from-blue-500 to-blue-700 transition-all duration-500" style={{ width: `${modulePercent}%` }} />
+                        </div>
+                      </div>
+                      <svg className={`ml-4 w-6 h-6 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                    </button>
+                    {isOpen && (
+                      <div className="px-6 pb-6 pt-2">
+                        <p className="text-gray-400 mb-4">{module.description}</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                          {module.lessons.map(lesson => {
+                            const isComplete = lessonCompletion[lesson.id] || lesson.completed;
+                            return (
+                              <div
+                                key={lesson.id}
+                                className="bg-[#23273a] rounded-xl p-6 hover:bg-[#252831] transition-all cursor-pointer transform hover:scale-105 relative"
+                                onClick={() => {
+                                  window.dispatchEvent(new Event('minimizeSidebar'));
+                                  navigate(`/learn/lessons/${lesson.id}`);
+                                }}
+                              >
+                                <h3 className="text-lg font-bold text-white mb-2">{lesson.title}</h3>
+                                <p className="text-gray-400 mb-4">{lesson.content.split('\n')[0]}</p>
+                                <div className="flex justify-between items-center text-sm text-gray-400">
+                                  <span>{module.title}</span>
+                                </div>
+                                {/* Completion Icon */}
+                                <button
+                                  type="button"
+                                  aria-label={isComplete ? 'Mark as incomplete' : 'Mark as complete'}
+                                  onClick={e => {
+                                    e.stopPropagation();
+                                    toggleLessonCompletion(lesson.id);
+                                  }}
+                                  className="absolute bottom-4 right-4 text-2xl focus:outline-none"
+                                  style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                                >
+                                  {isComplete ? (
+                                    <CheckCircleIcon style={{ color: '#22c55e', fontSize: 32 }} />
+                                  ) : (
+                                    <RadioButtonUncheckedIcon style={{ color: '#64748b', fontSize: 32 }} />
+                                  )}
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
                     )}
                   </div>
-                </div>
-              ))
+                );
+              })
             )
           )}
         </div>

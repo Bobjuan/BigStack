@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { supabase } from '../../config/supabase';
 
 const ModulesPage = () => {
   const navigate = useNavigate();
   const { courseId } = useParams();
   const { user } = useAuth();
   const [isSidebarOpen, setSidebarOpen] = useState(true);
+  const [lessonCompletion, setLessonCompletion] = useState({});
 
   // This would typically come from your database
   const course = {
@@ -1192,6 +1194,24 @@ Thank you for taking this course. Stay focused, keep learning, and enjoy the jou
     });
   };
 
+  // Fetch lesson progress from Supabase on mount
+  useEffect(() => {
+    const fetchLessonProgress = async () => {
+      if (!user) return;
+      const { data, error } = await supabase
+        .from('lesson_progress')
+        .select('lesson_id, completed')
+        .eq('user_id', user.id);
+      if (error) return;
+      const progressMap = {};
+      data.forEach(row => {
+        progressMap[row.lesson_id] = row.completed;
+      });
+      setLessonCompletion(progressMap);
+    };
+    fetchLessonProgress();
+  }, [user]);
+
   return (
     <div className="min-h-screen bg-black text-white">
       {/* Top Navigation Bar */}
@@ -1225,9 +1245,11 @@ Thank you for taking this course. Stay focused, keep learning, and enjoy the jou
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {course.modules.map((module) => {
-            const completed = module.lessons.filter(l => l.completed).length;
-            const total = module.lessons.length;
-            const percent = Math.round((completed / total) * 100);
+            // Calculate real completion state for this module
+            const moduleLessonIds = module.lessons.map(l => l.id);
+            const completed = moduleLessonIds.filter(id => lessonCompletion[id]).length;
+            const total = moduleLessonIds.length;
+            const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
             return (
               <div
                 key={module.id}
@@ -1237,7 +1259,7 @@ Thank you for taking this course. Stay focused, keep learning, and enjoy the jou
                 <h3 className="text-xl font-bold text-white mb-2">{module.title}</h3>
                 <p className="text-gray-400 mb-4">{module.description}</p>
                 <div className="flex justify-between items-center text-sm text-gray-400 mb-2">
-                  <span>{module.lessons.length} lessons</span>
+                  <span>{total} lessons</span>
                   <div className="flex items-center">
                     <span className="mr-2">View Module</span>
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1252,7 +1274,7 @@ Thank you for taking this course. Stay focused, keep learning, and enjoy the jou
                     style={{ width: `${percent}%` }}
                   />
                 </div>
-                <div className="text-xs text-gray-400">{percent}% complete</div>
+                <div className="text-xs text-gray-400">{completed}/{total} lessons • {percent}% complete</div>
               </div>
             );
           })}
