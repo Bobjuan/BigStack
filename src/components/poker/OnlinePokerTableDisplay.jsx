@@ -33,7 +33,6 @@ const PlayerDisplay = ({ player, positionStyles, showPlayerCards, isTurn, cardWi
                 <PlayerHand 
                     cards={player.cards || []} 
                     showAll={showPlayerCards}
-                    cardContainerStyle={cardStyle}
                 />
             </div>
 
@@ -154,86 +153,96 @@ function OnlinePokerTableDisplay({ gameState, currentSocketId, GamePhase, onTake
     }, []);
 
     const getSeatPosition = (seatIndex, totalSeats, currentTableWidth, currentTableHeight, currentUserSeatIndex) => {
+        // Early exit if table has not been sized yet
         if (currentTableWidth === 0 || currentTableHeight === 0) {
             const defaultStyle = { position: 'absolute', opacity: 0 };
             return { infoStyle: defaultStyle, cardStyle: defaultStyle, betStyle: defaultStyle, sitButtonStyle: defaultStyle, cardWidth: 0 };
         }
 
-        // Determine the rotation of the entire table.
-        // We want the current user's seat to be at the bottom-middle of the screen.
-        // First, we rotate the entire layout by 180 degrees (PI radians) to make the single seat appear at the bottom.
-        // Then, we calculate the rotation needed to move the current user into that bottom-center slot (visual index 0).
-        const bottomVisualSlot = 0; // The bottom-center seat is now the 0th visual index.
-        
-        const rotation = (currentUserSeatIndex !== -1)
-            ? (bottomVisualSlot - currentUserSeatIndex)
-            : 0;
-            
+        /* ---------------------------------------------------------
+           Seat rotation so hero is always bottom-centre
+        --------------------------------------------------------- */
+        // In the new positioning math (copied from PokerGame) index 0 is the TOP seat and
+        // index totalSeats/2 (rounded) is the BOTTOM seat.  We want the current user's seat
+        // to end up at the bottom, so we rotate by (bottomSlot ‑ heroSeat).
+        const bottomVisualSlot = Math.floor(totalSeats / 2); // e.g. 1 for HU, 3 for 6-max, 4 for 9-max
+        const rotation = currentUserSeatIndex !== -1 ? (bottomVisualSlot - currentUserSeatIndex) : 0;
         const visualIndex = (seatIndex + rotation + totalSeats) % totalSeats;
-        
-        // Calculate the angle for the seat based on its final visual position.
-        // We add Math.PI / 2 (90 degrees) to start the layout from the bottom-center.
-        const angle = (visualIndex / totalSeats) * 2 * Math.PI + (Math.PI / 2);
 
+        /* ---------------------------------------------------------
+           Positioning math (ported from PokerGame.getPlayerPosition)
+        --------------------------------------------------------- */
         const tableWidth = currentTableWidth;
         const tableHeight = currentTableHeight;
-        const horizontalRadius = tableWidth * 0.45;
+
+        // Radii: pull side seats in a little on 9-max
+        const horizontalRadius = totalSeats === 9 ? tableWidth * 0.40 : tableWidth * 0.46;
         const verticalRadius = tableHeight * 0.38;
-        
-        const cardWidth = Math.min(tableWidth * 0.09, 140); 
-        const cardHeight = cardWidth * 0.72; 
-        const infoWidth = cardWidth * 1.3; 
-        const infoHeight = cardHeight * 0.8; 
-        
+
+        // Responsive card sizing – slightly larger than before
+        const cardWidth = Math.min(tableWidth * 0.10, 180);
+        const cardHeight = cardWidth * 0.72;
+        const infoWidth = cardWidth * 1.4;
+        const infoHeight = cardHeight * 0.8;
+
         const centerX = tableWidth / 2;
         const centerY = tableHeight / 2;
-        // Use cosine for X and sine for Y to map circular coordinates.
-        // Negative sine is used because Y is inverted in screen coordinates (0 is top).
-        let baseX = centerX + horizontalRadius * Math.cos(angle);
-        let baseY = centerY + verticalRadius * Math.sin(angle);
 
-        const nameplateOffset = cardHeight * 0.2;
-        let infoY = baseY - infoHeight / 2 + nameplateOffset;
+        // Angle 0 == TOP, clockwise positive
+        const angle = (visualIndex / totalSeats) * 2 * Math.PI;
 
-        // For players in the bottom half of the screen, shift the entire element cluster down to prevent overlap.
-        // This moves the info box, and the cards will follow as they are relative to it.
-        if (Math.sin(angle) > 0.2) { 
-            const shiftFactor = tableHeight * 0.06;
-            infoY += shiftFactor * Math.sin(angle); // Scale the shift by how far down the player is
-        }
+        let baseX = centerX + horizontalRadius * Math.cos(angle - Math.PI / 2);
+        let baseY = centerY + verticalRadius * Math.sin(angle - Math.PI / 2);
 
+        // Push everything slightly down so the top player isn't clipped (use smaller offset than before)
+        baseY += tableHeight * 0.03;
+
+        /* --------------- Info box ---------------- */
+        const infoX = baseX - infoWidth / 2;
+        const infoY = baseY - infoHeight / 2 + infoHeight * 0.30; // keep nameplate lower
         const infoStyle = {
             position: 'absolute',
-            left: `${baseX - infoWidth / 2}px`,
+            left: `${infoX}px`,
             top: `${infoY}px`,
             width: `${infoWidth}px`,
             zIndex: 10,
         };
 
+        /* --------------- Sit button (same footprint as info box) --------------- */
         const sitButtonStyle = {
             position: 'absolute',
-            left: `${baseX - infoWidth / 2}px`,
+            left: `${infoX}px`,
             top: `${infoY}px`,
             width: `${infoWidth}px`,
             height: `${infoHeight}px`,
             zIndex: 10,
         };
 
-        let cardX = baseX - cardWidth / 2;
-        // Position cards relative to the (now correctly shifted) info box, with less overlap.
-        let cardY = infoY - cardHeight;
-
+        /* --------------- Card hand ---------------- */
+        const cardX = baseX - cardWidth / 2;
+        const cardY = infoY - cardHeight * 1.08;
         const cardStyle = {
             position: 'absolute',
             left: `${cardX}px`,
             top: `${cardY}px`,
             width: `${cardWidth}px`,
+            height: `${cardHeight}px`,
             zIndex: 15,
         };
-        
-        const betPositionFactor = 0.75;
-        let betX = centerX + (horizontalRadius * betPositionFactor) * Math.cos(angle);
-        let betY = centerY + (verticalRadius * betPositionFactor) * Math.sin(angle);
+
+        /* --------------- Bet amount ---------------- */
+        const betPositionFactor = 0.8;
+        let betX = centerX + betPositionFactor * (baseX - centerX);
+        let betY = centerY + betPositionFactor * (baseY - centerY);
+
+        // Prevent bet chip overlap for the bottom player
+        const cardBottomY = cardY + cardHeight;
+        const playerAngle = angle; // reuse
+        const bottomAngle = Math.PI;
+        const angleTolerance = 0.9;
+        if (Math.abs(playerAngle - bottomAngle) < angleTolerance && betY < cardBottomY) {
+            betY = cardBottomY +  -100; // move chip below cards
+        }
 
         const betStyle = {
             position: 'absolute',
@@ -242,6 +251,19 @@ function OnlinePokerTableDisplay({ gameState, currentSocketId, GamePhase, onTake
             transform: 'translateX(-50%) translateY(-50%)',
             zIndex: 15,
         };
+
+        // Dynamic fine-tuning offsets similar to PokerGame
+        const offsetEm = 1.8;
+        if (angle > Math.PI * 1.75 || angle < Math.PI * 0.25) {
+            betStyle.top = `calc(${betStyle.top} + ${offsetEm}em)`; // top players – push chip downwards
+        } else if (angle > Math.PI * 0.75 && angle < Math.PI * 1.25) {
+            betStyle.top = `calc(${betStyle.top} - ${offsetEm}em)`; // bottom players – raise chip
+        } else if (angle >= Math.PI * 0.25 && angle <= Math.PI * 0.75) {
+            betStyle.left = `calc(${betStyle.left} - ${offsetEm}em)`; // right side – push left
+        } else if (angle >= Math.PI * 1.25 && angle <= Math.PI * 1.75) {
+            betStyle.left = `calc(${betStyle.left} + ${offsetEm}em)`; // left side – push right
+        }
+
         return { infoStyle, cardStyle, betStyle, cardWidth, sitButtonStyle };
     };
     
@@ -271,7 +293,7 @@ function OnlinePokerTableDisplay({ gameState, currentSocketId, GamePhase, onTake
         return positionsArray[positionIndex] || `P${originalIndex + 1}`;
     };
 
-    const consistentCardWidth = Math.min(tableDimensions.width * 0.09, 140);
+    const consistentCardWidth = Math.min(tableDimensions.width * 0.07, 126);
     const currentPlayerTurnId = gameState.currentPlayerIndex !== -1 && seatedPlayers[gameState.currentPlayerIndex] 
                                   ? seatedPlayers[gameState.currentPlayerIndex].id 
                                   : null;

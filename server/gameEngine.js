@@ -434,6 +434,7 @@ function getPlayerPositionFromButton(game, playerId) {
 }
 
 function distributeOddChips(game, winners, remainder) {
+  // Nothing to distribute if remainder is zero or there are no winners.
   if (remainder === 0 || winners.length === 0) return;
   
   // Sort winners by position from button
