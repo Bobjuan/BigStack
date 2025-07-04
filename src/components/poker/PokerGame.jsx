@@ -168,7 +168,8 @@ function getPlayerPosition(index, totalPlayers, currentTableWidth, currentTableH
 
     const tableWidth = currentTableWidth;
     const tableHeight = currentTableHeight;
-    const horizontalRadius = tableWidth * 0.46;
+    // Reduce horizontal radius for 9-max to bring side players in
+    const horizontalRadius = totalPlayers === 9 ? tableWidth * 0.40 : tableWidth * 0.46;
     const verticalRadius = tableHeight * 0.38;
     
     // Make card dimensions relative to table size
@@ -1037,7 +1038,7 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
     }, [gameState.currentBettingRound, gameState.calculatedPots.length]);
 
     return (
-        <div className="poker-wrapper w-full h-full fixed inset-0" style={{backgroundColor:'#111111',display:'flex',alignItems:'center',justifyContent:'center'}}>
+        <div className="poker-wrapper w-full h-full" style={{ width: '100%', height: '100%', background: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
             {/* Add practice mode UI elements if needed */}
             {isPracticeMode && (
                 <div className="absolute top-0 left-0 z-50 bg-blue-500 text-white px-4 py-2">
@@ -1226,6 +1227,15 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
                             potSize={gameState.pot}
                             isPreflop={gameState.currentBettingRound === 'PREFLOP'}
                             currentHighestBet={gameState.currentHighestBet}
+                            preflopOptions={
+                                gameState.currentBettingRound === 'PREFLOP' ? [
+                                    { label: '2x', amount: gameState.currentHighestBet * 2 },
+                                    { label: '2.5x', amount: Math.round(gameState.currentHighestBet * 2.5) },
+                                    { label: '3x', amount: gameState.currentHighestBet * 3 },
+                                    { label: 'Pot', amount: gameState.pot + gameState.currentHighestBet * 3 },
+                                    { label: 'All In', amount: maxBetAmount },
+                                ] : undefined
+                            }
                         />
                     )}
 

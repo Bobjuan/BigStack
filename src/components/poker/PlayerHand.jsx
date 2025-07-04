@@ -70,12 +70,12 @@ function PlayerHand({ cards = [], showAll = false, cardContainerStyle = {}, isWi
       {displayCards.map((card, index) => (
         <div
           key={index}
-          className={index > 0 ? '-ml-2 flex-shrink-0' : 'flex-shrink-0'} // Add flex-shrink-0
+          className={index > 0 ? '-ml-3 flex-shrink-0' : 'flex-shrink-0'} // Add flex-shrink-0
           style={{
             zIndex: 20 + index,
             pointerEvents: 'auto',
-            transform: index === 0 ? 'rotate(-1deg)' : 'rotate(1deg)',
-            boxShadow: index === 1 ? '-6px 0 16px -4px rgba(88, 87, 87, 0.85)' : 'none', // Shadow only between cards
+            transform: index === 0 ? 'rotate(-6deg)' : 'rotate(6deg)',
+            boxShadow: index === 1 ? '-6px 0 12px -4px rgba(76, 76, 76, 0.85)' : 'none', // Shadow only between cards
           }}
         >
           <Card card={card} show={showAll} />

@@ -184,6 +184,7 @@ function ActionButtons({
               <>
                 <button onClick={() => setExactBetAmount(minBetAmount)} className={betSizeButtonClass} disabled={!canBet || minBetAmount > maxBetAmount}>Min</button>
                 <button onClick={() => calculatePotBet(0.5)} className={betSizeButtonClass} disabled={!canBet}>½ Pot</button>
+                <button onClick={() => calculatePotBet(2/3)} className={betSizeButtonClass} disabled={!canBet}>⅔ Pot</button>
                 <button onClick={() => calculatePotBet(0.75)} className={betSizeButtonClass} disabled={!canBet}>¾ Pot</button>
                 <button onClick={() => calculatePotBet(1)} className={betSizeButtonClass} disabled={!canBet}>Pot</button>
                 <button onClick={() => setExactBetAmount(maxBetAmount)} className={betSizeButtonClass} disabled={!canBet || maxBetAmount <= 0}>All In</button>
