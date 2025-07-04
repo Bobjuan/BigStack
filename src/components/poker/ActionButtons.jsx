@@ -14,6 +14,7 @@ function ActionButtons({
   potSize,
   isPreflop,
   preflopOptions, // e.g., [{label: "3x", amount: 30}]
+  currentHighestBet, // <--- Add this prop
 }) {
   const [isRaiseMode, setIsRaiseMode] = useState(false);
   const [betAmount, setBetAmount] = useState('');
@@ -154,7 +155,10 @@ function ActionButtons({
               CALL {callAmount > 0 ? `$${callAmount}` : ''}
             </button>
           )}
-          <button onClick={() => setIsRaiseMode(true)} className={raiseClass} disabled={!canBet}>RAISE</button>
+          <button onClick={() => setIsRaiseMode(true)} className={raiseClass} disabled={!canBet}>
+            {/* Use 'Bet' if not preflop and currentHighestBet is 0, otherwise 'Raise' */}
+            {(!isPreflop && currentHighestBet === 0) ? 'BET' : 'RAISE'}
+          </button>
           <button onClick={onFold} className={foldClass}>FOLD</button>
         </div>
       ) : (
@@ -180,6 +184,7 @@ function ActionButtons({
               <>
                 <button onClick={() => setExactBetAmount(minBetAmount)} className={betSizeButtonClass} disabled={!canBet || minBetAmount > maxBetAmount}>Min</button>
                 <button onClick={() => calculatePotBet(0.5)} className={betSizeButtonClass} disabled={!canBet}>½ Pot</button>
+                <button onClick={() => calculatePotBet(2/3)} className={betSizeButtonClass} disabled={!canBet}>⅔ Pot</button>
                 <button onClick={() => calculatePotBet(0.75)} className={betSizeButtonClass} disabled={!canBet}>¾ Pot</button>
                 <button onClick={() => calculatePotBet(1)} className={betSizeButtonClass} disabled={!canBet}>Pot</button>
                 <button onClick={() => setExactBetAmount(maxBetAmount)} className={betSizeButtonClass} disabled={!canBet || maxBetAmount <= 0}>All In</button>
@@ -220,7 +225,10 @@ function ActionButtons({
           {/* Bottom row: Back / Raise Confirmation */}
           <div className="flex justify-end space-x-2 pt-2 border-t border-gray-700">
              <button onClick={() => setIsRaiseMode(false)} className={backButtonClass}>BACK</button>
-             <button onClick={handleFinalRaiseClick} className={raiseConfirmButtonClass} disabled={!canBet || !betAmount || parseInt(betAmount, 10) < minBetAmount || parseInt(betAmount, 10) > maxBetAmount}>RAISE</button>
+             <button onClick={handleFinalRaiseClick} className={raiseConfirmButtonClass} disabled={!canBet || !betAmount || parseInt(betAmount, 10) < minBetAmount || parseInt(betAmount, 10) > maxBetAmount}>
+               {/* Use 'Bet' if not preflop and currentHighestBet is 0, otherwise 'Raise' */}
+               {(!isPreflop && currentHighestBet === 0) ? 'BET' : 'RAISE'}
+             </button>
           </div>
         </div>
       )}
