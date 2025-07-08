@@ -58,7 +58,7 @@ npm install
 ```bash
 npm run dev
 
-run app.py in poker-chatbot to get access to chatbot.
+run app.py in poker-chatbot to get access to chatbot!
 ```
 
 4. Build for production:
