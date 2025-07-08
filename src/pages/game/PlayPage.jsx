@@ -5,7 +5,7 @@ import { supabase } from '../../config/supabase';
 
 const PlayPage = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [profile, setProfile] = useState(null);
   const [gameType, setGameType] = useState('cash'); // Default to cash games
@@ -31,8 +31,13 @@ const PlayPage = () => {
     }
   }, [user]);
 
-  const handleLogout = () => {
-    navigate('/');
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      navigate('/');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
 
   const cashGames = [

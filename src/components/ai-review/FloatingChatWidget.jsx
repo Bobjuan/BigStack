@@ -165,6 +165,10 @@ const FloatingChatWidget = () => {
               &times;
             </button>
           </div>
+          {/* Tab Bar */}
+          <div className="flex border-b border-gray-700 bg-[#23273a]">
+            {/* Removed Tab Bar */}
+          </div>
           <div className="flex-1 overflow-hidden rounded-none min-h-[320px]">
             <RandomQuestionsChat isWidget />
           </div>

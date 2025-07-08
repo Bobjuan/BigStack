@@ -36,6 +36,12 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setSession(null);
+  };
+
   const value = {
     session,
     user,
@@ -43,7 +49,7 @@ export const AuthProvider = ({ children }) => {
     error,
     signIn: (data) => supabase.auth.signInWithPassword(data),
     signUp: (data) => supabase.auth.signUp(data),
-    signOut: () => supabase.auth.signOut(),
+    signOut,
   };
 
   // Always render children, even if there's an error

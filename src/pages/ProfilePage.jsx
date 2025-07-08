@@ -6,7 +6,7 @@ import profBack from '../assets/images/profback.png';
 
 const ProfilePage = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const [profile, setProfile] = useState(null);
   const [playerStats, setPlayerStats] = useState(null);
   const [recentHands, setRecentHands] = useState([]);
@@ -138,8 +138,13 @@ const ProfilePage = () => {
     }
   }, [user]);
 
-  const handleLogout = () => {
-    navigate('/');
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      navigate('/');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
 
   const handleEvaluatePlay = () => {
@@ -253,6 +258,12 @@ const ProfilePage = () => {
                       <span className="text-amber-400 font-semibold">Coming Soon</span>
                     </div>
                   </div>
+                  <button
+                    className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-150 border border-blue-700 shadow"
+                    onClick={() => navigate('/ai-review?tab=player-stats')}
+                  >
+                    Take me to analyser
+                  </button>
                 </div>
 
                 {/* Edit Profile Button */}

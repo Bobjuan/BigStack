@@ -5,7 +5,7 @@ import { supabase } from '../config/supabase';
 
 const DashboardPage = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [profile, setProfile] = useState(null);
 
@@ -30,9 +30,13 @@ const DashboardPage = () => {
     }
   }, [user]);
 
-  const handleLogout = () => {
-    // TODO: Implement logout logic
-    navigate('/');
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      navigate('/');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
 
   return (

@@ -30,38 +30,56 @@ const calculateStat = (actions: number, opportunities: number): number | null =>
 };
 
 // Start serving the function
-serve(async (req) => {
-  // This is a preflight request. We need to handle it for CORS to work.
+serve(async (req, ctx) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", {
       headers: {
-        "Access-Control-Allow-Origin": "*", // Or specify your chatbot's domain
+        "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
       },
     });
   }
 
   try {
+    // AUTH: Use Supabase Edge Function context for user authentication
+    // See: https://supabase.com/docs/guides/functions/auth
+    const { user } = ctx ?? {};
+    if (!user || !user.id) {
+      return new Response(JSON.stringify({ error: "Unauthorized: No user found in context." }), {
+        status: 401,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+        },
+      });
+    }
+
     // 1. EXTRACT DATA FROM REQUEST
-    // Expect a POST request with a JSON body, e.g., { "userId": "..." }
     const { userId } = await req.json();
     if (!userId) {
       throw new Error("User ID is required.");
     }
+    // Only allow access to own stats
+    if (user.id !== userId) {
+      return new Response(JSON.stringify({ error: "Forbidden: You can only access your own stats." }), {
+        status: 403,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+        },
+      });
+    }
 
-    // 2. CREATE SUPABASE CLIENT
-    // The Edge Function environment has its own secure way of getting credentials
+    // 2. FETCH RAW STATS FROM DATABASE
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
-
-    // 3. FETCH RAW STATS FROM DATABASE
     const { data, error } = await supabaseClient
       .from("player_stats")
       .select("*")
       .eq("player_id", userId)
-      .single(); // We expect only one row for a given player ID
+      .single();
 
     if (error) {
       // This could mean the player was not found or a real db error occurred.
@@ -82,7 +100,7 @@ serve(async (req) => {
 
     const rawStats: PlayerStatsRaw = data;
 
-    // 4. CALCULATE FINAL STATS
+    // 3. CALCULATE FINAL STATS
     const cleanStats: PlayerStatsClean = {
       playerId: rawStats.player_id,
       handsPlayed: rawStats.hands_played,
@@ -90,7 +108,7 @@ serve(async (req) => {
       pfr: calculateStat(rawStats.pfr_actions, rawStats.pfr_opportunities),
     };
 
-    // 5. RETURN CLEAN DATA
+    // 4. RETURN CLEAN DATA
     return new Response(JSON.stringify(cleanStats), {
       headers: {
         "Content-Type": "application/json",
