@@ -18,6 +18,11 @@ export default defineConfig({
         target: 'http://localhost:5000',
         changeOrigin: true,
         secure: false,
+      },
+      '/api/slumbot': {
+        target: 'https://slumbot.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/slumbot/, '/api')
       }
     }
   },

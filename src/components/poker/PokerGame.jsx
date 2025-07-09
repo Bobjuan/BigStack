@@ -3,10 +3,14 @@ import { Hand } from 'pokersolver';
 import PlayerHand from './PlayerHand';
 import CommunityCards from './CommunityCards';
 import PlayerInfo from './PlayerInfo';
+import PlayerHUD from './PlayerHUD';
 import PotDisplay from './PotDisplay';
 import ActionButtons from './ActionButtons';
 import tableBg from '/src/assets/blacktable.png'; // Re-add this import
 import dealerChip from '/src/assets/dealer.png'; // Import dealer chip asset
+import SlumbotAPI from '../../services/slumbotAPI';
+import { supabase } from '../../config/supabase';
+import { useAuth } from '../../context/AuthContext';
 
 // Assuming these SVG files exist in /src/assets/
 // import feltDark from '/src/assets/felt_dark.svg'; // Remove this
@@ -30,6 +34,137 @@ const GamePhase = {
 const POSITIONS_9MAX = ['BTN', 'SB', 'BB', 'UTG', 'UTG+1', 'MP', 'LJ', 'HJ', 'CO'];
 const POSITIONS_6MAX = ['BTN', 'SB', 'BB', 'UTG', 'HJ', 'CO'];
 const POSITIONS_HEADSUP = ['BTN/SB', 'BB'];
+
+// Client-side stats tracking for bot games (similar to server-side statsTracker)
+const createBotGameHandStats = (userId) => {
+  return {
+    playerId: userId,
+    increments: {
+      hands_played: 1,
+      hands_won: 0,
+      total_bb_won: 0,
+      total_pot_size_won: 0,
+      vpip_opportunities: 1,
+      vpip_actions: 0,
+      pfr_opportunities: 1,
+      pfr_actions: 0,
+      btn_rfi_opportunities: 0,
+      btn_rfi_actions: 0,
+      "3bet_opportunities": 0,
+      "3bet_actions": 0,
+      fold_vs_3bet_opportunities: 0,
+      fold_vs_3bet_actions: 0,
+      "4bet_opportunities": 0,
+      "4bet_actions": 0,
+      fold_vs_4bet_opportunities: 0,
+      fold_vs_4bet_actions: 0,
+      agg_bets: 0,
+      agg_raises: 0,
+      agg_calls: 0,
+      cbet_flop_opportunities: 0,
+      cbet_flop_actions: 0,
+      fold_vs_cbet_flop_opportunities: 0,
+      fold_vs_cbet_flop_actions: 0,
+      raise_vs_cbet_flop_opportunities: 0,
+      raise_vs_cbet_flop_actions: 0,
+      ch_raise_flop_opportunities: 0,
+      ch_raise_flop_actions: 0,
+      donk_flop_opportunities: 0,
+      donk_flop_actions: 0,
+      wtsd_opportunities: 0,
+      wtsd_actions: 0,
+      wsd_opportunities: 0,
+      wsd_actions: 0,
+      wwsf_opportunities: 0,
+      wwsf_actions: 0,
+    },
+    positionIncrements: {
+      'BTN': { vpip_opportunities: 0, vpip_actions: 0, pfr_opportunities: 0, pfr_actions: 0 },
+      'SB': { vpip_opportunities: 0, vpip_actions: 0, pfr_opportunities: 0, pfr_actions: 0 },
+      'BB': { vpip_opportunities: 0, vpip_actions: 0, pfr_opportunities: 0, pfr_actions: 0 },
+      'BTN/SB': { vpip_opportunities: 0, vpip_actions: 0, pfr_opportunities: 0, pfr_actions: 0 },
+      'UTG': { vpip_opportunities: 0, vpip_actions: 0, pfr_opportunities: 0, pfr_actions: 0 },
+      'UTG+1': { vpip_opportunities: 0, vpip_actions: 0, pfr_opportunities: 0, pfr_actions: 0 },
+      'MP': { vpip_opportunities: 0, vpip_actions: 0, pfr_opportunities: 0, pfr_actions: 0 },
+      'LJ': { vpip_opportunities: 0, vpip_actions: 0, pfr_opportunities: 0, pfr_actions: 0 },
+      'HJ': { vpip_opportunities: 0, vpip_actions: 0, pfr_opportunities: 0, pfr_actions: 0 },
+      'CO': { vpip_opportunities: 0, vpip_actions: 0, pfr_opportunities: 0, pfr_actions: 0 },
+    },
+    handState: {
+      saw_flop: false,
+      is_preflop_aggressor: false,
+      hasActedPreflop: false,
+      hasRaisedPreflop: false,
+    }
+  };
+};
+
+const trackBotGameAction = (handStats, gameState, player, action) => {
+  if (!handStats || !handStats[player.id]) return;
+  
+  const stats = handStats[player.id];
+  
+  // Only track pre-flop stats for VPIP and PFR
+  if (gameState.currentBettingRound !== GamePhase.PREFLOP) {
+    return;
+  }
+  
+  // Check if BB had a free option
+  const isBBOption = player.isBB && gameState.currentHighestBet === BIG_BLIND_AMOUNT && action === 'check';
+  if (isBBOption) {
+    stats.increments.vpip_opportunities = 0;
+    if (stats.positionIncrements[player.positionName]) {
+      stats.positionIncrements[player.positionName].vpip_opportunities = 0;
+    }
+  }
+  
+  // Track VPIP actions
+  if (action === 'call' || action === 'bet' || action === 'raise') {
+    stats.increments.vpip_actions = 1;
+    const posStats = stats.positionIncrements[player.positionName];
+    if (posStats && posStats.vpip_actions === 0) {
+      posStats.vpip_actions = 1;
+    }
+  }
+  
+  // Track PFR actions
+  const isPreflopRaise = (action === 'bet' || action === 'raise');
+  if (isPreflopRaise && !stats.handState.hasRaisedPreflop) {
+    stats.increments.pfr_actions = 1;
+    const posStats = stats.positionIncrements[player.positionName];
+    if (posStats) {
+      posStats.pfr_actions = 1;
+    }
+    stats.handState.hasRaisedPreflop = true;
+  }
+};
+
+const commitBotGameStats = async (handStats) => {
+  if (!handStats) return;
+  
+  const playersToUpdate = Object.values(handStats).filter(statObj => statObj && statObj.playerId);
+  if (playersToUpdate.length === 0) return;
+  
+  try {
+    const updatesPayload = playersToUpdate.map(playerStat => ({
+      p_player_id: playerStat.playerId,
+      p_increments: playerStat.increments,
+      p_position_increments: playerStat.positionIncrements,
+    }));
+    
+    const { error } = await supabase.rpc('batch_update_player_stats', {
+      updates: updatesPayload,
+    });
+    
+    if (error) {
+      console.error('Error updating bot game stats:', error);
+    } else {
+      console.log(`Successfully committed bot game stats for ${playersToUpdate.length} players.`);
+    }
+  } catch (error) {
+    console.error('Exception while committing bot game stats:', error);
+  }
+};
 
 const initializePlayer = (id, name, stack) => ({
     id,
@@ -349,12 +484,13 @@ function getPlayerInfoClasses(player, tableTheme, isShowdownOrHandOver, winnerPl
 }
 // --- End Helper Functions ---
 
-function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = null }) {
-    const [numPlayers, setNumPlayers] = useState(initialGameState.numPlayers);
+function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = null, vsBot = false, botPlayerIndex = 1 }) {
+    const { user } = useAuth(); // Get authenticated user for stats tracking
+    const [numPlayers, setNumPlayers] = useState(vsBot ? 2 : initialGameState.numPlayers);
     const [gameState, setGameState] = useState(() => {
         let state = JSON.parse(JSON.stringify(initialGameState));
-        state.numPlayers = numPlayers;
-        return startNewHand(state);
+        state.numPlayers = vsBot ? 2 : numPlayers;
+        return state; // Don't call startNewHand here - it will be called in useEffect
     });
     const [isTestMode, setIsTestMode] = useState(isPracticeMode);
     const [showAllCards, setShowAllCards] = useState(isPracticeMode);
@@ -363,53 +499,60 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
     const tableRef = useRef(null);
     const [tableDimensions, setTableDimensions] = useState({ width: 0, height: 0 });
     const [showWinnerAnimation, setShowWinnerAnimation] = useState(false);
+    
+    // Bot-related state
+    const [botProcessing, setBotProcessing] = useState(false);
+    const [slumbotSessionActive, setSlumbotSessionActive] = useState(false);
+    
+    // Bot game stats tracking
+    const [botGameHandStats, setBotGameHandStats] = useState(null);
+    
+    // HUD stats tracking
+    const [visibleHudPlayerId, setVisibleHudPlayerId] = useState(null);
+    const [currentPlayerStats, setCurrentPlayerStats] = useState(null);
+    
+    // Helper function to get human player ID in bot mode
+    const getHumanPlayerId = () => {
+        if (!vsBot) return 'player1'; // Default human player in regular mode
+        // In bot mode, human is the player that's NOT the bot
+        const humanPlayerIndex = botPlayerIndex === 0 ? 1 : 0;
+        return `player${humanPlayerIndex + 1}`;
+    };
 
-    useEffect(() => {
-        const tableElement = tableRef.current;
-        if (!tableElement) return;
-
-        const observer = new ResizeObserver(entries => {
-            for (let entry of entries) {
-                const { width, height } = entry.contentRect;
-                setTableDimensions({ width, height });
+    // Function to fetch current player stats for HUD display
+    const fetchCurrentPlayerStats = async () => {
+        if (!user?.id) return null;
+        
+        try {
+            const { data, error } = await supabase
+                .from('player_stats')
+                .select('*')
+                .eq('player_id', user.id)
+                .single();
+                
+            if (error && error.code !== 'PGRST116') {
+                console.error('Error fetching player stats:', error);
+                return null;
             }
-        });
-
-        observer.observe(tableElement);
-        // Set initial dimensions correctly after mount
-        const rect = tableElement.getBoundingClientRect();
-        if (rect.width > 0 && rect.height > 0) { // Ensure valid initial dimensions
-             setTableDimensions({ width: rect.width, height: rect.height });
+            
+            return data;
+        } catch (error) {
+            console.error('Exception fetching player stats:', error);
+            return null;
         }
+    };
 
-
-        return () => {
-            observer.unobserve(tableElement);
-        };
-    }, []);
-
-    // Initialize game state with scenario setup if in practice mode
-    useEffect(() => {
-        if (isPracticeMode && scenarioSetup) {
-            setGameState(prevState => {
-                const newState = JSON.parse(JSON.stringify(prevState));
-                // Apply all scenario setup properties
-                Object.keys(scenarioSetup).forEach(key => {
-                    newState[key] = scenarioSetup[key];
-                });
-                return newState;
-            });
-            // Ensure test mode is enabled in practice mode
-            setIsTestMode(true);
-            setShowAllCards(true);
-        }
-    }, [isPracticeMode, scenarioSetup]);
+    // Function to handle HUD toggle
+    const handleHudToggle = (playerId) => {
+        setVisibleHudPlayerId(prevId => (prevId === playerId ? null : playerId));
+    };
 
     function startNewHand(currentState) {
         if (currentState.players.length !== currentState.numPlayers) {
             currentState.players = [];
             for(let i = 1; i <= currentState.numPlayers; i++) {
-                currentState.players.push(initializePlayer(`player${i}`, `Player ${i}`, 1000)); 
+                const playerName = vsBot && (i - 1) === botPlayerIndex ? 'Slumbot' : `Player ${i}`;
+                currentState.players.push(initializePlayer(`player${i}`, playerName, 1000)); 
             }
         } else {
              currentState.players.forEach(p => {
@@ -450,6 +593,29 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
         });
         
         currentState.players = assignPositions(currentState.players, currentState.dealerIndex);
+
+        // Initialize bot game stats tracking if in bot mode and user is authenticated
+        if (vsBot && user?.id) {
+            // Calculate human player ID inline (bot is at botPlayerIndex, human is the other)
+            const humanPlayerIndex = botPlayerIndex === 0 ? 1 : 0;
+            const humanPlayerId = `player${humanPlayerIndex + 1}`;
+            const humanPlayer = currentState.players.find(p => p.id === humanPlayerId);
+            
+            if (humanPlayer) {
+                const handStats = {};
+                handStats[humanPlayer.id] = createBotGameHandStats(user.id);
+                
+                // Set position-specific opportunities
+                const posStats = handStats[humanPlayer.id].positionIncrements[humanPlayer.positionName];
+                if (posStats) {
+                    posStats.vpip_opportunities = 1;
+                    posStats.pfr_opportunities = 1;
+                }
+                
+                setBotGameHandStats(handStats);
+                console.log(`[BotStats] Initialized hand stats for ${humanPlayer.name} (${humanPlayer.positionName})`);
+            }
+        }
 
         const activePlayersCount = currentState.players.filter(p => !p.isFolded).length;
         if (activePlayersCount < 2) {
@@ -518,6 +684,55 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
         currentState.message = `Hand started. Blinds posted. ${currentState.players[currentState.currentPlayerIndex].name}'s turn.`;
         return currentState;
     }
+
+    useEffect(() => {
+        const tableElement = tableRef.current;
+        if (!tableElement) return;
+
+        const observer = new ResizeObserver(entries => {
+            for (let entry of entries) {
+                const { width, height } = entry.contentRect;
+                setTableDimensions({ width, height });
+            }
+        });
+
+        observer.observe(tableElement);
+        // Set initial dimensions correctly after mount
+        const rect = tableElement.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) { // Ensure valid initial dimensions
+             setTableDimensions({ width: rect.width, height: rect.height });
+        }
+
+
+        return () => {
+            observer.unobserve(tableElement);
+        };
+    }, []);
+
+    // Initialize game state after all state has been set up
+    useEffect(() => {
+        setGameState(prevState => {
+            const newState = JSON.parse(JSON.stringify(prevState));
+            return startNewHand(newState);
+        });
+    }, []); // Run once on mount
+
+    // Initialize game state with scenario setup if in practice mode
+    useEffect(() => {
+        if (isPracticeMode && scenarioSetup) {
+            setGameState(prevState => {
+                const newState = JSON.parse(JSON.stringify(prevState));
+                // Apply all scenario setup properties
+                Object.keys(scenarioSetup).forEach(key => {
+                    newState[key] = scenarioSetup[key];
+                });
+                return newState;
+            });
+            // Ensure test mode is enabled in practice mode
+            setIsTestMode(true);
+            setShowAllCards(true);
+        }
+    }, [isPracticeMode, scenarioSetup]);
 
     function checkRoundCompletion(state) {
         const nonFoldedPlayers = state.players.filter(p => !p.isFolded);
@@ -698,6 +913,14 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
         newState.currentBettingRound = GamePhase.HAND_OVER;
         newState.currentPlayerIndex = -1;
         newState.players.forEach(p => { p.isTurn = false; p.currentBet = 0; p.totalBetInHand = 0; });
+        
+        // Commit bot game stats when hand is over
+        if (vsBot && user?.id && botGameHandStats) {
+            commitBotGameStats(botGameHandStats);
+            setBotGameHandStats(null); // Clear stats for next hand
+            console.log('[BotStats] Committed hand stats to database');
+        }
+        
         return newState;
     }
 
@@ -833,6 +1056,16 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
             
                 let stateAfterAction = actionFn.execute(JSON.parse(JSON.stringify(prevState)));
 
+            // Track stats for bot games if in bot mode and user is authenticated
+            if (vsBot && user?.id && botGameHandStats) {
+                const currentPlayer = prevState.players[prevState.currentPlayerIndex];
+                if (currentPlayer && currentPlayer.id === getHumanPlayerId()) {
+                    const actionType = actionFn.name.toLowerCase();
+                    trackBotGameAction(botGameHandStats, prevState, currentPlayer, actionType);
+                    console.log(`[BotStats] Tracked ${actionType} action for ${currentPlayer.name}`);
+                }
+            }
+
             const nonFolded = stateAfterAction.players.filter(p => !p.isFolded);
             if (nonFolded.length === 1) {
                 return awardPot(stateAfterAction);
@@ -845,7 +1078,7 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
             }
         });
         }
-    }, [isPracticeMode, onAction, gameState]);
+    }, [isPracticeMode, onAction, gameState, vsBot, user?.id, botGameHandStats, getHumanPlayerId]);
 
     const handleCheck = useCallback(() => {
         handleAction({
@@ -959,6 +1192,168 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
         });
     }, [handleAction]);
 
+    // Bot action handling
+    const processBotAction = useCallback(async () => {
+        if (!vsBot || botProcessing || gameState.currentBettingRound === GamePhase.HAND_OVER) {
+            return;
+        }
+
+        const currentPlayerIndex = gameState.currentPlayerIndex;
+        if (currentPlayerIndex !== botPlayerIndex) {
+            return; // Not bot's turn
+        }
+
+        setBotProcessing(true);
+
+        try {
+            // Start new Slumbot session if needed
+            if (!slumbotSessionActive) {
+                const response = await SlumbotAPI.newHand();
+                if (response.success) {
+                    setSlumbotSessionActive(true);
+                    // Process initial bot action if provided
+                    if (response.data.action) {
+                        const botAction = SlumbotAPI.parseSlumbotAction(response.data.action);
+                        if (botAction) {
+                            await executeBotAction(botAction);
+                        }
+                    }
+                } else {
+                    console.error('Failed to start Slumbot session:', response.error);
+                    // Fallback to random action
+                    await executeRandomBotAction();
+                }
+            } else {
+                // Send current action to Slumbot
+                const lastAction = getLastHumanAction();
+                if (lastAction) {
+                    const slumbotActionString = SlumbotAPI.convertActionToSlumbot(lastAction.type, lastAction.amount);
+                    const response = await SlumbotAPI.sendAction(slumbotActionString);
+                    
+                    if (response.success && response.data.action) {
+                        const botAction = SlumbotAPI.parseSlumbotAction(response.data.action);
+                        if (botAction) {
+                            await executeBotAction(botAction);
+                        } else {
+                            await executeRandomBotAction();
+                        }
+                    } else {
+                        console.error('Failed to get bot action:', response.error);
+                        await executeRandomBotAction();
+                    }
+                } else {
+                    await executeRandomBotAction();
+                }
+            }
+        } catch (error) {
+            console.error('Error processing bot action:', error);
+            await executeRandomBotAction();
+        } finally {
+            setBotProcessing(false);
+        }
+    }, [vsBot, botProcessing, gameState, botPlayerIndex, slumbotSessionActive]);
+
+    const executeBotAction = useCallback(async (botAction) => {
+        // Add a small delay to make bot actions feel more natural
+        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
+
+        switch (botAction.type) {
+            case 'fold':
+                handleFold();
+                break;
+            case 'check':
+                handleCheck();
+                break;
+            case 'call':
+                handleCall();
+                break;
+            case 'bet':
+                handleBet(botAction.amount);
+                break;
+            default:
+                console.warn('Unknown bot action:', botAction);
+                await executeRandomBotAction();
+        }
+    }, [handleFold, handleCheck, handleCall, handleBet]);
+
+    const executeRandomBotAction = useCallback(async () => {
+        // Add a small delay
+        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
+
+        const { canCheck, canCall, canBet } = getActionButtonState(gameState);
+        
+        // Simple random strategy
+        const actions = [];
+        if (canCheck) actions.push('check');
+        if (canCall) actions.push('call');
+        if (canBet) actions.push('bet');
+        
+        if (actions.length === 0) {
+            handleFold();
+            return;
+        }
+
+        const randomAction = actions[Math.floor(Math.random() * actions.length)];
+        
+        switch (randomAction) {
+            case 'check':
+                handleCheck();
+                break;
+            case 'call':
+                handleCall();
+                break;
+            case 'bet':
+                const minBet = getActionButtonState(gameState).minBetAmount || 10;
+                const maxBet = getActionButtonState(gameState).maxBetAmount || 100;
+                const betAmount = Math.floor(Math.random() * (maxBet - minBet + 1)) + minBet;
+                handleBet(betAmount);
+                break;
+            default:
+                handleFold();
+        }
+    }, [gameState, handleFold, handleCheck, handleCall, handleBet]);
+
+    const getLastHumanAction = useCallback(() => {
+        // This would need to track the last human action
+        // For now, return null to trigger random bot behavior
+        return null;
+    }, []);
+
+    // Effect to detect when it's bot's turn
+    useEffect(() => {
+        if (vsBot && gameState.currentPlayerIndex === botPlayerIndex && !botProcessing) {
+            const timer = setTimeout(() => {
+                processBotAction();
+            }, 500); // Small delay before bot acts
+            
+            return () => clearTimeout(timer);
+        }
+    }, [vsBot, gameState.currentPlayerIndex, botPlayerIndex, botProcessing, processBotAction]);
+
+    // Reset Slumbot session when starting new hand
+    useEffect(() => {
+        if (vsBot && gameState.currentBettingRound === GamePhase.PREFLOP && gameState.handHistory.length === 0) {
+            SlumbotAPI.resetSession();
+            setSlumbotSessionActive(false);
+        }
+    }, [vsBot, gameState.currentBettingRound, gameState.handHistory.length]);
+
+    // Reset Slumbot session when starting new hand
+    useEffect(() => {
+        if (vsBot && gameState.currentBettingRound === GamePhase.PREFLOP && gameState.handHistory.length === 0) {
+            setSlumbotSessionActive(false);
+        }
+    }, [vsBot, gameState.currentBettingRound, gameState.handHistory.length]);
+
+    // Fetch player stats when HUD is opened
+    useEffect(() => {
+        if (visibleHudPlayerId && user?.id) {
+            fetchCurrentPlayerStats().then(stats => {
+                setCurrentPlayerStats(stats);
+            });
+        }
+    }, [visibleHudPlayerId, user?.id]);
+
     const handleSetNumPlayers = (newCount) => {
         setNumPlayers(newCount);
         setGameState(prevState => {
@@ -1058,8 +1453,8 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
 
                 {/* Test Mode / Player Count Controls - Top Right */}
                 <div className="absolute top-4 right-4 z-20 flex flex-col items-end space-y-1">
-                    {/* Test Mode Buttons - Only show if not in practice mode */}
-                    {!isPracticeMode && (
+                    {/* Test Mode Buttons - Only show if not in practice mode and not in bot mode */}
+                    {!isPracticeMode && !vsBot && (
                         <>
                             <div className="flex space-x-2">
                                 <button
@@ -1130,12 +1525,22 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
                                 <div style={cardStyle} className={`${player.isFolded && gameState.currentBettingRound !== GamePhase.HAND_OVER ? 'opacity-30 grayscale' : ''}`}>
                                     <PlayerHand 
                                         cards={player.cards} 
-                                        showAll={player.id === 'player1' || (isTestMode && showAllCards)}
+                                        showAll={
+                                            player.id === getHumanPlayerId() || 
+                                            (isTestMode && showAllCards) ||
+                                            (isShowdownOrHandOver && !player.isFolded && gameState.players.filter(p => !p.isFolded).length > 1)
+                                        }
                                         isWinner={winnerPlayerIds.includes(player.id) && showWinnerAnimation}
                                     />
                                 </div>
                                 {/* Player Info Box - Positioned Separately */}
-                                <div style={infoStyle} className={infoClasses}>
+                                <div style={infoStyle} className={`${infoClasses} cursor-pointer`} onClick={() => handleHudToggle(player.id)}>
+                                    {/* PlayerHUD Component */}
+                                    <PlayerHUD 
+                                        stats={visibleHudPlayerId === player.id ? currentPlayerStats : null}
+                                        isVisible={visibleHudPlayerId === player.id}
+                                        onClose={() => handleHudToggle(player.id)}
+                                    />
                                     {/* Status Overlay (Folded / All-In) - Inside info container */}
                                     {(player.isFolded && gameState.currentBettingRound !== GamePhase.HAND_OVER || player.isAllIn) && (
                                         <div className="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center z-20 rounded">
@@ -1168,7 +1573,7 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
                                         stack={player.stack}
                                         isTurn={player.isTurn}
                                         handDescription={
-                                            (player.id === 'player1' || isTestMode || isPracticeMode)
+                                            (player.id === getHumanPlayerId() || isTestMode || isPracticeMode || (isShowdownOrHandOver && !player.isFolded && gameState.players.filter(p => !p.isFolded).length > 1))
                                                 ? (() => {
                                                     if (gameState.currentBettingRound === GamePhase.PREFLOP) return null;
                                                     if (player.cards.length < 2) return 'No Hand Yet';
@@ -1205,14 +1610,14 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
                         onClick={() => setShowSettings(true)}
                         className="bg-[#2f3542] text-white p-2 rounded-lg hover:bg-[#3a4052] transition-colors duration-200 flex items-center space-x-2"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
                             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
                         </svg>
                         <span>Settings</span>
                     </button>
 
-                    {currentPlayer && (isTestMode || currentPlayer.id === 'player1') && gameState.currentBettingRound !== GamePhase.HAND_OVER && (
+                    {currentPlayer && (isTestMode || currentPlayer.id === getHumanPlayerId()) && gameState.currentBettingRound !== GamePhase.HAND_OVER && (
                         <ActionButtons
                             onCheck={handleCheck} 
                             onCall={handleCall} 
@@ -1240,7 +1645,7 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
                     )}
 
                     {/* Waiting Message - Below Buttons in Bottom Right */}
-                    {currentPlayer && currentPlayer.id !== 'player1' && !isTestMode && gameState.currentBettingRound !== GamePhase.HAND_OVER && (
+                    {currentPlayer && currentPlayer.id !== getHumanPlayerId() && !isTestMode && gameState.currentBettingRound !== GamePhase.HAND_OVER && (
                         <p className={`text-right text-xs mt-1 ${tableTheme === 'light' ? 'text-gray-800' : 'text-gray-400'}`}>
                             Waiting for {currentPlayer.name}'s action...
                         </p>
@@ -1266,8 +1671,8 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
                             <div className="flex justify-between items-center mb-6">
                                 <h2 className="text-xl font-semibold text-white">Table Settings</h2>
                                 <button onClick={() => setShowSettings(false)} className="text-gray-400 hover:text-white">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                                     </svg>
                                 </button>
                             </div>

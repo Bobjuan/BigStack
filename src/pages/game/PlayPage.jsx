@@ -44,7 +44,7 @@ const PlayPage = () => {
     {
       title: 'Heads Up',
       description: 'One-on-one matches to sharpen your postflop tactics and reads.',
-      href: '/heads-up'
+      href: '/play-bot-heads-up'
     },
     {
       title: '6-Max',
@@ -78,16 +78,30 @@ const PlayPage = () => {
 
   const renderGameOptions = (games) => (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-      {games.map((game, index) => (
-        <Link 
-          key={index}
-          to={game.href}
-          className="bg-[#1F2127] rounded-xl p-6 hover:bg-gray-700 transition-all duration-200 hover:-translate-y-1 shadow-lg border border-gray-700"
-        >
-          <h2 className="text-xl font-bold mb-2 text-white">{game.title}</h2>
-          <p className="text-sm text-gray-300">{game.description}</p>
-        </Link>
-      ))}
+      {games.map((game, index) => {
+        if (game.title === 'Heads Up') {
+          return (
+            <Link 
+              key={index}
+              to={game.href}
+              className="bg-[#1F2127] rounded-xl p-6 hover:bg-gray-700 transition-all duration-200 hover:-translate-y-1 shadow-lg border border-gray-700"
+            >
+              <h2 className="text-xl font-bold mb-2 text-white">{game.title}</h2>
+              <p className="text-sm text-gray-300">{game.description}</p>
+            </Link>
+          );
+        } else {
+          return (
+            <div
+              key={index}
+              className="bg-[#23242a] rounded-xl p-6 opacity-50 cursor-not-allowed shadow-lg border border-gray-700"
+            >
+              <h2 className="text-xl font-bold mb-2 text-gray-400">{game.title}</h2>
+              <p className="text-sm text-gray-500">{game.description}</p>
+            </div>
+          );
+        }
+      })}
     </div>
   );
 
@@ -114,7 +128,7 @@ const PlayPage = () => {
                     : 'text-gray-400 hover:text-white'
                 }`}
               >
-                Cash Games
+                Play a Bot
               </button>
               <button
                 onClick={() => setGameType('tournament')}

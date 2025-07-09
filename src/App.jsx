@@ -9,6 +9,7 @@ import PlayPage from './pages/game/PlayPage';
 import PlayWithFriendsPage from './pages/game/PlayWithFriendsPage';
 import CashGamePage from './pages/game/CashGamePage';
 import HeadsUpPage from './pages/game/HeadsUpPage';
+import BotHeadsUpPage from './pages/game/BotHeadsUpPage';
 import GTOTrainerPage from './pages/game/GTOTrainerPage';
 import TournamentPage from './pages/game/TournamentPage';
 import DeepStackPage from './pages/game/DeepStackPage';
@@ -107,6 +108,13 @@ function AppRoutes() {
           <ProtectedRoute>
           <MainLayout>
             <HeadsUpPage />
+          </MainLayout>
+          </ProtectedRoute>
+      } />
+      <Route path="/play-bot-heads-up" element={
+          <ProtectedRoute>
+          <MainLayout>
+            <BotHeadsUpPage />
           </MainLayout>
           </ProtectedRoute>
       } />
@@ -214,6 +222,7 @@ function App() {
       path.startsWith('/play') ||
       path.startsWith('/cash-game') ||
       path.startsWith('/heads-up') ||
+      path.startsWith('/play-bot-heads-up') ||
       path.startsWith('/deep-stack') ||
       path.startsWith('/tournament') ||
       path.startsWith('/play-with-friends')
