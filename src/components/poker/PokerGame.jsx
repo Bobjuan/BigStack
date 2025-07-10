@@ -9,6 +9,7 @@ import ActionButtons from './ActionButtons';
 import tableBg from '/src/assets/blacktable.png'; // Re-add this import
 import dealerChip from '/src/assets/dealer.png'; // Import dealer chip asset
 import SlumbotAPI from '../../services/slumbotAPI';
+import PokerBot from '../../services/pokerBot';
 import { supabase } from '../../config/supabase';
 import { useAuth } from '../../context/AuthContext';
 
@@ -299,7 +300,8 @@ function getPlayerPosition(index, totalPlayers, currentTableWidth, currentTableH
     }
 
     // Calculate the polar angle for this player's seat (0 at top, clockwise)
-    const angle = (index / totalPlayers) * 2 * Math.PI;
+    // Rotate so index 0 is at the bottom (6 o'clock)
+    const angle = (index / totalPlayers) * 2 * Math.PI + Math.PI;
 
     const tableWidth = currentTableWidth;
     const tableHeight = currentTableHeight;
@@ -484,12 +486,13 @@ function getPlayerInfoClasses(player, tableTheme, isShowdownOrHandOver, winnerPl
 }
 // --- End Helper Functions ---
 
-function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = null, vsBot = false, botPlayerIndex = 1 }) {
+function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = null, vsBot = false, botPlayerIndex = 1, initialNumPlayers }) {
     const { user } = useAuth(); // Get authenticated user for stats tracking
-    const [numPlayers, setNumPlayers] = useState(vsBot ? 2 : initialGameState.numPlayers);
+    const defaultNumPlayers = vsBot ? (initialNumPlayers || 2) : initialGameState.numPlayers;
+    const [numPlayers, setNumPlayers] = useState(defaultNumPlayers);
     const [gameState, setGameState] = useState(() => {
         let state = JSON.parse(JSON.stringify(initialGameState));
-        state.numPlayers = vsBot ? 2 : numPlayers;
+        state.numPlayers = defaultNumPlayers;
         return state; // Don't call startNewHand here - it will be called in useEffect
     });
     const [isTestMode, setIsTestMode] = useState(isPracticeMode);
@@ -511,10 +514,12 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
     const [visibleHudPlayerId, setVisibleHudPlayerId] = useState(null);
     const [currentPlayerStats, setCurrentPlayerStats] = useState(null);
     
-    // Helper function to get human player ID in bot mode
+    // 1. Add a state to track which bots played preflop
+    const [botsPlayedPreflop, setBotsPlayedPreflop] = useState(new Set());
+    
+    // Move getHumanPlayerId above render logic
     const getHumanPlayerId = () => {
-        if (!vsBot) return 'player1'; // Default human player in regular mode
-        // In bot mode, human is the player that's NOT the bot
+        if (!vsBot) return 'player1';
         const humanPlayerIndex = botPlayerIndex === 0 ? 1 : 0;
         return `player${humanPlayerIndex + 1}`;
     };
@@ -596,10 +601,8 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
 
         // Initialize bot game stats tracking if in bot mode and user is authenticated
         if (vsBot && user?.id) {
-            // Calculate human player ID inline (bot is at botPlayerIndex, human is the other)
-            const humanPlayerIndex = botPlayerIndex === 0 ? 1 : 0;
-            const humanPlayerId = `player${humanPlayerIndex + 1}`;
-            const humanPlayer = currentState.players.find(p => p.id === humanPlayerId);
+            // Find the human player (not the bot)
+            const humanPlayer = currentState.players.find(p => p.id !== `player${botPlayerIndex + 1}`);
             
             if (humanPlayer) {
                 const handStats = {};
@@ -682,6 +685,10 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
         currentState.players[currentState.currentPlayerIndex].isTurn = true;
 
         currentState.message = `Hand started. Blinds posted. ${currentState.players[currentState.currentPlayerIndex].name}'s turn.`;
+
+        // In startNewHand, after initializing the new hand, reset botsPlayedPreflop
+        setBotsPlayedPreflop(new Set());
+
         return currentState;
     }
 
@@ -921,6 +928,9 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
             console.log('[BotStats] Committed hand stats to database');
         }
         
+        // Add:
+        newState.lastHandHistory = [...(state.handHistory || [])];
+        
         return newState;
     }
 
@@ -1059,7 +1069,8 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
             // Track stats for bot games if in bot mode and user is authenticated
             if (vsBot && user?.id && botGameHandStats) {
                 const currentPlayer = prevState.players[prevState.currentPlayerIndex];
-                if (currentPlayer && currentPlayer.id === getHumanPlayerId()) {
+                const humanPlayerId = getHumanPlayerId();
+                if (currentPlayer && currentPlayer.id === humanPlayerId) {
                     const actionType = actionFn.name.toLowerCase();
                     trackBotGameAction(botGameHandStats, prevState, currentPlayer, actionType);
                     console.log(`[BotStats] Tracked ${actionType} action for ${currentPlayer.name}`);
@@ -1077,6 +1088,17 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
                 return progressTurn(stateAfterAction);
             }
         });
+        }
+
+        // 2. In handleAction (inside the callback), after a bot takes a preflop action that is not fold, add their ID to botsPlayedPreflop
+        // (Add this logic after the action is executed and before setGameState)
+        if (
+          vsBot &&
+          gameState.currentBettingRound === GamePhase.PREFLOP &&
+          gameState.players[gameState.currentPlayerIndex].id !== getHumanPlayerId() &&
+          actionName !== 'FOLD'
+        ) {
+          setBotsPlayedPreflop(prev => new Set(prev).add(gameState.players[gameState.currentPlayerIndex].id));
         }
     }, [isPracticeMode, onAction, gameState, vsBot, user?.id, botGameHandStats, getHumanPlayerId]);
 
@@ -1124,6 +1146,17 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
             newState.players[playerIndex].isTurn = false;
             newState.pot += actualCallAmount;
             
+            // Log the call action in handHistory for bot logic
+            newState.handHistory = newState.handHistory || [];
+            newState.handHistory.push({
+              round: newState.currentBettingRound,
+              type: 'call',
+              position: player.positionName,
+              amount: actualCallAmount,
+              playerId: player.id,
+              timestamp: Date.now()
+            });
+            
             return newState;
             },
             amount: gameState.currentHighestBet - (gameState.players[gameState.currentPlayerIndex]?.currentBet || 0)
@@ -1166,7 +1199,19 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
             if (!newState.players[playerIndex].isAllIn || raiseAmount >= prevState.minRaiseAmount) { 
                 newState.minRaiseAmount = raiseAmount > 0 ? raiseAmount : prevState.minRaiseAmount;
             }
-
+            // Log the raise/bet action in handHistory for bot logic
+            newState.handHistory = newState.handHistory || [];
+            newState.handHistory.push({
+              round: newState.currentBettingRound,
+              type: 'raise',
+              position: player.positionName,
+              amount: amount,
+              playerId: player.id,
+              timestamp: Date.now()
+            });
+            // Ensure currentBet for all players always reflects the total amount put into the pot for this betting round.
+            // No reset needed; currentBet is cumulative for the round and is only reset at the start of a new round.
+            // This ensures the yellow circle always shows the correct amount each player has contributed so far.
             return newState;
             }
         });
@@ -1184,66 +1229,75 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
                 newState.players[playerIndex].isTurn = false;
                 // Immediately award pot if only one player remains
                 const nonFolded = newState.players.filter(p => !p.isFolded);
+                // Allow hand to continue even when human folds for testing purposes
                 if (nonFolded.length === 1) {
                     return awardPot(newState);
                 }
+                // Log the fold action in handHistory for bot logic
+                newState.handHistory = newState.handHistory || [];
+                newState.handHistory.push({
+                  round: newState.currentBettingRound,
+                  type: 'fold',
+                  position: newState.players[playerIndex].positionName,
+                  amount: 0,
+                  playerId: newState.players[playerIndex].id,
+                  timestamp: Date.now()
+                });
                 return newState;
             }
         });
     }, [handleAction]);
 
-    // Bot action handling
+        // Bot action handling
     const processBotAction = useCallback(async () => {
         if (!vsBot || botProcessing || gameState.currentBettingRound === GamePhase.HAND_OVER) {
             return;
         }
 
-        const currentPlayerIndex = gameState.currentPlayerIndex;
-        if (currentPlayerIndex !== botPlayerIndex) {
-            return; // Not bot's turn
-        }
-
         setBotProcessing(true);
 
         try {
-            // Start new Slumbot session if needed
-            if (!slumbotSessionActive) {
-                const response = await SlumbotAPI.newHand();
-                if (response.success) {
-                    setSlumbotSessionActive(true);
-                    // Process initial bot action if provided
-                    if (response.data.action) {
-                        const botAction = SlumbotAPI.parseSlumbotAction(response.data.action);
-                        if (botAction) {
-                            await executeBotAction(botAction);
-                        }
-                    }
-                } else {
-                    console.error('Failed to start Slumbot session:', response.error);
-                    // Fallback to random action
-                    await executeRandomBotAction();
-                }
-            } else {
-                // Send current action to Slumbot
-                const lastAction = getLastHumanAction();
-                if (lastAction) {
-                    const slumbotActionString = SlumbotAPI.convertActionToSlumbot(lastAction.type, lastAction.amount);
-                    const response = await SlumbotAPI.sendAction(slumbotActionString);
-                    
-                    if (response.success && response.data.action) {
-                        const botAction = SlumbotAPI.parseSlumbotAction(response.data.action);
-                        if (botAction) {
-                            await executeBotAction(botAction);
-                        } else {
-                            await executeRandomBotAction();
+            // Use Slumbot for heads-up, PokerBot for 6-max and 9-max
+            if (numPlayers === 2) {
+                // Heads-up: Use Slumbot
+                if (!slumbotSessionActive) {
+                    const response = await SlumbotAPI.newHand();
+                    if (response.success) {
+                        setSlumbotSessionActive(true);
+                        if (response.data.action) {
+                            const botAction = SlumbotAPI.parseSlumbotAction(response.data.action);
+                            if (botAction) {
+                                await executeBotAction(botAction);
+                            }
                         }
                     } else {
-                        console.error('Failed to get bot action:', response.error);
+                        console.error('Failed to start Slumbot session:', response.error);
                         await executeRandomBotAction();
                     }
                 } else {
-                    await executeRandomBotAction();
+                    const lastAction = getLastHumanAction();
+                    if (lastAction) {
+                        const slumbotActionString = SlumbotAPI.convertActionToSlumbot(lastAction.type, lastAction.amount);
+                        const response = await SlumbotAPI.sendAction(slumbotActionString);
+                        
+                        if (response.success && response.data.action) {
+                            const botAction = SlumbotAPI.parseSlumbotAction(response.data.action);
+                            if (botAction) {
+                                await executeBotAction(botAction);
+                            } else {
+                                await executeRandomBotAction();
+                            }
+                        } else {
+                            console.error('Failed to get bot action:', response.error);
+                            await executeRandomBotAction();
+                        }
+                    } else {
+                        await executeRandomBotAction();
+                    }
                 }
+            } else {
+                // 6-max and 9-max: Use PokerBot
+                await executePokerBotAction();
             }
         } catch (error) {
             console.error('Error processing bot action:', error);
@@ -1251,11 +1305,11 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
         } finally {
             setBotProcessing(false);
         }
-    }, [vsBot, botProcessing, gameState, botPlayerIndex, slumbotSessionActive]);
+    }, [vsBot, botProcessing, gameState, botPlayerIndex, slumbotSessionActive, numPlayers]);
 
     const executeBotAction = useCallback(async (botAction) => {
         // Add a small delay to make bot actions feel more natural
-        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
+        await new Promise(resolve => setTimeout(resolve, 50 + Math.random() * 100));
 
         switch (botAction.type) {
             case 'fold':
@@ -1276,9 +1330,50 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
         }
     }, [handleFold, handleCheck, handleCall, handleBet]);
 
+    const executePokerBotAction = useCallback(async () => {
+        // Add a small delay to make bot actions feel more natural
+        await new Promise(resolve => setTimeout(resolve, 50 + Math.random() * 100));
+
+        try {
+            const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+            if (!currentPlayer) {
+                await executeRandomBotAction();
+                return;
+            }
+
+            // Get bot decision
+            const botDecision = PokerBot.calculateAction(gameState, currentPlayer);
+            const formattedAction = PokerBot.formatAction(botDecision);
+
+            console.log(`[PokerBot] ${currentPlayer.name} (${currentPlayer.positionName}) decides:`, formattedAction);
+
+            // Execute the action
+            switch (formattedAction.type) {
+                case 'fold':
+                    handleFold();
+                    break;
+                case 'check':
+                    handleCheck();
+                    break;
+                case 'call':
+                    handleCall();
+                    break;
+                case 'bet':
+                    handleBet(formattedAction.amount);
+                    break;
+                default:
+                    console.warn('Unknown bot action:', formattedAction);
+                    await executeRandomBotAction();
+            }
+        } catch (error) {
+            console.error('Error executing PokerBot action:', error);
+            await executeRandomBotAction();
+        }
+    }, [gameState, handleFold, handleCheck, handleCall, handleBet]);
+
     const executeRandomBotAction = useCallback(async () => {
         // Add a small delay
-        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
+        await new Promise(resolve => setTimeout(resolve, 50 + Math.random() * 100));
 
         const { canCheck, canCall, canBet } = getActionButtonState(gameState);
         
@@ -1321,29 +1416,30 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
 
     // Effect to detect when it's bot's turn
     useEffect(() => {
-        if (vsBot && gameState.currentPlayerIndex === botPlayerIndex && !botProcessing) {
+        if (
+            vsBot &&
+            gameState.players.length > 0 &&
+            gameState.currentPlayerIndex !== -1 &&
+            gameState.players[gameState.currentPlayerIndex].id !== getHumanPlayerId() &&
+            !botProcessing
+        ) {
             const timer = setTimeout(() => {
                 processBotAction();
             }, 500); // Small delay before bot acts
-            
             return () => clearTimeout(timer);
         }
-    }, [vsBot, gameState.currentPlayerIndex, botPlayerIndex, botProcessing, processBotAction]);
+    }, [vsBot, gameState.currentPlayerIndex, gameState.players, botProcessing, processBotAction, getHumanPlayerId]);
 
-    // Reset Slumbot session when starting new hand
+    // Reset bot sessions when starting new hand
     useEffect(() => {
         if (vsBot && gameState.currentBettingRound === GamePhase.PREFLOP && gameState.handHistory.length === 0) {
-            SlumbotAPI.resetSession();
+            // Reset Slumbot session for heads-up games
+            if (numPlayers === 2) {
+                SlumbotAPI.resetSession();
+            }
             setSlumbotSessionActive(false);
         }
-    }, [vsBot, gameState.currentBettingRound, gameState.handHistory.length]);
-
-    // Reset Slumbot session when starting new hand
-    useEffect(() => {
-        if (vsBot && gameState.currentBettingRound === GamePhase.PREFLOP && gameState.handHistory.length === 0) {
-            setSlumbotSessionActive(false);
-        }
-    }, [vsBot, gameState.currentBettingRound, gameState.handHistory.length]);
+    }, [vsBot, gameState.currentBettingRound, gameState.handHistory.length, numPlayers]);
 
     // Fetch player stats when HUD is opened
     useEffect(() => {
@@ -1432,6 +1528,19 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
         return () => clearTimeout(timer);
     }, [gameState.currentBettingRound, gameState.calculatedPots.length]);
 
+    // Before rendering players:
+    let rotatedPlayers = gameState.players;
+    if (vsBot) {
+        const humanId = getHumanPlayerId();
+        const humanIndex = gameState.players.findIndex(p => p.id === humanId);
+        if (humanIndex !== -1) {
+            rotatedPlayers = [
+                ...gameState.players.slice(humanIndex),
+                ...gameState.players.slice(0, humanIndex)
+            ];
+        }
+    }
+
     return (
         <div className="poker-wrapper w-full h-full" style={{ width: '100%', height: '100%', background: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
             {/* Add practice mode UI elements if needed */}
@@ -1516,8 +1625,8 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
 
                 {/* Players Area - Render Player Info and Hand separately */}
                 <div className="players-area absolute inset-0 w-full h-full z-0">
-                    {gameState.players.map((player, index) => {
-                        const { infoStyle, cardStyle, betStyle, cardWidth: currentPlayerCardWidth } = getPlayerPosition(index, gameState.players.length, tableDimensions.width, tableDimensions.height);
+                    {rotatedPlayers.map((player, index) => {
+                        const { infoStyle, cardStyle, betStyle, cardWidth: currentPlayerCardWidth } = getPlayerPosition(index, rotatedPlayers.length, tableDimensions.width, tableDimensions.height);
                         const infoClasses = getPlayerInfoClasses(player, tableTheme, isShowdownOrHandOver && showWinnerAnimation, winnerPlayerIds);
                         return (
                             <React.Fragment key={player.id}>
@@ -1525,11 +1634,7 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
                                 <div style={cardStyle} className={`${player.isFolded && gameState.currentBettingRound !== GamePhase.HAND_OVER ? 'opacity-30 grayscale' : ''}`}>
                                     <PlayerHand 
                                         cards={player.cards} 
-                                        showAll={
-                                            player.id === getHumanPlayerId() || 
-                                            (isTestMode && showAllCards) ||
-                                            (isShowdownOrHandOver && !player.isFolded && gameState.players.filter(p => !p.isFolded).length > 1)
-                                        }
+                                        showAll={true}
                                         isWinner={winnerPlayerIds.includes(player.id) && showWinnerAnimation}
                                     />
                                 </div>
@@ -1573,7 +1678,7 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
                                         stack={player.stack}
                                         isTurn={player.isTurn}
                                         handDescription={
-                                            (player.id === getHumanPlayerId() || isTestMode || isPracticeMode || (isShowdownOrHandOver && !player.isFolded && gameState.players.filter(p => !p.isFolded).length > 1))
+                                            (player.id === getHumanPlayerId() || isTestMode || isPracticeMode || (isShowdownOrHandOver && !player.isFolded && rotatedPlayers.filter(p => !p.isFolded).length > 1))
                                                 ? (() => {
                                                     if (gameState.currentBettingRound === GamePhase.PREFLOP) return null;
                                                     if (player.cards.length < 2) return 'No Hand Yet';

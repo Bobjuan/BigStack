@@ -53,6 +53,49 @@ const PlayerStatsChat = () => {
   const vpip = stats && stats.vpip_opportunities ? Math.round((stats.vpip_actions / stats.vpip_opportunities) * 100) : null;
   const pfr = stats && stats.pfr_opportunities ? Math.round((stats.pfr_actions / stats.pfr_opportunities) * 100) : null;
 
+  // --- Evaluate Stats Function ---
+  const evaluateStats = async () => {
+    if (!stats) return;
+    setLoading(true);
+    // Build selected stats object
+    const statData = {};
+    statFields.forEach(({ key }) => {
+      if (selectedStats[key]) {
+        if (key === 'vpip') statData.VPIP = vpip !== null ? `${vpip}%` : 'N/A';
+        else if (key === 'pfr') statData.PFR = pfr !== null ? `${pfr}%` : 'N/A';
+        else statData[key] = stats[key] !== undefined ? stats[key] : 'N/A';
+      }
+    });
+    try {
+      const res = await fetch('http://127.0.0.1:5000/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: 'stat-evaluator',
+          message: statData
+        })
+      });
+      const data = await res.json();
+      if (data && data.response) {
+        setMessages(msgs => [
+          ...msgs,
+          { sender: 'bot', text: data.response }
+        ]);
+      } else {
+        setMessages(msgs => [
+          ...msgs,
+          { sender: 'bot', text: 'Sorry, there was a problem evaluating your stats.' }
+        ]);
+      }
+    } catch (err) {
+      setMessages(msgs => [
+        ...msgs,
+        { sender: 'bot', text: 'Error contacting the stat evaluator API.' }
+      ]);
+    }
+    setLoading(false);
+  };
+
   const handleToggle = (key) => {
     setSelectedStats((prev) => ({ ...prev, [key]: !prev[key] }));
   };
