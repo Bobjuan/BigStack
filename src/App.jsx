@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import PreLaunchPage from './pages/PreLaunchPage';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/auth/LoginPage';
 import SignupPage from './pages/auth/SignupPage';
@@ -31,6 +32,30 @@ import MainLayout from './components/layout/MainLayout';
 import AiReviewPage from './pages/AiReviewPage';
 import FloatingChatWidget from './components/ai-review/FloatingChatWidget';
 
+// Component to check access and redirect appropriately
+function AccessChecker({ children }) {
+  const hasAccess = localStorage.getItem('bigstack_access') === 'granted';
+  
+  if (!hasAccess) {
+    return <PreLaunchPage />;
+  }
+  
+  return children;
+}
+
+// Combined AccessChecker + ProtectedRoute + MainLayout for authenticated pages
+function AuthenticatedPage({ children }) {
+  return (
+    <AccessChecker>
+      <ProtectedRoute>
+        <MainLayout>
+          {children}
+        </MainLayout>
+      </ProtectedRoute>
+    </AccessChecker>
+  );
+}
+
 function AppRoutes() {
   const location = useLocation();
   const path = location.pathname;
@@ -57,151 +82,40 @@ function AppRoutes() {
 
   return (
     <Routes>
-      {/* Public routes */}
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/signup" element={<SignupPage />} />
-      <Route path="/contact" element={<ContactPage />} />
-      <Route path="/pricing" element={<PricingPage />} />
-      <Route path="/product" element={<ProductPage />} />
-      <Route path="/resources" element={<ResourcesPage />} />
-      <Route path="/customers" element={<CustomersPage />} />
-      <Route path="/ai-review" element={<AiReviewPage />} />
+      {/* Pre-launch landing page - always accessible */}
+      <Route path="/" element={<PreLaunchPage />} />
+      
+      {/* Protected access routes */}
+      <Route path="/welcome" element={<AccessChecker><LandingPage /></AccessChecker>} />
+      <Route path="/login" element={<AccessChecker><LoginPage /></AccessChecker>} />
+      <Route path="/signup" element={<AccessChecker><SignupPage /></AccessChecker>} />
+      <Route path="/contact" element={<AccessChecker><ContactPage /></AccessChecker>} />
+      <Route path="/pricing" element={<AccessChecker><PricingPage /></AccessChecker>} />
+      <Route path="/product" element={<AccessChecker><ProductPage /></AccessChecker>} />
+      <Route path="/resources" element={<AccessChecker><ResourcesPage /></AccessChecker>} />
+      <Route path="/customers" element={<AccessChecker><CustomersPage /></AccessChecker>} />
+      <Route path="/ai-review" element={<AccessChecker><AiReviewPage /></AccessChecker>} />
 
       {/* Protected routes with MainLayout */}
-      <Route path="/dashboard" element={
-          <ProtectedRoute>
-          <MainLayout>
-            <DashboardPage />
-          </MainLayout>
-          </ProtectedRoute>
-      } />
-      <Route path="/play" element={
-          <ProtectedRoute>
-          <MainLayout>
-            <PlayPage />
-          </MainLayout>
-          </ProtectedRoute>
-      } />
-      <Route path="/play-with-friends" element={
-          <ProtectedRoute>
-          <MainLayout>
-            <PlayWithFriendsPage />
-          </MainLayout>
-          </ProtectedRoute>
-      } />
-      <Route path="/play-with-friends/:gameId?" element={
-          <ProtectedRoute>
-          <MainLayout>
-            <PlayWithFriendsPage />
-          </MainLayout>
-          </ProtectedRoute>
-      } />
-      <Route path="/cash-game" element={
-          <ProtectedRoute>
-          <MainLayout>
-            <CashGamePage />
-          </MainLayout>
-          </ProtectedRoute>
-      } />
-      <Route path="/heads-up" element={
-          <ProtectedRoute>
-          <MainLayout>
-            <HeadsUpPage />
-          </MainLayout>
-          </ProtectedRoute>
-      } />
-      <Route path="/play-bot-heads-up" element={
-          <ProtectedRoute>
-          <MainLayout>
-            <BotHeadsUpPage />
-          </MainLayout>
-          </ProtectedRoute>
-      } />
-      <Route path="/deep-stack" element={
-          <ProtectedRoute>
-          <MainLayout>
-            <DeepStackPage />
-          </MainLayout>
-          </ProtectedRoute>
-      } />
-      <Route path="/gto-trainer" element={
-          <ProtectedRoute>
-          <MainLayout>
-            <GTOTrainerPage />
-          </MainLayout>
-          </ProtectedRoute>
-      } />
-      <Route path="/tournament" element={
-          <ProtectedRoute>
-          <MainLayout>
-            <TournamentPage />
-          </MainLayout>
-          </ProtectedRoute>
-      } />
-      <Route path="/learn" element={
-          <ProtectedRoute>
-          <MainLayout>
-            <LearnPage />
-          </MainLayout>
-          </ProtectedRoute>
-      } />
-      <Route path="/learn/course/:courseId" element={
-          <ProtectedRoute>
-          <MainLayout>
-            <ModulesPage />
-          </MainLayout>
-          </ProtectedRoute>
-      } />
-      <Route path="/learn/course/:courseId/module/:moduleId" element={
-          <ProtectedRoute>
-          <MainLayout>
-            <CoursePage />
-          </MainLayout>
-        </ProtectedRoute>
-      } />
-      <Route path="/learn/course/:courseId/module/:moduleId/lesson/:lessonId" element={
-        <ProtectedRoute>
-          <MainLayout>
-            <LessonPage />
-          </MainLayout>
-          </ProtectedRoute>
-      } />
-      <Route path="/learn/lessons/:lessonId" element={
-          <ProtectedRoute>
-          <MainLayout>
-            <LessonPage />
-          </MainLayout>
-          </ProtectedRoute>
-      } />
-      <Route path="/quiz" element={
-          <ProtectedRoute>
-          <MainLayout>
-            <QuizPage />
-          </MainLayout>
-          </ProtectedRoute>
-      } />
-      <Route path="/profile" element={
-          <ProtectedRoute>
-          <MainLayout>
-            <ProfilePage />
-          </MainLayout>
-        </ProtectedRoute>
-      } />
-      <Route path="/learn/practice" element={
-        <ProtectedRoute>
-          <MainLayout>
-            <PracticeMenuPage />
-          </MainLayout>
-        </ProtectedRoute>
-      } />
-      <Route path="/learn/practice/:scenarioId" element={
-        <ProtectedRoute>
-          <MainLayout>
-            <PracticeScenarioPage />
-          </MainLayout>
-          </ProtectedRoute>
-      } />
+      <Route path="/dashboard" element={<AuthenticatedPage><DashboardPage /></AuthenticatedPage>} />
+      <Route path="/play" element={<AuthenticatedPage><PlayPage /></AuthenticatedPage>} />
+      <Route path="/play-with-friends" element={<AuthenticatedPage><PlayWithFriendsPage /></AuthenticatedPage>} />
+      <Route path="/play-with-friends/:gameId?" element={<AuthenticatedPage><PlayWithFriendsPage /></AuthenticatedPage>} />
+      <Route path="/cash-game" element={<AuthenticatedPage><CashGamePage /></AuthenticatedPage>} />
+      <Route path="/heads-up" element={<AuthenticatedPage><HeadsUpPage /></AuthenticatedPage>} />
+      <Route path="/play-bot-heads-up" element={<AuthenticatedPage><BotHeadsUpPage /></AuthenticatedPage>} />
+      <Route path="/deep-stack" element={<AuthenticatedPage><DeepStackPage /></AuthenticatedPage>} />
+      <Route path="/gto-trainer" element={<AuthenticatedPage><GTOTrainerPage /></AuthenticatedPage>} />
+      <Route path="/tournament" element={<AuthenticatedPage><TournamentPage /></AuthenticatedPage>} />
+      <Route path="/learn" element={<AuthenticatedPage><LearnPage /></AuthenticatedPage>} />
+      <Route path="/learn/course/:courseId" element={<AuthenticatedPage><ModulesPage /></AuthenticatedPage>} />
+      <Route path="/learn/course/:courseId/module/:moduleId" element={<AuthenticatedPage><CoursePage /></AuthenticatedPage>} />
+      <Route path="/learn/course/:courseId/module/:moduleId/lesson/:lessonId" element={<AuthenticatedPage><LessonPage /></AuthenticatedPage>} />
+      <Route path="/learn/lessons/:lessonId" element={<AuthenticatedPage><LessonPage /></AuthenticatedPage>} />
+      <Route path="/quiz" element={<AuthenticatedPage><QuizPage /></AuthenticatedPage>} />
+      <Route path="/profile" element={<AuthenticatedPage><ProfilePage /></AuthenticatedPage>} />
+      <Route path="/learn/practice" element={<AuthenticatedPage><PracticeMenuPage /></AuthenticatedPage>} />
+      <Route path="/learn/practice/:scenarioId" element={<AuthenticatedPage><PracticeScenarioPage /></AuthenticatedPage>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
