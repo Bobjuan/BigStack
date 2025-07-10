@@ -940,7 +940,7 @@ class PokerBot {
     
     if (isPocketPair) {
       // Pocket pairs are strong - overpair to most boards
-      baseValue = 2.5 + (pairRank / 14) * 0.5; // 2.5 to 3.0 range
+      baseValue = 5.0 + (pairRank / 14) * 2.0; // 5.0 to 7.0 range - much stronger
     } else if (isHoleCardPair && isBoardPair) {
       // Top pair with hole card
       baseValue = this.getTopPairValue(pairRank, communityRanks, kickers);
@@ -949,7 +949,7 @@ class PokerBot {
       baseValue = this.getBoardPairValue(pairRank, communityRanks, kickers);
     } else {
       // This shouldn't happen with one pair, but handle it
-      baseValue = 2.0 + (pairRank / 14) * 0.3;
+      baseValue = 3.0 + (pairRank / 14) * 0.5;
     }
     
     // Add kicker value
@@ -966,27 +966,27 @@ class PokerBot {
     // Top pair is when our pair rank is higher than all board cards
     if (pairRank > maxBoardRank) {
       // Overpair - very strong
-      return 2.8 + (pairRank / 14) * 0.4; // 2.8 to 3.2 range
+      return 6.0 + (pairRank / 14) * 2.0; // 6.0 to 8.0 range - much stronger
     }
     
     // Top pair - our pair matches the highest board card
     if (pairRank === maxBoardRank) {
-      let baseValue = 2.4; // Base top pair value
+      let baseValue = 4.5; // Base top pair value - much higher
       
       // Adjust based on kicker strength
       const topKicker = kickers[0] || 0;
-      if (topKicker >= 12) baseValue += 0.3; // Broadway kicker
-      else if (topKicker >= 10) baseValue += 0.2; // Ten kicker
-      else if (topKicker >= 8) baseValue += 0.1; // Eight kicker
+      if (topKicker >= 12) baseValue += 0.5; // Broadway kicker
+      else if (topKicker >= 10) baseValue += 0.3; // Ten kicker
+      else if (topKicker >= 8) baseValue += 0.2; // Eight kicker
       
       // Adjust based on board texture
       const uniqueBoardRanks = [...new Set(communityRanks)];
       if (uniqueBoardRanks.length === 3) {
         // Rainbow board - top pair is stronger
-        baseValue += 0.1;
+        baseValue += 0.2;
       } else if (uniqueBoardRanks.length === 2) {
         // Paired board - top pair is weaker
-        baseValue -= 0.1;
+        baseValue -= 0.2;
       }
       
       return baseValue;
@@ -994,36 +994,36 @@ class PokerBot {
     
     // Middle pair - our pair is between highest and lowest board cards
     if (pairRank < maxBoardRank && pairRank > minBoardRank) {
-      let baseValue = 2.0; // Base middle pair value
+      let baseValue = 3.0; // Base middle pair value - higher
       
       // Adjust based on kicker strength
       const topKicker = kickers[0] || 0;
-      if (topKicker >= 12) baseValue += 0.2; // Broadway kicker
-      else if (topKicker >= 10) baseValue += 0.1; // Ten kicker
+      if (topKicker >= 12) baseValue += 0.3; // Broadway kicker
+      else if (topKicker >= 10) baseValue += 0.2; // Ten kicker
       
       // Middle pair is weaker than top pair
-      baseValue -= 0.2;
+      baseValue -= 0.3;
       
       return baseValue;
     }
     
     // Bottom pair - our pair matches the lowest board card
     if (pairRank === minBoardRank) {
-      let baseValue = 1.8; // Base bottom pair value
+      let baseValue = 2.5; // Base bottom pair value - higher
       
       // Adjust based on kicker strength
       const topKicker = kickers[0] || 0;
-      if (topKicker >= 12) baseValue += 0.2; // Broadway kicker
-      else if (topKicker >= 10) baseValue += 0.1; // Ten kicker
+      if (topKicker >= 12) baseValue += 0.3; // Broadway kicker
+      else if (topKicker >= 10) baseValue += 0.2; // Ten kicker
       
       // Bottom pair is much weaker
-      baseValue -= 0.4;
+      baseValue -= 0.5;
       
       return baseValue;
     }
     
     // Fallback
-    return 2.0 + (pairRank / 14) * 0.2;
+    return 3.0 + (pairRank / 14) * 0.5;
   }
 
   // Evaluate board pair strength (when board is paired and we have a kicker)
@@ -1031,19 +1031,19 @@ class PokerBot {
     const maxBoardRank = Math.max(...communityRanks);
     const minBoardRank = Math.min(...communityRanks);
     
-    let baseValue = 1.6; // Base board pair value (weaker than hole card pairs)
+    let baseValue = 2.5; // Base board pair value - higher
     
     // Adjust based on kicker strength
     const topKicker = kickers[0] || 0;
-    if (topKicker >= 12) baseValue += 0.3; // Broadway kicker
-    else if (topKicker >= 10) baseValue += 0.2; // Ten kicker
-    else if (topKicker >= 8) baseValue += 0.1; // Eight kicker
+    if (topKicker >= 12) baseValue += 0.5; // Broadway kicker
+    else if (topKicker >= 10) baseValue += 0.3; // Ten kicker
+    else if (topKicker >= 8) baseValue += 0.2; // Eight kicker
     
     // Adjust based on pair rank relative to board
     if (pairRank === maxBoardRank) {
-      baseValue += 0.2; // Top board pair
+      baseValue += 0.3; // Top board pair
     } else if (pairRank === minBoardRank) {
-      baseValue -= 0.2; // Bottom board pair
+      baseValue -= 0.3; // Bottom board pair
     }
     
     return baseValue;
@@ -1178,18 +1178,18 @@ class PokerBot {
     
     let potential = 0;
     
-    // Flush draw potential - give more credit
+    // Flush draw potential - give much more credit
     const suitCounts = {};
     suits.forEach(suit => suitCounts[suit] = (suitCounts[suit] || 0) + 1);
     const maxSuitCount = Math.max(...Object.values(suitCounts));
-    if (maxSuitCount >= 4) potential += 0.6; // Increased from 0.4
-    else if (maxSuitCount === 3) potential += 0.4; // Increased from 0.2
+    if (maxSuitCount >= 4) potential += 2.5; // Much higher - flush draws are strong
+    else if (maxSuitCount === 3) potential += 1.5; // Much higher - flush draws are strong
     
-    // Straight draw potential - give more credit
+    // Straight draw potential - give much more credit
     const uniqueRanks = [...new Set(ranks)].sort((a, b) => a - b);
     for (let i = 0; i < uniqueRanks.length - 2; i++) {
       if (uniqueRanks[i + 2] - uniqueRanks[i] <= 4) {
-        potential += 0.4; // Increased from 0.2
+        potential += 1.8; // Much higher - straight draws are strong
         break;
       }
     }
@@ -1199,20 +1199,28 @@ class PokerBot {
     const communityRanks = ranks.slice(0, -2);
     const maxCommunityRank = Math.max(...communityRanks);
     if (holeCardRanks.some(rank => rank > maxCommunityRank)) {
-      potential += 0.2; // Increased from 0.1
+      potential += 0.8; // Higher - overcards have value
     }
     
-    // Gutshot potential
+    // Gutshot potential - give more credit
     for (let i = 0; i < uniqueRanks.length - 3; i++) {
       if (uniqueRanks[i + 3] - uniqueRanks[i] <= 4) {
-        potential += 0.2;
+        potential += 1.0; // Higher - gutshots have value
         break;
       }
     }
     
     // Backdoor flush potential
     if (maxSuitCount === 2) {
-      potential += 0.1;
+      potential += 0.3; // Slight boost for backdoor flush
+    }
+    
+    // Open-ended straight draw (even stronger)
+    for (let i = 0; i < uniqueRanks.length - 3; i++) {
+      if (uniqueRanks[i + 3] - uniqueRanks[i] === 3) {
+        potential += 0.5; // Bonus for open-ended
+        break;
+      }
     }
     
     return potential;
@@ -1363,43 +1371,165 @@ class PokerBot {
     const isAggressor = this.isAggressor(gameState, playerState);
     const isLastAggressor = this.isLastAggressor(gameState, playerState);
     
-    // Calculate hand strength percentile
-    const handRank = this.getHandRank(handStrength);
-    
-    // Adjust for number of players
-    const playerMultiplier = Math.max(0.5, 1 - (activePlayers - 2) * 0.1);
-    const adjustedHandRank = handRank * playerMultiplier;
+    // Get raw hand strength without excessive scaling
+    const rawHandStrength = handStrength;
     
     // Analyze board texture
     const boardTexture = this.analyzeBoardTexture(communityCards);
-    const textureMultiplier = this.getBoardTextureMultiplier(boardTexture, handStrength);
-    const finalHandRank = adjustedHandRank * textureMultiplier;
     
-    // Position adjustment
-    const positionMultiplier = this.getPostflopPositionMultiplier(position, bettingRound);
-    const finalHandRankWithPosition = finalHandRank * positionMultiplier;
-    
-    // Get opponent betting pattern and adjust calling frequency
-    const opponentBettingPattern = this.getOpponentBettingPattern(gameState, bettingRound);
-    const patternMultiplier = this.getBettingPatternMultiplier(opponentBettingPattern, bettingRound);
-    const finalHandRankWithPattern = finalHandRankWithPosition * patternMultiplier;
-    
-    // Determine bluff frequency based on street and board texture
-    const bluffFreq = this.getBluffFrequency(bettingRound, boardTexture);
-    const shouldBluff = Math.random() < bluffFreq;
-    
-    // Debug pair type information
+    // Get pair type for better decision making
     const pairType = this.getPairType(handStrength, communityCards, playerState.cards || []);
     
-    console.log(`[PokerBot][POSTFLOP] Hand: ${this.getHandNotation(playerState.cards || [])}, Strength: ${finalHandRankWithPattern.toFixed(3)}, Pair Type: ${pairType}, Bet: ${betSize}, Pot: ${potSize}, Call: ${callAmount}, Position: ${playerState.positionName}, Aggressor: ${isAggressor}, Pattern: ${opponentBettingPattern}, Multiplier: ${patternMultiplier.toFixed(2)}`);
+    // Calculate adjusted hand strength based on pair type and board texture
+    const adjustedHandStrength = this.calculateAdjustedHandStrength(rawHandStrength, pairType, boardTexture, bettingRound, position, activePlayers);
+    
+    // Get opponent betting pattern
+    const opponentBettingPattern = this.getOpponentBettingPattern(gameState, bettingRound);
+    
+    console.log(`[PokerBot][POSTFLOP] Hand: ${this.getHandNotation(playerState.cards || [])}, Raw Strength: ${rawHandStrength.toFixed(3)}, Adjusted: ${adjustedHandStrength.toFixed(3)}, Pair Type: ${pairType}, Bet: ${betSize}, Pot: ${potSize}, Call: ${callAmount}, Position: ${playerState.positionName}, Pattern: ${opponentBettingPattern}`);
     
     if (isRaised) {
       // Facing a bet/raise
-      return this.handleFacingBet(finalHandRankWithPattern, betSize, potOdds, callAmount, stackSize, bettingRound, boardTexture, position, isAggressor, currentHighestBet, opponentBettingPattern);
+      return this.handleFacingBet(adjustedHandStrength, betSize, potOdds, callAmount, stackSize, bettingRound, boardTexture, position, isAggressor, currentHighestBet, opponentBettingPattern, pairType);
     } else {
       // First to act
-      return this.handleFirstToAct(finalHandRankWithPattern, bettingRound, boardTexture, position, isLastAggressor, shouldBluff, currentHighestBet, stackSize, potSize);
+      return this.handleFirstToAct(adjustedHandStrength, bettingRound, boardTexture, position, isLastAggressor, currentHighestBet, stackSize, potSize, pairType);
     }
+  }
+
+  // Calculate adjusted hand strength based on pair type and context
+  calculateAdjustedHandStrength(rawStrength, pairType, boardTexture, bettingRound, position, activePlayers) {
+    let adjusted = rawStrength;
+    
+    // Boost overpairs significantly - they're very strong
+    if (pairType === 'overpair') {
+      adjusted = Math.max(adjusted, 8.0); // Very strong
+    }
+    
+    // Boost top pair hands
+    if (pairType === 'top_pair') {
+      adjusted = Math.max(adjusted, 4.0); // Strong
+    }
+    
+    // Boost pocket pairs that aren't overpairs
+    if (pairType === 'pocket_pair') {
+      adjusted = Math.max(adjusted, 3.5); // Strong
+    }
+    
+    // Boost draws based on board texture
+    if (boardTexture === 'drawHeavy' && rawStrength > 2.0) {
+      adjusted *= 1.5; // Draws are stronger on draw-heavy boards
+    }
+    
+    // Position bonus
+    if (position > 0.7) {
+      adjusted *= 1.2; // In position bonus
+    }
+    
+    // Player count adjustment
+    if (activePlayers <= 3) {
+      adjusted *= 1.3; // Heads-up or 3-way bonus
+    }
+    
+    return adjusted;
+  }
+
+  // Handle facing a bet/raise - simplified logic
+  handleFacingBet(handStrength, betSize, potOdds, callAmount, stackSize, bettingRound, boardTexture, position, isAggressor, currentHighestBet, opponentBettingPattern, pairType) {
+    // Very strong hands (overpairs, sets, etc.) - always raise
+    if (handStrength >= 7.0) {
+      console.log(`[PokerBot][POSTFLOP] Very strong hand (${handStrength.toFixed(3)}), raising for value`);
+      return this.decideRaise(currentHighestBet, stackSize, 'value');
+    }
+    
+    // Strong hands (top pair, good draws) - call or raise based on bet size
+    if (handStrength >= 4.0) {
+      if (betSize === 'tiny' || betSize === 'small') {
+        console.log(`[PokerBot][POSTFLOP] Strong hand (${handStrength.toFixed(3)}) raising small bet`);
+        return this.decideRaise(currentHighestBet, stackSize, 'value');
+      } else {
+        console.log(`[PokerBot][POSTFLOP] Strong hand (${handStrength.toFixed(3)}) calling`);
+        return { action: 'call', amount: Math.round(callAmount) };
+      }
+    }
+    
+    // Medium hands (middle pair, weak draws) - call small bets, fold large bets
+    if (handStrength >= 2.5) {
+      if (betSize === 'tiny' || betSize === 'small') {
+        console.log(`[PokerBot][POSTFLOP] Medium hand (${handStrength.toFixed(3)}) calling small bet`);
+        return { action: 'call', amount: Math.round(callAmount) };
+      } else if (betSize === 'medium' && potOdds < 0.3) {
+        console.log(`[PokerBot][POSTFLOP] Medium hand (${handStrength.toFixed(3)}) calling medium bet with good odds`);
+        return { action: 'call', amount: Math.round(callAmount) };
+      } else {
+        console.log(`[PokerBot][POSTFLOP] Medium hand (${handStrength.toFixed(3)}) folding to large bet`);
+        return { action: 'fold', amount: 0 };
+      }
+    }
+    
+    // Weak hands - only call with very good pot odds or against tiny bets
+    if (handStrength >= 1.5) {
+      if (betSize === 'tiny' && potOdds < 0.15) {
+        console.log(`[PokerBot][POSTFLOP] Weak hand (${handStrength.toFixed(3)}) calling tiny bet with good odds`);
+        return { action: 'call', amount: Math.round(callAmount) };
+      } else if (potOdds < 0.1) {
+        console.log(`[PokerBot][POSTFLOP] Weak hand (${handStrength.toFixed(3)}) calling with excellent odds`);
+        return { action: 'call', amount: Math.round(callAmount) };
+      } else {
+        console.log(`[PokerBot][POSTFLOP] Weak hand (${handStrength.toFixed(3)}) folding`);
+        return { action: 'fold', amount: 0 };
+      }
+    }
+    
+    // Very weak hands - only call with excellent pot odds
+    if (potOdds < 0.05) {
+      console.log(`[PokerBot][POSTFLOP] Very weak hand (${handStrength.toFixed(3)}) calling with excellent odds`);
+      return { action: 'call', amount: Math.round(callAmount) };
+    }
+    
+    console.log(`[PokerBot][POSTFLOP] Very weak hand (${handStrength.toFixed(3)}) folding`);
+    return { action: 'fold', amount: 0 };
+  }
+
+  // Handle first to act - simplified logic
+  handleFirstToAct(handStrength, bettingRound, boardTexture, position, isLastAggressor, currentHighestBet, stackSize, potSize, pairType) {
+    // Very strong hands - always bet for value
+    if (handStrength >= 7.0) {
+      console.log(`[PokerBot][POSTFLOP] Very strong hand (${handStrength.toFixed(3)}) betting for value`);
+      return this.decideRaise(currentHighestBet, stackSize, 'value');
+    }
+    
+    // Strong hands - bet for value
+    if (handStrength >= 4.0) {
+      console.log(`[PokerBot][POSTFLOP] Strong hand (${handStrength.toFixed(3)}) betting for value`);
+      return this.decideRaise(currentHighestBet, stackSize, 'value');
+    }
+    
+    // Medium hands - check/call or bet depending on position and board
+    if (handStrength >= 2.5) {
+      if (position > 0.7 && isLastAggressor) {
+        console.log(`[PokerBot][POSTFLOP] Medium hand (${handStrength.toFixed(3)}) betting in position as aggressor`);
+        return this.decideRaise(currentHighestBet, stackSize, 'bluff');
+      } else {
+        console.log(`[PokerBot][POSTFLOP] Medium hand (${handStrength.toFixed(3)}) checking`);
+        return { action: 'check', amount: 0 };
+      }
+    }
+    
+    // Weak hands - check unless we have position and were aggressor
+    if (handStrength >= 1.5) {
+      if (position > 0.8 && isLastAggressor && Math.random() < 0.3) {
+        console.log(`[PokerBot][POSTFLOP] Weak hand (${handStrength.toFixed(3)}) bluffing in position`);
+        return this.decideRaise(currentHighestBet, stackSize, 'bluff');
+      } else {
+        console.log(`[PokerBot][POSTFLOP] Weak hand (${handStrength.toFixed(3)}) checking`);
+        return { action: 'check', amount: 0 };
+      }
+    }
+    
+    // Very weak hands - check
+    console.log(`[PokerBot][POSTFLOP] Very weak hand (${handStrength.toFixed(3)}) checking`);
+    return { action: 'check', amount: 0 };
   }
 
   // Helper to determine pair type for debugging
@@ -1461,219 +1591,6 @@ class PokerBot {
     return 'no_pair';
   }
 
-  // Handle facing a bet/raise
-  handleFacingBet(handRank, betSize, potOdds, callAmount, stackSize, bettingRound, boardTexture, position, isAggressor, currentHighestBet, opponentBettingPattern) {
-    // Calculate adjusted thresholds based on bet size
-    const betSizeMultiplier = this.getBetSizeMultiplier(betSize);
-    const baseThresholds = {
-      fold: this.thresholds.fold * betSizeMultiplier,
-      call: this.thresholds.call * betSizeMultiplier,
-      raise: this.thresholds.raise * betSizeMultiplier,
-      valueBet: this.thresholds.valueBet * betSizeMultiplier
-    };
-
-    // Adjust thresholds based on opponent betting pattern
-    const adjustedThresholds = this.getPatternAdjustedThresholds(baseThresholds, opponentBettingPattern, bettingRound);
-
-    // Special cases for very strong hands
-    if (handRank > 0.9) {
-      console.log(`[PokerBot][POSTFLOP] Very strong hand (${handRank.toFixed(3)}), raising for value`);
-      return this.decideRaise(currentHighestBet, stackSize, 'value');
-    }
-
-    // Special handling for top pair hands - be more aggressive
-    const isTopPair = this.isTopPairHand(handRank, bettingRound);
-    if (isTopPair) {
-      console.log(`[PokerBot][POSTFLOP] Top pair detected (${handRank.toFixed(3)}), being more aggressive`);
-      // Lower the value bet threshold for top pair
-      adjustedThresholds.valueBet *= 0.8;
-      adjustedThresholds.raise *= 0.9;
-    }
-
-    // Safety check: if pot odds are very good, call with any reasonable hand
-    if (potOdds < 0.2 && handRank > 0.1) {
-      console.log(`[PokerBot][POSTFLOP] Good pot odds (${potOdds.toFixed(3)}), calling with reasonable hand (${handRank.toFixed(3)})`);
-      return { action: 'call', amount: Math.round(callAmount) };
-    }
-
-    // Handle different bet sizes
-    if (betSize === 'tiny') {
-      return this.handleTinyBet(handRank, potOdds, callAmount, adjustedThresholds, position, boardTexture, opponentBettingPattern, isTopPair);
-    } else if (betSize === 'small') {
-      return this.handleSmallBet(handRank, potOdds, callAmount, adjustedThresholds, position, boardTexture, opponentBettingPattern, isTopPair);
-    } else if (betSize === 'medium') {
-      return this.handleMediumBet(handRank, potOdds, callAmount, adjustedThresholds, position, boardTexture, bettingRound, opponentBettingPattern, isTopPair);
-    } else {
-      return this.handleLargeBet(handRank, potOdds, callAmount, adjustedThresholds, position, boardTexture, bettingRound, isAggressor, opponentBettingPattern, isTopPair);
-    }
-  }
-
-  // Enhanced bet handling functions with top pair awareness
-  handleTinyBet(handRank, potOdds, callAmount, thresholds, position, boardTexture, opponentBettingPattern, isTopPair) {
-    // Against tiny bets, call almost anything with any reasonable hand
-    const callThreshold = Math.max(0.02, potOdds * 0.3); // Extremely lenient
-    
-    // Adjust calling frequency based on pattern
-    const patternMultiplier = this.getBettingPatternMultiplier(opponentBettingPattern, 'TURN');
-    const adjustedCallThreshold = callThreshold / patternMultiplier;
-    
-    // Top pair should almost always raise tiny bets for value
-    if (isTopPair && handRank > 0.25) {
-      console.log(`[PokerBot][POSTFLOP] Top pair raising tiny bet for value`);
-      return { action: 'bet', amount: Math.round(callAmount * 3) };
-    }
-    
-    if (handRank > thresholds.valueBet) {
-      return { action: 'bet', amount: Math.round(callAmount * 3) }; // Raise for value
-    } else if (handRank > adjustedCallThreshold) {
-      return { action: 'call', amount: Math.round(callAmount) };
-    } else if (handRank > 0.05 && Math.random() < 0.6) { // Bluff frequently against tiny bets
-      return { action: 'bet', amount: Math.round(callAmount * 2.5) }; // Bluff raise frequently
-    } else if (handRank > 0.02 && Math.random() < 0.3) { // Call some very weak hands
-      return { action: 'call', amount: Math.round(callAmount) };
-    } else {
-      return { action: 'fold', amount: 0 };
-    }
-  }
-
-  handleSmallBet(handRank, potOdds, callAmount, thresholds, position, boardTexture, opponentBettingPattern, isTopPair) {
-    // Against small bets, we can call much wider - be very aggressive
-    const callThreshold = Math.max(0.05, potOdds * 0.5); // Much more lenient - only need 50% of pot odds
-    
-    // Adjust calling frequency based on pattern
-    const patternMultiplier = this.getBettingPatternMultiplier(opponentBettingPattern, 'TURN');
-    const adjustedCallThreshold = callThreshold / patternMultiplier;
-    
-    // Top pair should frequently raise small bets for value
-    if (isTopPair && handRank > 0.25) {
-      console.log(`[PokerBot][POSTFLOP] Top pair raising small bet for value`);
-      return { action: 'bet', amount: Math.round(callAmount * 2.5) };
-    }
-    
-    if (handRank > thresholds.valueBet) {
-      return { action: 'bet', amount: Math.round(callAmount * 2.5) }; // Raise for value
-    } else if (handRank > adjustedCallThreshold) {
-      return { action: 'call', amount: Math.round(callAmount) };
-    } else if (handRank > 0.1 && Math.random() < 0.4) { // Bluff more against small bets
-      return { action: 'bet', amount: Math.round(callAmount * 2) }; // Bluff raise frequently
-    } else {
-      return { action: 'fold', amount: 0 };
-    }
-  }
-
-  handleMediumBet(handRank, potOdds, callAmount, thresholds, position, boardTexture, bettingRound, opponentBettingPattern, isTopPair) {
-    const callThreshold = Math.max(0.1, potOdds * 0.8); // More lenient than before
-    
-    // Adjust calling frequency based on pattern
-    const patternMultiplier = this.getBettingPatternMultiplier(opponentBettingPattern, bettingRound);
-    const adjustedCallThreshold = callThreshold / patternMultiplier;
-    
-    // Top pair should call medium bets and sometimes raise
-    if (isTopPair && handRank > 0.3) {
-      console.log(`[PokerBot][POSTFLOP] Top pair calling medium bet`);
-      return { action: 'call', amount: Math.round(callAmount) };
-    }
-    
-    if (handRank > thresholds.valueBet) {
-      return { action: 'bet', amount: Math.round(callAmount * 2.5) }; // Raise for value
-    } else if (handRank > adjustedCallThreshold) {
-      return { action: 'call', amount: Math.round(callAmount) };
-    } else if (handRank > thresholds.bluff && this.shouldBluffAgainstMediumBet(boardTexture, bettingRound, position)) {
-      return { action: 'bet', amount: Math.round(callAmount * 2) }; // Bluff raise
-    } else if (handRank > 0.15 && Math.random() < 0.2) { // Call some marginal hands
-      return { action: 'call', amount: Math.round(callAmount) };
-    } else {
-      return { action: 'fold', amount: 0 };
-    }
-  }
-
-  handleLargeBet(handRank, potOdds, callAmount, thresholds, position, boardTexture, bettingRound, isAggressor, opponentBettingPattern, isTopPair) {
-    // Against large bets, we need to be more selective but not overly tight
-    const callThreshold = Math.max(0.15, potOdds * 1.2); // More lenient than before
-    
-    // If we were the aggressor, we can call much wider
-    const aggressorBonus = isAggressor ? 0.15 : 0;
-    const adjustedHandRank = handRank + aggressorBonus;
-    
-    // Adjust calling frequency based on pattern
-    const patternMultiplier = this.getBettingPatternMultiplier(opponentBettingPattern, bettingRound);
-    const adjustedCallThreshold = callThreshold / patternMultiplier;
-    
-    // Top pair should call large bets more often
-    if (isTopPair && adjustedHandRank > 0.25) {
-      console.log(`[PokerBot][POSTFLOP] Top pair calling large bet`);
-      return { action: 'call', amount: Math.round(callAmount) };
-    }
-    
-    if (adjustedHandRank > thresholds.valueBet) {
-      return { action: 'bet', amount: Math.round(callAmount * 2.5) }; // Raise for value
-    } else if (adjustedHandRank > adjustedCallThreshold) {
-      return { action: 'call', amount: Math.round(callAmount) };
-    } else if (adjustedHandRank > thresholds.bluff && this.shouldBluffAgainstLargeBet(boardTexture, bettingRound, position, isAggressor)) {
-      return { action: 'bet', amount: Math.round(callAmount * 2) }; // Bluff raise
-    } else if (adjustedHandRank > 0.2 && Math.random() < 0.15) { // Call some strong hands even against large bets
-      return { action: 'call', amount: Math.round(callAmount) };
-    } else {
-      return { action: 'fold', amount: 0 };
-    }
-  }
-
-  // Handle first to act
-  handleFirstToAct(handRank, bettingRound, boardTexture, position, isLastAggressor, shouldBluff, currentHighestBet, stackSize, potSize) {
-    // Special handling for top pair hands - be more aggressive
-    const isTopPair = this.isTopPairHand(handRank, bettingRound);
-    const adjustedValueBetThreshold = isTopPair ? this.thresholds.valueBet * 0.8 : this.thresholds.valueBet;
-    
-    if (handRank > adjustedValueBetThreshold) {
-      // Value bet - be more aggressive with top pair
-      const betType = isTopPair ? 'value' : 'value';
-      const betSize = this.getOptimalBetSize(potSize, stackSize, betType, bettingRound);
-      console.log(`[PokerBot][POSTFLOP] Value betting with ${isTopPair ? 'top pair' : 'strong hand'} (${handRank.toFixed(3)})`);
-      return { action: 'bet', amount: Math.round(betSize) };
-    } else if (shouldBluff && handRank > this.thresholds.bluff && this.shouldBluffFirstToAct(boardTexture, bettingRound, position, isLastAggressor)) {
-      // Bluff bet
-      const betSize = this.getOptimalBetSize(potSize, stackSize, 'bluff', bettingRound);
-      return { action: 'bet', amount: Math.round(betSize) };
-    } else {
-      return { action: 'check', amount: 0 };
-    }
-  }
-
-  // Helper to detect if this is likely a top pair hand
-  isTopPairHand(handRank, bettingRound) {
-    // Top pair hands typically have handRank between 0.25 and 0.45
-    // This is a rough heuristic based on the new pair evaluation system
-    return handRank >= 0.25 && handRank <= 0.45;
-  }
-
-  // Helper methods for postflop decision making
-  getBetSize(betAmount, potSize) {
-    if (betAmount === 0) return 'none';
-    const betPercentage = betAmount / potSize;
-    if (betPercentage <= 0.25) return 'tiny'; // Very small bets
-    if (betPercentage <= 0.33) return 'small';
-    if (betPercentage <= 0.66) return 'medium';
-    return 'large';
-  }
-
-  getBetSizeMultiplier(betSize) {
-    const multipliers = {
-      'tiny': 0.3,     // Extremely aggressive against tiny bets
-      'small': 0.5,    // Much more aggressive against small bets
-      'medium': 0.8,   // More aggressive against medium bets
-      'large': 1.0     // Standard thresholds for large bets
-    };
-    return multipliers[betSize] || 1.0;
-  }
-
-  getPostflopPositionMultiplier(position, bettingRound) {
-    // Position matters more on later streets
-    const streetMultiplier = bettingRound === 'RIVER' ? 1.3 : 
-                            bettingRound === 'TURN' ? 1.2 : 1.0;
-    
-    return position * streetMultiplier;
-  }
-
   isAggressor(gameState, playerState) {
     if (!gameState.handHistory) return false;
     
@@ -1700,51 +1617,7 @@ class PokerBot {
     return false;
   }
 
-  shouldBluffAgainstMediumBet(boardTexture, bettingRound, position) {
-    // Bluff more on draw-heavy boards and in position
-    const textureBonus = boardTexture === 'drawHeavy' ? 0.3 : 
-                        boardTexture === 'flushDraw' ? 0.2 : 0;
-    const positionBonus = position > 0.7 ? 0.2 : 0;
-    const streetBonus = bettingRound === 'FLOP' ? 0.1 : 0;
-    
-    return Math.random() < (0.2 + textureBonus + positionBonus + streetBonus);
-  }
 
-  shouldBluffAgainstLargeBet(boardTexture, bettingRound, position, isAggressor) {
-    // Be more selective about bluffing against large bets
-    const textureBonus = boardTexture === 'drawHeavy' ? 0.2 : 
-                        boardTexture === 'flushDraw' ? 0.1 : 0;
-    const positionBonus = position > 0.8 ? 0.1 : 0;
-    const aggressorBonus = isAggressor ? 0.1 : 0;
-    
-    return Math.random() < (0.1 + textureBonus + positionBonus + aggressorBonus);
-  }
-
-  shouldBluffFirstToAct(boardTexture, bettingRound, position, isLastAggressor) {
-    // Bluff more when we were the last aggressor and in position
-    const textureBonus = boardTexture === 'drawHeavy' ? 0.3 : 
-                        boardTexture === 'flushDraw' ? 0.2 : 0;
-    const positionBonus = position > 0.7 ? 0.2 : 0;
-    const aggressorBonus = isLastAggressor ? 0.2 : 0;
-    const streetBonus = bettingRound === 'FLOP' ? 0.1 : 0;
-    
-    return Math.random() < (0.15 + textureBonus + positionBonus + aggressorBonus + streetBonus);
-  }
-
-  getOptimalBetSize(potSize, stackSize, betType, bettingRound) {
-    let betPercentage;
-    
-    if (betType === 'value') {
-      betPercentage = bettingRound === 'FLOP' ? 0.66 : 
-                     bettingRound === 'TURN' ? 0.75 : 0.75;
-    } else { // bluff
-      betPercentage = bettingRound === 'FLOP' ? 0.5 : 
-                     bettingRound === 'TURN' ? 0.66 : 0.75;
-    }
-    
-    const betAmount = Math.min(potSize * betPercentage, stackSize * 0.3);
-    return Math.max(Math.round(betAmount), 10); // Ensure integer and minimum bet
-  }
 
   // Track opponent betting pattern across streets
   getOpponentBettingPattern(gameState, currentBettingRound) {
@@ -1770,40 +1643,6 @@ class PokerBot {
     }
     
     return pattern.join('-');
-  }
-
-  // Get multiplier based on betting pattern
-  getBettingPatternMultiplier(pattern, bettingRound) {
-    if (pattern === 'unknown') return 1.0;
-    
-    const multipliers = {
-      // Turn patterns
-      'check': 1.2,        // Opponent checked flop, more likely to call turn bet
-      'bet': 0.8,          // Opponent bet flop, more likely to fold turn bet
-      
-      // River patterns
-      'check-check': 1.3,  // Opponent checked both flop and turn, very likely to call river
-      'check-bet': 1.0,    // Mixed pattern, neutral
-      'bet-check': 1.1,    // Opponent bet flop, checked turn, slightly more likely to call
-      'bet-bet': 0.7       // Opponent bet both flop and turn, much more likely to fold river
-    };
-    
-    return multipliers[pattern] || 1.0;
-  }
-
-  // Adjust calling thresholds based on betting pattern
-  getPatternAdjustedThresholds(baseThresholds, pattern, bettingRound) {
-    if (pattern === 'unknown') return baseThresholds;
-    
-    const patternMultiplier = this.getBettingPatternMultiplier(pattern, bettingRound);
-    
-    return {
-      fold: baseThresholds.fold / patternMultiplier,    // Lower fold threshold = more likely to fold
-      call: baseThresholds.call / patternMultiplier,    // Lower call threshold = more likely to call
-      raise: baseThresholds.raise * patternMultiplier,  // Higher raise threshold = more likely to raise
-      valueBet: baseThresholds.valueBet * patternMultiplier,
-      bluff: baseThresholds.bluff * patternMultiplier
-    };
   }
 
   // Analyze board texture for better decision making
@@ -1844,37 +1683,14 @@ class PokerBot {
     return 'lowCard';
   }
 
-  // Get board texture multiplier for hand strength adjustment
-  getBoardTextureMultiplier(texture, handStrength) {
-    const multipliers = {
-      'drawHeavy': 1.3, // Draw-heavy boards favor strong hands
-      'flushDraw': 1.2,
-      'straightDraw': 1.1,
-      'paired': 0.9, // Paired boards reduce hand strength
-      'highCard': 1.0,
-      'lowCard': 1.1, // Low card boards favor strong hands
-      'preflop': 1.0
-    };
-    
-    return multipliers[texture] || 1.0;
-  }
-
-  // Get bluff frequency based on street and board texture
-  getBluffFrequency(bettingRound, boardTexture) {
-    const baseFreq = this.bluffFrequencies[bettingRound.toLowerCase()] || 0.2;
-    
-    // Adjust bluff frequency based on board texture
-    const textureAdjustments = {
-      'drawHeavy': 1.5, // Bluff more on draw-heavy boards
-      'flushDraw': 1.3,
-      'straightDraw': 1.2,
-      'paired': 0.7, // Bluff less on paired boards
-      'highCard': 1.0,
-      'lowCard': 1.1,
-      'preflop': 1.0
-    };
-    
-    return baseFreq * (textureAdjustments[boardTexture] || 1.0);
+  // Helper methods for postflop decision making
+  getBetSize(betAmount, potSize) {
+    if (betAmount === 0) return 'none';
+    const betPercentage = betAmount / potSize;
+    if (betPercentage <= 0.25) return 'tiny'; // Very small bets
+    if (betPercentage <= 0.33) return 'small';
+    if (betPercentage <= 0.66) return 'medium';
+    return 'large';
   }
 }
 
