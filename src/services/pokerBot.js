@@ -39,7 +39,7 @@ class PokerBot {
       fold: 0.15,      // Lowered from 0.2
       call: 0.3,       // Lowered from 0.4
       raise: 0.6,      // Lowered from 0.7
-      valueBet: 0.7,   // Lowered from 0.8
+      valueBet: 0.6,   // Lowered from 0.7 to be more aggressive with top pair
       bluff: 0.2       // Lowered from 0.3
     };
 
@@ -905,10 +905,160 @@ class PokerBot {
       return 3 + this.getTwoPairValue(ranks) * 0.01;
     }
     if (this.isOnePair(ranks)) {
-      return 2 + this.getKickerValue(ranks) * 0.01;
+      return this.getOnePairValue(ranks, cards) * 0.01;
     }
     
     return 1 + this.getKickerValue(ranks) * 0.01; // High card
+  }
+
+  // Enhanced one pair evaluation that distinguishes top/middle/bottom pair
+  getOnePairValue(ranks, allCards) {
+    const counts = {};
+    ranks.forEach(rank => counts[rank] = (counts[rank] || 0) + 1);
+    
+    // Find the pair rank
+    let pairRank = 0;
+    for (const [rank, count] of Object.entries(counts)) {
+      if (count >= 2) {
+        pairRank = parseInt(rank);
+        break;
+      }
+    }
+    
+    // Get kickers (ranks not in the pair)
+    const kickers = ranks.filter(rank => rank !== pairRank).sort((a, b) => b - a);
+    
+    // Determine if this is a pocket pair or board pair
+    const holeCardRanks = allCards.slice(-2).map(c => c.rank);
+    const communityRanks = allCards.slice(0, -2).map(c => c.rank);
+    
+    const isPocketPair = holeCardRanks[0] === holeCardRanks[1];
+    const isBoardPair = communityRanks.includes(pairRank);
+    const isHoleCardPair = holeCardRanks.includes(pairRank);
+    
+    let baseValue = 2.0; // Base value for one pair
+    
+    if (isPocketPair) {
+      // Pocket pairs are strong - overpair to most boards
+      baseValue = 2.5 + (pairRank / 14) * 0.5; // 2.5 to 3.0 range
+    } else if (isHoleCardPair && isBoardPair) {
+      // Top pair with hole card
+      baseValue = this.getTopPairValue(pairRank, communityRanks, kickers);
+    } else if (isBoardPair) {
+      // Board pair with hole card kicker
+      baseValue = this.getBoardPairValue(pairRank, communityRanks, kickers);
+    } else {
+      // This shouldn't happen with one pair, but handle it
+      baseValue = 2.0 + (pairRank / 14) * 0.3;
+    }
+    
+    // Add kicker value
+    const kickerValue = this.calculateKickerValue(kickers);
+    
+    return baseValue + kickerValue;
+  }
+
+  // Evaluate top pair strength
+  getTopPairValue(pairRank, communityRanks, kickers) {
+    const maxBoardRank = Math.max(...communityRanks);
+    const minBoardRank = Math.min(...communityRanks);
+    
+    // Top pair is when our pair rank is higher than all board cards
+    if (pairRank > maxBoardRank) {
+      // Overpair - very strong
+      return 2.8 + (pairRank / 14) * 0.4; // 2.8 to 3.2 range
+    }
+    
+    // Top pair - our pair matches the highest board card
+    if (pairRank === maxBoardRank) {
+      let baseValue = 2.4; // Base top pair value
+      
+      // Adjust based on kicker strength
+      const topKicker = kickers[0] || 0;
+      if (topKicker >= 12) baseValue += 0.3; // Broadway kicker
+      else if (topKicker >= 10) baseValue += 0.2; // Ten kicker
+      else if (topKicker >= 8) baseValue += 0.1; // Eight kicker
+      
+      // Adjust based on board texture
+      const uniqueBoardRanks = [...new Set(communityRanks)];
+      if (uniqueBoardRanks.length === 3) {
+        // Rainbow board - top pair is stronger
+        baseValue += 0.1;
+      } else if (uniqueBoardRanks.length === 2) {
+        // Paired board - top pair is weaker
+        baseValue -= 0.1;
+      }
+      
+      return baseValue;
+    }
+    
+    // Middle pair - our pair is between highest and lowest board cards
+    if (pairRank < maxBoardRank && pairRank > minBoardRank) {
+      let baseValue = 2.0; // Base middle pair value
+      
+      // Adjust based on kicker strength
+      const topKicker = kickers[0] || 0;
+      if (topKicker >= 12) baseValue += 0.2; // Broadway kicker
+      else if (topKicker >= 10) baseValue += 0.1; // Ten kicker
+      
+      // Middle pair is weaker than top pair
+      baseValue -= 0.2;
+      
+      return baseValue;
+    }
+    
+    // Bottom pair - our pair matches the lowest board card
+    if (pairRank === minBoardRank) {
+      let baseValue = 1.8; // Base bottom pair value
+      
+      // Adjust based on kicker strength
+      const topKicker = kickers[0] || 0;
+      if (topKicker >= 12) baseValue += 0.2; // Broadway kicker
+      else if (topKicker >= 10) baseValue += 0.1; // Ten kicker
+      
+      // Bottom pair is much weaker
+      baseValue -= 0.4;
+      
+      return baseValue;
+    }
+    
+    // Fallback
+    return 2.0 + (pairRank / 14) * 0.2;
+  }
+
+  // Evaluate board pair strength (when board is paired and we have a kicker)
+  getBoardPairValue(pairRank, communityRanks, kickers) {
+    const maxBoardRank = Math.max(...communityRanks);
+    const minBoardRank = Math.min(...communityRanks);
+    
+    let baseValue = 1.6; // Base board pair value (weaker than hole card pairs)
+    
+    // Adjust based on kicker strength
+    const topKicker = kickers[0] || 0;
+    if (topKicker >= 12) baseValue += 0.3; // Broadway kicker
+    else if (topKicker >= 10) baseValue += 0.2; // Ten kicker
+    else if (topKicker >= 8) baseValue += 0.1; // Eight kicker
+    
+    // Adjust based on pair rank relative to board
+    if (pairRank === maxBoardRank) {
+      baseValue += 0.2; // Top board pair
+    } else if (pairRank === minBoardRank) {
+      baseValue -= 0.2; // Bottom board pair
+    }
+    
+    return baseValue;
+  }
+
+  // Calculate kicker value for pairs
+  calculateKickerValue(kickers) {
+    if (!kickers || kickers.length === 0) return 0;
+    
+    let kickerValue = 0;
+    for (let i = 0; i < kickers.length; i++) {
+      kickerValue += kickers[i] * Math.pow(0.01, i + 1);
+    }
+    
+    return kickerValue;
   }
 
   getKickerValue(ranks) {
@@ -1238,7 +1388,10 @@ class PokerBot {
     const bluffFreq = this.getBluffFrequency(bettingRound, boardTexture);
     const shouldBluff = Math.random() < bluffFreq;
     
-    console.log(`[PokerBot][POSTFLOP] Hand: ${this.getHandNotation(playerState.cards || [])}, Strength: ${finalHandRankWithPattern.toFixed(3)}, Bet: ${betSize}, Pot: ${potSize}, Call: ${callAmount}, Position: ${playerState.positionName}, Aggressor: ${isAggressor}, Pattern: ${opponentBettingPattern}, Multiplier: ${patternMultiplier.toFixed(2)}`);
+    // Debug pair type information
+    const pairType = this.getPairType(handStrength, communityCards, playerState.cards || []);
+    
+    console.log(`[PokerBot][POSTFLOP] Hand: ${this.getHandNotation(playerState.cards || [])}, Strength: ${finalHandRankWithPattern.toFixed(3)}, Pair Type: ${pairType}, Bet: ${betSize}, Pot: ${potSize}, Call: ${callAmount}, Position: ${playerState.positionName}, Aggressor: ${isAggressor}, Pattern: ${opponentBettingPattern}, Multiplier: ${patternMultiplier.toFixed(2)}`);
     
     if (isRaised) {
       // Facing a bet/raise
@@ -1247,6 +1400,65 @@ class PokerBot {
       // First to act
       return this.handleFirstToAct(finalHandRankWithPattern, bettingRound, boardTexture, position, isLastAggressor, shouldBluff, currentHighestBet, stackSize, potSize);
     }
+  }
+
+  // Helper to determine pair type for debugging
+  getPairType(handStrength, communityCards, holeCards) {
+    if (!communityCards || communityCards.length === 0) return 'preflop';
+    
+    const allCards = [...communityCards, ...holeCards];
+    const formattedCards = allCards.map(card => {
+      const rank = card[0];
+      const suit = card[1];
+      return { rank: this.rankValues[rank], suit };
+    });
+    
+    const holeCardRanks = holeCards.map(card => this.rankValues[card[0]]);
+    const communityRanks = communityCards.map(card => this.rankValues[card[0]]);
+    
+    // Check if it's a pocket pair
+    if (holeCardRanks[0] === holeCardRanks[1]) {
+      const maxBoardRank = Math.max(...communityRanks);
+      if (holeCardRanks[0] > maxBoardRank) {
+        return 'overpair';
+      } else {
+        return 'pocket_pair';
+      }
+    }
+    
+    // Check for one pair
+    const allRanks = [...communityRanks, ...holeCardRanks];
+    const counts = {};
+    allRanks.forEach(rank => counts[rank] = (counts[rank] || 0) + 1);
+    
+    let pairRank = 0;
+    for (const [rank, count] of Object.entries(counts)) {
+      if (count >= 2) {
+        pairRank = parseInt(rank);
+        break;
+      }
+    }
+    
+    if (pairRank > 0) {
+      const maxBoardRank = Math.max(...communityRanks);
+      const minBoardRank = Math.min(...communityRanks);
+      
+      if (holeCardRanks.includes(pairRank)) {
+        if (pairRank > maxBoardRank) {
+          return 'overpair';
+        } else if (pairRank === maxBoardRank) {
+          return 'top_pair';
+        } else if (pairRank < maxBoardRank && pairRank > minBoardRank) {
+          return 'middle_pair';
+        } else if (pairRank === minBoardRank) {
+          return 'bottom_pair';
+        }
+      } else {
+        return 'board_pair';
+      }
+    }
+    
+    return 'no_pair';
   }
 
   // Handle facing a bet/raise
@@ -1269,6 +1481,15 @@ class PokerBot {
       return this.decideRaise(currentHighestBet, stackSize, 'value');
     }
 
+    // Special handling for top pair hands - be more aggressive
+    const isTopPair = this.isTopPairHand(handRank, bettingRound);
+    if (isTopPair) {
+      console.log(`[PokerBot][POSTFLOP] Top pair detected (${handRank.toFixed(3)}), being more aggressive`);
+      // Lower the value bet threshold for top pair
+      adjustedThresholds.valueBet *= 0.8;
+      adjustedThresholds.raise *= 0.9;
+    }
+
     // Safety check: if pot odds are very good, call with any reasonable hand
     if (potOdds < 0.2 && handRank > 0.1) {
       console.log(`[PokerBot][POSTFLOP] Good pot odds (${potOdds.toFixed(3)}), calling with reasonable hand (${handRank.toFixed(3)})`);
@@ -1277,24 +1498,30 @@ class PokerBot {
 
     // Handle different bet sizes
     if (betSize === 'tiny') {
-      return this.handleTinyBet(handRank, potOdds, callAmount, adjustedThresholds, position, boardTexture, opponentBettingPattern);
+      return this.handleTinyBet(handRank, potOdds, callAmount, adjustedThresholds, position, boardTexture, opponentBettingPattern, isTopPair);
     } else if (betSize === 'small') {
-      return this.handleSmallBet(handRank, potOdds, callAmount, adjustedThresholds, position, boardTexture, opponentBettingPattern);
+      return this.handleSmallBet(handRank, potOdds, callAmount, adjustedThresholds, position, boardTexture, opponentBettingPattern, isTopPair);
     } else if (betSize === 'medium') {
-      return this.handleMediumBet(handRank, potOdds, callAmount, adjustedThresholds, position, boardTexture, bettingRound, opponentBettingPattern);
+      return this.handleMediumBet(handRank, potOdds, callAmount, adjustedThresholds, position, boardTexture, bettingRound, opponentBettingPattern, isTopPair);
     } else {
-      return this.handleLargeBet(handRank, potOdds, callAmount, adjustedThresholds, position, boardTexture, bettingRound, isAggressor, opponentBettingPattern);
+      return this.handleLargeBet(handRank, potOdds, callAmount, adjustedThresholds, position, boardTexture, bettingRound, isAggressor, opponentBettingPattern, isTopPair);
     }
   }
 
-  // Handle tiny bets (25% or less of pot) - call almost anything
-  handleTinyBet(handRank, potOdds, callAmount, thresholds, position, boardTexture, opponentBettingPattern) {
+  // Enhanced bet handling functions with top pair awareness
+  handleTinyBet(handRank, potOdds, callAmount, thresholds, position, boardTexture, opponentBettingPattern, isTopPair) {
     // Against tiny bets, call almost anything with any reasonable hand
     const callThreshold = Math.max(0.02, potOdds * 0.3); // Extremely lenient
     
     // Adjust calling frequency based on pattern
     const patternMultiplier = this.getBettingPatternMultiplier(opponentBettingPattern, 'TURN');
     const adjustedCallThreshold = callThreshold / patternMultiplier;
+    
+    // Top pair should almost always raise tiny bets for value
+    if (isTopPair && handRank > 0.25) {
+      console.log(`[PokerBot][POSTFLOP] Top pair raising tiny bet for value`);
+      return { action: 'bet', amount: Math.round(callAmount * 3) };
+    }
     
     if (handRank > thresholds.valueBet) {
       return { action: 'bet', amount: Math.round(callAmount * 3) }; // Raise for value
@@ -1309,14 +1536,19 @@ class PokerBot {
     }
   }
 
-  // Handle small bets (33% or less of pot)
-  handleSmallBet(handRank, potOdds, callAmount, thresholds, position, boardTexture, opponentBettingPattern) {
+  handleSmallBet(handRank, potOdds, callAmount, thresholds, position, boardTexture, opponentBettingPattern, isTopPair) {
     // Against small bets, we can call much wider - be very aggressive
     const callThreshold = Math.max(0.05, potOdds * 0.5); // Much more lenient - only need 50% of pot odds
     
     // Adjust calling frequency based on pattern
     const patternMultiplier = this.getBettingPatternMultiplier(opponentBettingPattern, 'TURN');
     const adjustedCallThreshold = callThreshold / patternMultiplier;
+    
+    // Top pair should frequently raise small bets for value
+    if (isTopPair && handRank > 0.25) {
+      console.log(`[PokerBot][POSTFLOP] Top pair raising small bet for value`);
+      return { action: 'bet', amount: Math.round(callAmount * 2.5) };
+    }
     
     if (handRank > thresholds.valueBet) {
       return { action: 'bet', amount: Math.round(callAmount * 2.5) }; // Raise for value
@@ -1329,13 +1561,18 @@ class PokerBot {
     }
   }
 
-  // Handle medium bets (33-66% of pot)
-  handleMediumBet(handRank, potOdds, callAmount, thresholds, position, boardTexture, bettingRound, opponentBettingPattern) {
+  handleMediumBet(handRank, potOdds, callAmount, thresholds, position, boardTexture, bettingRound, opponentBettingPattern, isTopPair) {
     const callThreshold = Math.max(0.1, potOdds * 0.8); // More lenient than before
     
     // Adjust calling frequency based on pattern
     const patternMultiplier = this.getBettingPatternMultiplier(opponentBettingPattern, bettingRound);
     const adjustedCallThreshold = callThreshold / patternMultiplier;
+    
+    // Top pair should call medium bets and sometimes raise
+    if (isTopPair && handRank > 0.3) {
+      console.log(`[PokerBot][POSTFLOP] Top pair calling medium bet`);
+      return { action: 'call', amount: Math.round(callAmount) };
+    }
     
     if (handRank > thresholds.valueBet) {
       return { action: 'bet', amount: Math.round(callAmount * 2.5) }; // Raise for value
@@ -1350,8 +1587,7 @@ class PokerBot {
     }
   }
 
-  // Handle large bets (66%+ of pot)
-  handleLargeBet(handRank, potOdds, callAmount, thresholds, position, boardTexture, bettingRound, isAggressor, opponentBettingPattern) {
+  handleLargeBet(handRank, potOdds, callAmount, thresholds, position, boardTexture, bettingRound, isAggressor, opponentBettingPattern, isTopPair) {
     // Against large bets, we need to be more selective but not overly tight
     const callThreshold = Math.max(0.15, potOdds * 1.2); // More lenient than before
     
@@ -1362,6 +1598,12 @@ class PokerBot {
     // Adjust calling frequency based on pattern
     const patternMultiplier = this.getBettingPatternMultiplier(opponentBettingPattern, bettingRound);
     const adjustedCallThreshold = callThreshold / patternMultiplier;
+    
+    // Top pair should call large bets more often
+    if (isTopPair && adjustedHandRank > 0.25) {
+      console.log(`[PokerBot][POSTFLOP] Top pair calling large bet`);
+      return { action: 'call', amount: Math.round(callAmount) };
+    }
     
     if (adjustedHandRank > thresholds.valueBet) {
       return { action: 'bet', amount: Math.round(callAmount * 2.5) }; // Raise for value
@@ -1378,9 +1620,15 @@ class PokerBot {
 
   // Handle first to act
   handleFirstToAct(handRank, bettingRound, boardTexture, position, isLastAggressor, shouldBluff, currentHighestBet, stackSize, potSize) {
-    if (handRank > this.thresholds.valueBet) {
-      // Value bet
-      const betSize = this.getOptimalBetSize(potSize, stackSize, 'value', bettingRound);
+    // Special handling for top pair hands - be more aggressive
+    const isTopPair = this.isTopPairHand(handRank, bettingRound);
+    const adjustedValueBetThreshold = isTopPair ? this.thresholds.valueBet * 0.8 : this.thresholds.valueBet;
+    
+    if (handRank > adjustedValueBetThreshold) {
+      // Value bet - be more aggressive with top pair
+      const betType = isTopPair ? 'value' : 'value';
+      const betSize = this.getOptimalBetSize(potSize, stackSize, betType, bettingRound);
+      console.log(`[PokerBot][POSTFLOP] Value betting with ${isTopPair ? 'top pair' : 'strong hand'} (${handRank.toFixed(3)})`);
       return { action: 'bet', amount: Math.round(betSize) };
     } else if (shouldBluff && handRank > this.thresholds.bluff && this.shouldBluffFirstToAct(boardTexture, bettingRound, position, isLastAggressor)) {
       // Bluff bet
@@ -1389,6 +1637,13 @@ class PokerBot {
     } else {
       return { action: 'check', amount: 0 };
     }
+  }
+
+  // Helper to detect if this is likely a top pair hand
+  isTopPairHand(handRank, bettingRound) {
+    // Top pair hands typically have handRank between 0.25 and 0.45
+    // This is a rough heuristic based on the new pair evaluation system
+    return handRank >= 0.25 && handRank <= 0.45;
   }
 
   // Helper methods for postflop decision making
