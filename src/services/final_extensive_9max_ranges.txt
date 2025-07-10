@@ -1,0 +1,185 @@
+# Final Extensive Preflop Ranges for 9-Max Games
+
+## Positions:
+- UTG (Under the Gun)
+- UTG+1
+- LJ (LoJack)
+- HJ (Hijack)
+- CO (Cutoff)
+- BTN (Button)
+- SB (Small Blind)
+- BB (Big Blind)
+
+---
+
+## RFI Ranges:
+UTG: 77+, AJs+, KQs, AQo+  
+UTG+1: 66+, AJs+, KQo, AQo+  
+LJ: 55+, ATs+, KQs, AJo+  
+HJ: 44+, A9s+, KTs+, QTs+, ATo+  
+CO: 33+, A7s+, K9s+, Q9s+, JTs, A9o+, KJo+  
+BTN: 22+, A2s+, K7s+, Q8s+, J8s+, T8s+, A2o+, K9o+, QTo+  
+SB: 22+, A2s+, K2s+, Q5s+, J7s+, T7s+, A2o+, K7o+, Q9o+  
+
+---
+
+## Facing RFI – Flatting Ranges by Position:
+Each position’s flatting range facing an RFI from every earlier position.
+
+### CO Facing RFI:
+vs UTG: 99-JJ, AQs, KQs  
+vs UTG+1: 88-JJ, AJs+, KQs  
+vs LJ: 77+, AJs+, KTs+  
+vs HJ: 66+, ATs+, QJs  
+
+### BTN Facing RFI:
+vs UTG: TT-JJ, AQs  
+vs UTG+1: 99-JJ, AJs+  
+vs LJ: 88-JJ, ATs+, KJs+  
+vs HJ: 77+, A9s+, KTs+  
+vs CO: 66+, A9s+, QTs+, T9s  
+
+### SB Facing RFI:
+vs UTG: JJ, AQs  
+vs UTG+1: TT-JJ, AJs+  
+vs LJ: 99-JJ, ATs+, KQs  
+vs HJ: 88+, A9s+, KJs+  
+vs CO: 77+, A8s+, QTs+  
+vs BTN: 66+, A2s+, broadways  
+
+### BB Facing RFI:
+vs all: Wide defend — pairs, suited connectors, broadways, suited aces
+
+---
+
+## 3-Bet Ranges vs RFI (All Positions):
+
+### All positions 3B vs earlier RFI:
+
+#### BTN:
+vs UTG: QQ+, AK  
+vs UTG+1: JJ+, AQ+  
+vs LJ: TT+, AQo+, AJs  
+vs HJ: TT+, AJs+, KQo  
+vs CO: 99+, AJo+, ATs+, KQs  
+
+#### SB:
+vs UTG: QQ+, AK  
+vs UTG+1: JJ+, AQ+  
+vs LJ: TT+, AQo+  
+vs HJ: TT+, AJs+  
+vs CO: 99+, AJo+  
+vs BTN: 88+, ATo+, KJo+, suited blockers  
+
+#### BB:
+vs UTG: KK+, AKo  
+vs UTG+1: QQ+, AKo  
+vs LJ: JJ+, AKo, AQs  
+vs HJ: TT+, AQo+, KQs  
+vs CO: 99+, AJo+  
+vs BTN: 88+, ATo+, suited broadways  
+vs SB: 99+, AQ+, suited blockers  
+
+---
+
+## 3-Bet Calling Ranges After RFI:
+
+### UTG RFI, Facing 3B:
+vs HJ: Call JJ, AQs  
+vs CO: Call JJ, AKs  
+vs BTN: Call QQ, AK  
+vs SB: Call QQ, AKo  
+vs BB: Call QQ+
+
+### UTG+1 RFI, Facing 3B:
+vs CO: Call JJ, AQs+  
+vs BTN: Call JJ+, AK  
+vs SB: Call QQ, AKo  
+vs BB: Call QQ+
+
+### LJ RFI, Facing 3B:
+vs HJ: Call TT+, AQs+  
+vs CO: Call JJ+, AQ+  
+vs BTN: Call JJ+, AK  
+vs SB: Call QQ, AK  
+vs BB: Call QQ+
+
+### HJ RFI, Facing 3B:
+vs CO: Call TT+, AQ+  
+vs BTN: Call TT+, AK  
+vs SB: Call QQ+, AK  
+vs BB: Call QQ+
+
+### CO RFI, Facing 3B:
+vs BTN: Call TT+, AQ+  
+vs SB: Call QQ+, AK  
+vs BB: Call QQ+, AK
+
+### BTN RFI, Facing 3B:
+vs SB: Call JJ+, AK  
+vs BB: Call JJ+, AK
+
+---
+
+## 4-Bet Ranges After RFI & Facing 3-Bet (All Positions vs Later Positions):
+
+### UTG RFI:
+vs HJ: 4B QQ+, AK  
+vs CO: 4B QQ+, AK  
+vs BTN: 4B QQ+, AK  
+vs SB: 4B QQ+, AK  
+vs BB: 4B QQ+, AK
+
+### UTG+1 RFI:
+vs CO: 4B QQ+, AK  
+vs BTN: 4B QQ+, AK  
+vs SB: 4B QQ+, AK  
+vs BB: 4B QQ+, AK
+
+### LJ RFI:
+vs HJ: 4B QQ+, AK  
+vs CO: 4B QQ+, AK  
+vs BTN: 4B QQ+, AK  
+vs SB: 4B QQ+, AK  
+vs BB: 4B QQ+, AK
+
+### HJ RFI:
+vs CO: 4B QQ+, AK  
+vs BTN: 4B QQ+, AK  
+vs SB: 4B QQ+, AK  
+vs BB: 4B QQ+, AK
+
+### CO RFI:
+vs BTN: 4B QQ+, AK  
+vs SB: 4B QQ+, AK  
+vs BB: 4B QQ+, AK
+
+### BTN RFI:
+vs SB: 4B QQ+, AK  
+vs BB: 4B QQ+, AK
+
+---
+
+## 4-Bet Calling Ranges (vs 4B after 3B)
+
+### HJ 3B, UTG 4B:
+Call KK+
+
+### BTN 3B, CO 4B:
+Call KK+, sometimes AKo
+
+### SB 3B, BTN 4B:
+Call KK+, AKo
+
+### BB 3B, SB 4B:
+Call KK+
+
+---
+
+## 5-Bet Shove Ranges:
+Typically QQ+, AKs in late position dynamics or deeper stacks.
+
+---
+
+## 5-Bet Calling Ranges:
+Almost always KK+, with some mixing of AKo vs aggressive opponents.

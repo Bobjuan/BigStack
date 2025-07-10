@@ -74,7 +74,7 @@ const AiReviewPage = () => {
   return (
     <div className="min-h-screen w-full bg-[#0F1115] text-white font-inter">
       <TopNavBar />
-      <div className="max-w-3xl mx-auto w-full pt-28 pb-12">
+      <div className="max-w-5xl mx-auto w-full pt-28 pb-12">
         <h1 className="text-5xl sm:text-6xl font-bold tracking-tight mb-8 text-white text-center">
           ♠️ Poker Chatbot
         </h1>
@@ -110,8 +110,8 @@ const AiReviewPage = () => {
           {activeTab === 'hand-review' && <HandReviewChat />}
           {activeTab === 'player-stats' && (
             <div className="flex flex-col md:flex-row gap-6">
-              <div className="md:w-1/2 w-full"><PlayerStatsChat /></div>
-              <div className="md:w-1/2 w-full flex items-center justify-center">
+              <div className="md:w-2/3 w-full"><PlayerStatsChat /></div>
+              <div className="md:w-1/3 w-full flex items-center justify-center">
                 {loading ? <div className="text-gray-400">Loading stats...</div> : <PlayerStatsDisplay stats={stats} />}
               </div>
             </div>

@@ -31,6 +31,8 @@ import PracticeScenarioPage from './pages/learn/practice/PracticeScenarioPage';
 import MainLayout from './components/layout/MainLayout';
 import AiReviewPage from './pages/AiReviewPage';
 import FloatingChatWidget from './components/ai-review/FloatingChatWidget';
+import Bot6MaxPage from './pages/game/Bot6MaxPage';
+import Bot9MaxPage from './pages/game/Bot9MaxPage';
 
 // Component to check access and redirect appropriately
 function AccessChecker({ children }) {
@@ -116,6 +118,8 @@ function AppRoutes() {
       <Route path="/profile" element={<AuthenticatedPage><ProfilePage /></AuthenticatedPage>} />
       <Route path="/learn/practice" element={<AuthenticatedPage><PracticeMenuPage /></AuthenticatedPage>} />
       <Route path="/learn/practice/:scenarioId" element={<AuthenticatedPage><PracticeScenarioPage /></AuthenticatedPage>} />
+      <Route path="/play-bot-6max" element={<AuthenticatedPage><Bot6MaxPage /></AuthenticatedPage>} />
+      <Route path="/play-bot-9max" element={<AuthenticatedPage><Bot9MaxPage /></AuthenticatedPage>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
