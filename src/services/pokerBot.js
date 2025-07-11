@@ -1,10 +1,10 @@
 // Poker Bot for 6-max and 9-max games
-// Implements GTO-inspired strategy with position awareness, hand ranges, and proper frequencies
+// Implements GTO-inspired strategy with position awareness and hand ranges
 
 // Utility to normalize position names to match handRanges keys
 function normalizePositionName(pos) {
   let base = pos.split(' ')[0].split('(')[0].trim();
-  if (base === 'UTG' || base === 'UTG+1' || base === 'UTG+2') return 'EP';
+  if (base === 'UTG' || base === 'UTG+1' || base === 'UTG+2') return 'UTG';
   if (base === 'LJ' || base === 'HJ') return 'MP';
   return base;
 }
@@ -16,200 +16,298 @@ class PokerBot {
       'T': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14
     };
     
-    // Position-based opening ranges (GTO-inspired)
-    this.openingRanges = {
-      'BTN': 0.35,
-      'CO': 0.25,
-      'MP': 0.18,
-      'EP': 0.10,
-      'SB': 0.40,
-      'BB': 0.70,
-      'BTN/SB': 0.35
-    };
+    // Master hand order (hardcoded, all 169 hands, custom tiers 1-11 by Sklansky/strength, no repeats)
+    this.masterHandOrder = [
+      // Tier 1
+      'AA','KK','QQ','AKs','AKo','JJ',
+      // Tier 2
+      'TT','AQs','AJs','KQs',
+      // Tier 3
+      '99','JTs','KJs','QJs','ATs','AQo',
+      // Tier 4
+      '88','KTs','QTs','J9s','T9s','98s','AJo','KQo',
+      // Tier 5
+      '77','A9s','A8s','A7s','A6s','A5s','A4s','A3s','A2s','Q9s','K9s','97s','87s','76s','KJo','QJo','ATo','66',
+      // Tier 6
+      '55','T8s','J8s','86s','75s','54s','JTo','KTo','QTo',
+      // Tier 7
+      '44','33','22','K8s','K7s','K6s','K5s','K4s','K3s','K2s','Q8s','Q7s','Q6s','Q5s','Q4s','Q3s','Q2s','T7s','64s','53s','43s','T9o','98o','J9o',
+      // Tier 8
+      'A9o','K9o','Q9o','J7s','J6s','J5s','J4s','J3s','J2s','96s','95s','94s','93s','92s','85s','84s','83s','82s','74s','73s','72s','62s',
+      // Tier 9
+      '65s','T6s','T5s','T4s','T3s','T2s',
+      // Tier 10
+      'A8o','A7o','A6o','A5o','A4o','A3o','A2o','K8o','K7o','K6o','32s','K5o','K4o','K3o','K2o','Q8o','Q7o','Q6o','Q5o','Q4o','Q3o','Q2o','J8o','63s','42s','J7o','J6o','J5o','J4o','J3o','J2o','T8o','T7o','T6o','T5o','T4o','T3o','T2o','97o','96o','95o','94o','93o','92o','87o','86o',
+      // Tier 11
+      '85o','52s','84o','83o','82o','76o','75o','74o','73o','72o','65o','64o','63o','62o','54o','53o','52o','43o','42o','32o'
+    ];
     
-    // Bet sizing patterns
-    this.betSizing = {
-      cbet: { small: 0.33, medium: 0.66, large: 1.0 },
-      turn: { small: 0.5, medium: 0.75, large: 1.0 },
-      river: { small: 0.5, medium: 0.75, large: 1.0 }
-    };
-
-    // Hand strength thresholds for different actions
-    this.thresholds = {
-      fold: 0.15,      // Lowered from 0.2
-      call: 0.3,       // Lowered from 0.4
-      raise: 0.6,      // Lowered from 0.7
-      valueBet: 0.6,   // Lowered from 0.7 to be more aggressive with top pair
-      bluff: 0.2       // Lowered from 0.3
-    };
-
-    // Bluffing frequencies (percentage of time to bluff when appropriate)
-    this.bluffFrequencies = {
-      preflop: 0.15,
-      flop: 0.25,
-      turn: 0.20,
-      river: 0.15
-    };
-
-    // EXACT RFI Ranges from the charts (Slightly Looser)
+    // Position-based opening ranges (GTO-inspired)
     this.rfiRanges = {
-      'EP': [
-        '66', '77', '88', '99', 'TT', 'JJ', 'QQ', 'KK', 'AA',
-        'A4s', 'A5s', 'ATs', 'AJs', 'AQs', 'AKs', 'KJs', 'KQs',
-        'AJo', 'AQo', 'AKo', 'A9s', 'KTs', 'KQo', 'KJs', 'KQs', 'KQo'
-      ],
-      'MP': [
-        '44', '55', '66', '77', '88', '99', 'TT', 'JJ', 'QQ', 'KK', 'AA',
-        'A4s', 'A5s', 'A8s', 'A9s', 'ATs', 'AJs', 'AQs', 'AKs',
-        'KTs', 'KJs', 'KQs', 'QJs', 'AJo', 'AQo', 'AKo', 'K9s', 'QTs', 'QJs', 'JTs', 'ATo'
-      ],
-      'CO': [
-        '22', '33', '44', '55', '66', '77', '88', '99', 'TT', 'JJ', 'QQ', 'KK', 'AA',
-        'A4s', 'A5s', 'A6s', 'A7s', 'A8s', 'A9s', 'ATs', 'AJs', 'AQs', 'AKs',
-        'K8s', 'K9s', 'KTs', 'KJs', 'KQs', 'Q9s', 'QTs', 'QJs', 'JTs', 'T9s',
-        'A8o', 'A9o', 'AJo', 'AQo', 'AKo', 'KJo', 'KQo'
-      ],
-      'BTN': [
-        '22', '33', '44', '55', '66', '77', '88', '99', 'TT', 'JJ', 'QQ', 'KK', 'AA',
-        'A2s', 'A3s', 'A4s', 'A5s', 'A6s', 'A7s', 'A8s', 'A9s', 'ATs', 'AJs', 'AQs', 'AKs',
-        'K6s', 'K7s', 'K8s', 'K9s', 'KTs', 'KJs', 'KQs', 'Q7s', 'Q8s', 'Q9s', 'QTs', 'QJs',
-        'J8s', 'J9s', 'JTs', 'T8s', 'T9s', '98s', 'A2o', 'A3o', 'A4o', 'A5o', 'A6o', 'A7o',
-        'A8o', 'A9o', 'ATo', 'AJo', 'AQo', 'AKo', 'K8o', 'K9o', 'KJo', 'KQo', 'QTo'
-      ],
-      'SB': [
-        '22', '33', '44', '55', '66', '77', '88', '99', 'TT', 'JJ', 'QQ', 'KK', 'AA',
-        'A2s', 'A3s', 'A4s', 'A5s', 'A6s', 'A7s', 'A8s', 'A9s', 'ATs', 'AJs', 'AQs', 'AKs',
-        'K2s', 'K3s', 'K4s', 'K5s', 'K6s', 'K7s', 'K8s', 'K9s', 'KTs', 'KJs', 'KQs',
-        'Q4s', 'Q5s', 'Q6s', 'Q7s', 'Q8s', 'Q9s', 'QTs', 'QJs', 'J6s', 'J7s', 'J8s', 'J9s',
-        'JTs', 'T6s', 'T7s', 'T8s', 'T9s', '96s', '97s', '98s', 'A2o', 'A3o', 'A4o', 'A5o',
-        'A6o', 'A7o', 'A8o', 'A9o', 'ATo', 'AJo', 'AQo', 'AKo', 'K6o', 'K7o', 'KJo', 'KQo', 'Q8o', 'Q9o'
-      ]
+      'UTG': this.getTopPercentHands(17.5),
+      'MP': this.getTopPercentHands(21.3),
+      'CO': this.getTopPercentHands(28.5),
+      'BTN': this.getTopPercentHands(41.8),
+      'SB': this.getTopPercentHands(41.8)
     };
+    // Duplicate reversed keys for rfiRanges (not needed, but for consistency)
+    for (const key of Object.keys(this.rfiRanges)) {
+      for (const key2 of Object.keys(this.rfiRanges)) {
+        if (key !== key2) {
+          const comboKey = key + '_vs_' + key2;
+          const reversedComboKey = key2 + '_vs_' + key;
+          if (!this.rfiRanges[reversedComboKey]) {
+            this.rfiRanges[reversedComboKey] = this.rfiRanges[comboKey];
+          }
+        }
+      }
+    }
 
-    // EXACT 3-Bet Ranges vs RFI (All Positions)
-    this.threeBetRanges = {
-      // BTN 3B vs earlier RFI
-      'BTN_vs_EP': ['QQ', 'KK', 'AA', 'AKs', 'AKo'],
-      'BTN_vs_MP': ['JJ', 'QQ', 'KK', 'AA', 'AQs', 'AQo', 'AKs', 'AKo'],
-      'BTN_vs_CO': ['TT', 'JJ', 'QQ', 'KK', 'AA', 'AJo', 'AQs', 'ATs', 'AKs', 'KQs', 'AKo'],
-      'BTN_vs_BTN': ['88', '99', 'TT', 'JJ', 'QQ', 'KK', 'AA', 'ATo', 'AJo', 'AQs', 'KJo', 'KQs', 'AKs', 'AKo'],
-      
-      // SB 3B vs earlier RFI
-      'SB_vs_EP': ['QQ', 'KK', 'AA', 'AKs', 'AKo'],
-      'SB_vs_MP': ['JJ', 'QQ', 'KK', 'AA', 'AQs', 'AQo', 'AKs', 'AKo'],
-      'SB_vs_CO': ['TT', 'JJ', 'QQ', 'KK', 'AA', 'AJo', 'AQs', 'AKs', 'AKo'],
-      'SB_vs_BTN': ['88', '99', 'TT', 'JJ', 'QQ', 'KK', 'AA', 'ATo', 'AJo', 'AQs', 'KJo', 'KQs', 'AKs', 'AKo'],
-      
-      // BB 3B vs earlier RFI
-      'BB_vs_EP': ['KK', 'AA', 'AKs', 'AKo'],
-      'BB_vs_MP': ['QQ', 'KK', 'AA', 'AKs', 'AKo'],
-      'BB_vs_CO': ['99', 'TT', 'JJ', 'QQ', 'KK', 'AA', 'AJo', 'AQs', 'AKs', 'AKo'],
-      'BB_vs_BTN': ['88', '99', 'TT', 'JJ', 'QQ', 'KK', 'AA', 'ATo', 'AJo', 'AQs', 'AKs', 'AKo'],
-      'BB_vs_SB': ['99', 'TT', 'JJ', 'QQ', 'KK', 'AA', 'AQs', 'AQo', 'AKs', 'AKo'],
-      
-      // EP 3B vs earlier RFI (missing from original)
-      'EP_vs_MP': ['QQ', 'KK', 'AA', 'AKs', 'AKo'],
-      'EP_vs_CO': ['JJ', 'QQ', 'KK', 'AA', 'AQs', 'AKs', 'AKo'],
-      'EP_vs_BTN': ['TT', 'JJ', 'AQs'],
-      'EP_vs_SB': ['JJ', 'AQs'],
-      
-      // MP 3B vs earlier RFI (missing from original)
-      'MP_vs_EP': ['QQ', 'KK', 'AA', 'AKs', 'AKo'],
-      'MP_vs_CO': ['JJ', 'QQ', 'KK', 'AA', 'AQs', 'AKs', 'AKo'],
-      'MP_vs_BTN': ['TT', 'JJ', 'AQs'],
-      'MP_vs_SB': ['TT', 'JJ', 'AJs', 'AQs', 'AKs'],
-      'MP_vs_BB': ['TT', 'JJ', 'QQ', 'KK', 'AA', 'AJs', 'AQs', 'AKs', 'AKo']
-    };
-
-    // POSITIONAL 3-Bet Calling Ranges After RFI (tightest EP, loosest BTN/BB)
-    // Hands in the 4-bet range are NOT in the 3-bet call range
-    this.threeBetCallingRanges = {
-      'EP_vs_MP_3B': ['JJ','AQs'],
-      'EP_vs_CO_3B': ['TT','JJ','AQs'],
-      'EP_vs_BTN_3B': ['TT','JJ','AQs'],
-      'EP_vs_SB_3B': ['TT','JJ','AQs'],
-      'EP_vs_BB_3B': ['TT','JJ','AQs'],
-
-      'MP_vs_EP_3B': ['TT','JJ','AJs','AQs'],
-      'MP_vs_CO_3B': ['TT','JJ','AJs','AQs'],
-      'MP_vs_BTN_3B': ['TT','JJ','AJs','AQs','KQs'],
-      'MP_vs_SB_3B': ['TT','JJ','AJs','AQs','KQs'],
-      'MP_vs_BB_3B': ['TT','JJ','AJs','AQs','KQs'],
-
-      'CO_vs_EP_3B': ['TT','JJ','AJs','AQs','KQs'],
-      'CO_vs_MP_3B': ['TT','JJ','AJs','AQs','KQs','QJs'],
-      'CO_vs_BTN_3B': ['99','TT','JJ','ATs','AJs','AQs','KQs','QJs'],
-      'CO_vs_SB_3B': ['99','TT','JJ','ATs','AJs','AQs','KQs','QJs'],
-      'CO_vs_BB_3B': ['99','TT','JJ','ATs','AJs','AQs','KQs','QJs'],
-
-      'BTN_vs_EP_3B': ['99','TT','JJ','ATs','AJs','AQs','KQs','QJs','JTs'],
-      'BTN_vs_MP_3B': ['99','TT','JJ','ATs','AJs','AQs','KQs','QJs','JTs'],
-      'BTN_vs_CO_3B': ['88','99','TT','JJ','ATs','AJs','AQs','KJs','KQs','QJs','JTs','T9s'],
-      'BTN_vs_SB_3B': ['88','99','TT','JJ','ATs','AJs','AQs','KJs','KQs','QJs','JTs','T9s'],
-      'BTN_vs_BB_3B': ['88','99','TT','JJ','ATs','AJs','AQs','KJs','KQs','QJs','JTs','T9s'],
-
-      'SB_vs_EP_3B': ['99','TT','JJ','ATs','AJs','AQs','KQs','QJs','JTs'],
-      'SB_vs_MP_3B': ['99','TT','JJ','ATs','AJs','AQs','KQs','QJs','JTs'],
-      'SB_vs_CO_3B': ['88','99','TT','JJ','ATs','AJs','AQs','KJs','KQs','QJs','JTs','T9s'],
-      'SB_vs_BTN_3B': ['88','99','TT','JJ','ATs','AJs','AQs','KJs','KQs','QJs','JTs','T9s'],
-      'SB_vs_BB_3B': ['88','99','TT','JJ','ATs','AJs','AQs','KJs','KQs','QJs','JTs','T9s'],
-
-      'BB_vs_EP_3B': ['99','TT','JJ','ATs','AJs','AQs','KQs','QJs','JTs'],
-      'BB_vs_MP_3B': ['99','TT','JJ','ATs','AJs','AQs','KQs','QJs','JTs'],
-      'BB_vs_CO_3B': ['88','99','TT','JJ','ATs','AJs','AQs','KJs','KQs','QJs','JTs','T9s'],
-      'BB_vs_BTN_3B': ['88','99','TT','JJ','ATs','AJs','AQs','KJs','KQs','QJs','JTs','T9s'],
-      'BB_vs_SB_3B': ['88','99','TT','JJ','ATs','AJs','AQs','KJs','KQs','QJs','JTs','T9s']
-    };
-
-    // POSITIONAL 4-Bet Calling Ranges (tighter than 3-bet calling, but BTN/SB/BB can be a bit wider)
-    // Hands in the 5-bet range are NOT in the 4-bet call range
-    this.fourBetCallingRanges = {
-      'MP_3B_vs_EP_4B': ['JJ','TT','AJs','KQs'],
-      'BTN_3B_vs_CO_4B': ['JJ','TT','99','ATs','KJs'],
-      'SB_3B_vs_BTN_4B': ['JJ','TT','99','ATs','KJs','QJs'],
-      'BB_3B_vs_SB_4B': ['JJ','TT','99','ATs','KJs','QJs','JTs']
-    };
-
-    // EXACT 5-Bet Ranges
-    this.fiveBetRanges = ['QQ', 'KK', 'AA', 'AKs'];
-    this.fiveBetCallingRanges = ['KK', 'AA', 'AKo'];
-
-    // EXACT Flatting Ranges Facing RFI
+    // Call vs RFI (flatting) ranges
     this.flattingRanges = {
-      // CO Facing RFI
-      'CO_vs_EP_RFI': ['99', 'TT', 'JJ', 'AQs', 'KQs'],
-      'CO_vs_MP_RFI': ['88', '99', 'TT', 'JJ', 'AJs', 'AQs', 'AKs', 'KQs'],
-      'CO_vs_BTN_RFI': ['77', '88', '99', 'TT', 'JJ', 'QQ', 'KK', 'AA', 'AJs', 'AQs', 'AKs', 'KTs', 'KJs', 'KQs'],
-      'CO_vs_SB_RFI': ['66', '77', '88', '99', 'TT', 'JJ', 'QQ', 'KK', 'AA', 'ATs', 'AJs', 'AQs', 'AKs', 'QJs'],
-      
-      // BTN Facing RFI
-      'BTN_vs_EP_RFI': ['TT', 'JJ', 'AQs'],
-      'BTN_vs_MP_RFI': ['99', 'TT', 'JJ', 'AJs', 'AQs', 'AKs'],
-      'BTN_vs_CO_RFI': ['88', '99', 'TT', 'JJ', 'ATs', 'AJs', 'AQs', 'AKs', 'KJs', 'KQs'],
-      'BTN_vs_SB_RFI': ['77', '88', '99', 'TT', 'JJ', 'A9s', 'ATs', 'AJs', 'AQs', 'AKs', 'KTs', 'KJs', 'KQs'],
-      'BTN_vs_BB_RFI': ['66', '77', '88', '99', 'TT', 'JJ', 'A9s', 'ATs', 'AJs', 'AQs', 'AKs', 'QTs', 'QJs', 'T9s'],
-      
-      // SB Facing RFI
-      'SB_vs_EP_RFI': ['JJ', 'AQs'],
-      'SB_vs_MP_RFI': ['TT', 'JJ', 'AJs', 'AQs', 'AKs'],
-      'SB_vs_BTN_RFI': ['88', '99', 'TT', 'JJ', 'QQ', 'KK', 'AA', 'A9s', 'ATs', 'AJs', 'AQs', 'AKs', 'KJs', 'KQs'],
-      'SB_vs_CO_RFI': ['77', '88', '99', 'TT', 'JJ', 'A8s', 'A9s', 'ATs', 'AJs', 'AQs', 'AKs', 'QTs', 'QJs'],
-      'SB_vs_BB_RFI': ['66', '77', '88', '99', 'TT', 'JJ', 'A2s', 'A3s', 'A4s', 'A5s', 'A6s', 'A7s', 'A8s', 'A9s', 'ATs', 'AJs', 'AQs', 'AKs', 'KQs', 'KJs', 'KTs', 'QJs', 'QTs', 'JTs', 'T9s'],
-      
-      // EP Facing RFI (missing from original)
-      'EP_vs_MP_RFI': ['TT', 'JJ', 'AQs'],
-      'EP_vs_BTN_RFI': ['99', 'TT', 'JJ', 'AJs', 'AQs', 'AKs'],
-      'EP_vs_CO_RFI': ['88', '99', 'TT', 'JJ', 'ATs', 'AJs', 'AQs', 'AKs', 'KQs']
+      'MP_vs_UTG_RFI': [], // 0%
+      'CO_vs_UTG_RFI': [], // 0%
+      'BTN_vs_UTG_RFI': this.getNextPercentHands(4.2, this.rfiRanges['UTG']),
+      'SB_vs_UTG_RFI': [], // 0%
+      'BB_vs_UTG_RFI': this.getNextPercentHands(18.4, this.rfiRanges['UTG']),
+      'CO_vs_MP_RFI': [], // 0%
+      'BTN_vs_MP_RFI': this.getNextPercentHands(3.2, this.rfiRanges['MP']),
+      'SB_vs_MP_RFI': [], // 0%
+      'BB_vs_MP_RFI': this.getNextPercentHands(19.5, this.rfiRanges['MP']),
+      'BTN_vs_CO_RFI': this.getNextPercentHands(2.3, this.rfiRanges['CO']),
+      'SB_vs_CO_RFI': [], // 0%
+      'BB_vs_CO_RFI': this.getNextPercentHands(21.9, this.rfiRanges['CO']),
+      'SB_vs_BTN_RFI': [], // 0%
+      'BB_vs_BTN_RFI': this.getNextPercentHands(25.8, this.rfiRanges['BTN']),
+      'BB_vs_SB_RFI': this.getNextPercentHands(35, this.rfiRanges['SB'])
     };
+    for (const key of Object.keys(this.flattingRanges)) {
+      const parts = key.split('_vs_');
+      if (parts.length === 2) {
+        const reversedKey = parts[1] + '_vs_' + parts[0] + '_RFI';
+        if (!this.flattingRanges[reversedKey]) {
+          this.flattingRanges[reversedKey] = this.flattingRanges[key];
+        }
+      }
+    }
+
+    // 3-Bet ranges (raise vs RFI)
+    this.threeBetRanges = {
+      'MP_vs_UTG': this.getTopPercentHands(7.9),
+      'CO_vs_UTG': this.getTopPercentHands(8.3),
+      'BTN_vs_UTG': this.getTopPercentHands(8.3),
+      'SB_vs_UTG': this.getTopPercentHands(7.4),
+      'BB_vs_UTG': this.getTopPercentHands(5.6),
+      'CO_vs_MP': this.getTopPercentHands(9.5),
+      'BTN_vs_MP': this.getTopPercentHands(9.5),
+      'SB_vs_MP': this.getTopPercentHands(9.2),
+      'BB_vs_MP': this.getTopPercentHands(7.2),
+      'BTN_vs_CO': this.getTopPercentHands(12.8),
+      'SB_vs_CO': this.getTopPercentHands(11.5),
+      'BB_vs_CO': this.getTopPercentHands(9.1),
+      'SB_vs_BTN': this.getTopPercentHands(15.1),
+      'BB_vs_BTN': this.getTopPercentHands(13.9),
+      'BB_vs_SB': this.getTopPercentHands(17.4)
+    };
+    for (const key of Object.keys(this.threeBetRanges)) {
+      const parts = key.split('_vs_');
+      if (parts.length === 2) {
+        const reversedKey = parts[1] + '_vs_' + parts[0];
+        if (!this.threeBetRanges[reversedKey]) {
+          this.threeBetRanges[reversedKey] = this.threeBetRanges[key];
+        }
+      }
+    }
+
+    // 4-Bet ranges (raise vs 3-bet)
+    this.fourBetRanges = {
+      'UTG_vs_MP_4B': this.getTopPercentHands(4.2),
+      'UTG_vs_CO_4B': this.getTopPercentHands(4.5),
+      'UTG_vs_BTN_4B': this.getTopPercentHands(4.5),
+      'UTG_vs_SB_4B': this.getTopPercentHands(3),
+      'UTG_vs_BB_4B': this.getTopPercentHands(2.7),
+      'MP_vs_CO_4B': this.getTopPercentHands(5.1),
+      'MP_vs_BTN_4B': this.getTopPercentHands(5.1),
+      'MP_vs_SB_4B': this.getTopPercentHands(5.1),
+      'MP_vs_BB_4B': this.getTopPercentHands(3.3),
+      'CO_vs_BTN_4B': this.getTopPercentHands(6.3),
+      'CO_vs_SB_4B': this.getTopPercentHands(5.3),
+      'CO_vs_BB_4B': this.getTopPercentHands(4.5),
+      'BTN_vs_SB_4B': this.getTopPercentHands(5.6),
+      'BTN_vs_BB_4B': this.getTopPercentHands(5),
+      'SB_vs_BB_4B': this.getTopPercentHands(7.7)
+    };
+    for (const key of Object.keys(this.fourBetRanges)) {
+      const parts = key.split('_vs_');
+      if (parts.length === 2) {
+        const reversedKey = parts[1] + '_vs_' + parts[0] + '_4B';
+        if (!this.fourBetRanges[reversedKey]) {
+          this.fourBetRanges[reversedKey] = this.fourBetRanges[key];
+        }
+      }
+    }
+
+    // 5-Bet ranges (raise vs 4-bet)
+    this.fiveBetRanges = {
+      'MP_vs_UTG_5B': this.getTopPercentHands(2.1),
+      'CO_vs_UTG_5B': this.getTopPercentHands(2.1),
+      'BTN_vs_UTG_5B': this.getTopPercentHands(2.1),
+      'SB_vs_UTG_5B': this.getTopPercentHands(2.1),
+      'BB_vs_UTG_5B': this.getTopPercentHands(2.1),
+      'CO_vs_MP_5B': this.getTopPercentHands(2.1),
+      'BTN_vs_MP_5B': this.getTopPercentHands(2.6),
+      'SB_vs_MP_5B': this.getTopPercentHands(2.9),
+      'BB_vs_MP_5B': this.getTopPercentHands(2.6),
+      'BTN_vs_CO_5B': this.getTopPercentHands(3.3),
+      'SB_vs_CO_5B': this.getTopPercentHands(3.8),
+      'BB_vs_CO_5B': this.getTopPercentHands(3.5),
+      'SB_vs_BTN_5B': this.getTopPercentHands(5),
+      'BB_vs_BTN_5B': this.getTopPercentHands(4.4),
+      'BB_vs_SB_5B': this.getTopPercentHands(4.5)
+    };
+    for (const key of Object.keys(this.fiveBetRanges)) {
+      const parts = key.split('_vs_');
+      if (parts.length === 2) {
+        const reversedKey = parts[1] + '_vs_' + parts[0] + '_5B';
+        if (!this.fiveBetRanges[reversedKey]) {
+          this.fiveBetRanges[reversedKey] = this.fiveBetRanges[key];
+        }
+      }
+    }
+
+    // Call 3-bet ranges (exclusive from 4-bet range, not 3-bet range)
+    this.threeBetCallingRanges = {
+      'UTG_vs_MP_3B': this.getNextPercentHands(2.3, this.fourBetRanges['UTG_vs_MP_4B']),
+      'UTG_vs_CO_3B': this.getNextPercentHands(2.3, this.fourBetRanges['UTG_vs_CO_4B']),
+      'UTG_vs_BTN_3B': this.getNextPercentHands(2.7, this.fourBetRanges['UTG_vs_BTN_4B']),
+      'UTG_vs_SB_3B': this.getNextPercentHands(3.2, this.fourBetRanges['UTG_vs_SB_4B']),
+      'UTG_vs_BB_3B': this.getNextPercentHands(3.6, this.fourBetRanges['UTG_vs_BB_4B']),
+      'MP_vs_CO_3B': this.getNextPercentHands(2.3, this.fourBetRanges['MP_vs_CO_4B']),
+      'MP_vs_BTN_3B': this.getNextPercentHands(2.7, this.fourBetRanges['MP_vs_BTN_4B']),
+      'MP_vs_SB_3B': this.getNextPercentHands(2.7, this.fourBetRanges['MP_vs_SB_4B']),
+      'MP_vs_BB_3B': this.getNextPercentHands(3.9, this.fourBetRanges['MP_vs_BB_4B']),
+      'CO_vs_BTN_3B': this.getNextPercentHands(4.2, this.fourBetRanges['CO_vs_BTN_4B']),
+      'CO_vs_SB_3B': this.getNextPercentHands(2.9, this.fourBetRanges['CO_vs_SB_4B']),
+      'CO_vs_BB_3B': this.getNextPercentHands(4.5, this.fourBetRanges['CO_vs_BB_4B']),
+      'BTN_vs_SB_3B': this.getNextPercentHands(4.4, this.fourBetRanges['BTN_vs_SB_4B']),
+      'BTN_vs_BB_3B': this.getNextPercentHands(7.1, this.fourBetRanges['BTN_vs_BB_4B']),
+      'SB_vs_BB_3B': this.getNextPercentHands(5, this.fourBetRanges['SB_vs_BB_4B'])
+    };
+    for (const key of Object.keys(this.threeBetCallingRanges)) {
+      const parts = key.split('_vs_');
+      if (parts.length === 2) {
+        const reversedKey = parts[1] + '_vs_' + parts[0] + '_3B';
+        if (!this.threeBetCallingRanges[reversedKey]) {
+          this.threeBetCallingRanges[reversedKey] = this.threeBetCallingRanges[key];
+        }
+      }
+    }
+
+    // Call 4-bet ranges (exclusive from 5-bet range, not 4-bet range)
+    this.fourBetCallingRanges = {
+      'MP_3B_vs_UTG_4B': this.getNextPercentHands(1.8, this.fiveBetRanges['MP_vs_UTG_5B']),
+      'CO_3B_vs_UTG_4B': this.getNextPercentHands(1.8, this.fiveBetRanges['CO_vs_UTG_5B']),
+      'BTN_3B_vs_UTG_4B': this.getNextPercentHands(1.8, this.fiveBetRanges['BTN_vs_UTG_5B']),
+      'SB_3B_vs_UTG_4B': this.getNextPercentHands(1.8, this.fiveBetRanges['SB_vs_UTG_5B']),
+      'BB_3B_vs_UTG_4B': this.getNextPercentHands(0.8, this.fiveBetRanges['BB_vs_UTG_5B']),
+      'CO_3B_vs_MP_4B': this.getNextPercentHands(2.6, this.fiveBetRanges['CO_vs_MP_5B']),
+      'BTN_3B_vs_MP_4B': this.getNextPercentHands(2.1, this.fiveBetRanges['BTN_vs_MP_5B']),
+      'SB_3B_vs_MP_4B': this.getNextPercentHands(2.1, this.fiveBetRanges['SB_vs_MP_5B']),
+      'BB_3B_vs_MP_4B': this.getNextPercentHands(1.2, this.fiveBetRanges['BB_vs_MP_5B']),
+      'BTN_3B_vs_CO_4B': this.getNextPercentHands(2.7, this.fiveBetRanges['BTN_vs_CO_5B']),
+      'SB_3B_vs_CO_4B': this.getNextPercentHands(1.4, this.fiveBetRanges['SB_vs_CO_5B']),
+      'BB_3B_vs_CO_4B': this.getNextPercentHands(0.6, this.fiveBetRanges['BB_vs_CO_5B']),
+      'SB_3B_vs_BTN_4B': this.getNextPercentHands(1.8, this.fiveBetRanges['SB_vs_BTN_5B']),
+      'BB_3B_vs_BTN_4B': this.getNextPercentHands(2, this.fiveBetRanges['BB_vs_BTN_5B']),
+      'BB_3B_vs_SB_4B': this.getNextPercentHands(2.6, this.fiveBetRanges['BB_vs_SB_5B'])
+    };
+    for (const key of Object.keys(this.fourBetCallingRanges)) {
+      const parts = key.split('_3B_vs_');
+      if (parts.length === 2) {
+        const reversedKey = parts[1] + '_3B_vs_' + parts[0] + '_4B';
+        if (!this.fourBetCallingRanges[reversedKey]) {
+          this.fourBetCallingRanges[reversedKey] = this.fourBetCallingRanges[key];
+        }
+      }
+    }
+
+    // Call 5-bet ranges (exclusive from 5-bet range, not 5-bet range)
+    this.fiveBetCallingRanges = {
+      'UTG_4B_vs_MP_5B': this.getTopPercentHands(2.1),
+      'UTG_4B_vs_CO_5B': this.getTopPercentHands(2.1),
+      'UTG_4B_vs_BTN_5B': this.getTopPercentHands(2.1),
+      'UTG_4B_vs_SB_5B': this.getTopPercentHands(2.1),
+      'UTG_4B_vs_BB_5B': this.getTopPercentHands(2.1),
+      'MP_4B_vs_CO_5B': this.getTopPercentHands(2.6),
+      'MP_4B_vs_BTN_5B': this.getTopPercentHands(2.6),
+      'MP_4B_vs_SB_5B': this.getTopPercentHands(2.6),
+      'MP_4B_vs_BB_5B': this.getTopPercentHands(2.1),
+      'CO_4B_vs_BTN_5B': this.getTopPercentHands(3.0),
+      'CO_4B_vs_SB_5B': this.getTopPercentHands(3.5),
+      'CO_4B_vs_BB_5B': this.getTopPercentHands(3.0),
+      'BTN_4B_vs_SB_5B': this.getTopPercentHands(3.3),
+      'BTN_4B_vs_BB_5B': this.getTopPercentHands(3.0),
+      'SB_4B_vs_BB_5B': this.getTopPercentHands(3.8)
+    };
+    for (const key of Object.keys(this.fiveBetCallingRanges)) {
+      const parts = key.split('_4B_vs_');
+      if (parts.length === 2) {
+        const reversedKey = parts[1] + '_4B_vs_' + parts[0] + '_5B';
+        if (!this.fiveBetCallingRanges[reversedKey]) {
+          this.fiveBetCallingRanges[reversedKey] = this.fiveBetCallingRanges[key];
+        }
+      }
+    }
+
+    // BB defend ranges (exclusive from 3-bet ranges, not RFI ranges)
+    this.bbDefendRanges = {
+      'BB_vs_UTG_RFI': this.getNextPercentHands(18.4, this.threeBetRanges['BB_vs_UTG']),
+      'BB_vs_MP_RFI': this.getNextPercentHands(19.5, this.threeBetRanges['BB_vs_MP']),
+      'BB_vs_CO_RFI': this.getNextPercentHands(21.9, this.threeBetRanges['BB_vs_CO']),
+      'BB_vs_BTN_RFI': this.getNextPercentHands(25.8, this.threeBetRanges['BB_vs_BTN']),
+      'BB_vs_SB_RFI': this.getNextPercentHands(35.0, this.threeBetRanges['BB_vs_SB'])
+    };
+    for (const key of Object.keys(this.bbDefendRanges)) {
+      const parts = key.split('_vs_');
+      if (parts.length === 2) {
+        const reversedKey = parts[1] + '_vs_' + parts[0] + '_RFI';
+        if (!this.bbDefendRanges[reversedKey]) {
+          this.bbDefendRanges[reversedKey] = this.bbDefendRanges[key];
+        }
+      }
+    }
 
     // Legacy ranges for backward compatibility
     this.handRanges = this.rfiRanges;
     this.threeBetRange = ['AA','KK','QQ','JJ','AKs','AKo','AQs'];
     this.threeBetBluffRange = ['A5s','KJs','QJs','JTs','T9s'];
     this.fourBetRange = ['AA','KK','AKs'];
-    
-    // Validate all ranges are properly defined
-    this.validateRanges();
+  }
+
+  // Helper: Get top X% of hands from masterHandOrder
+  getTopPercentHands(percent) {
+    const total = 169;
+    const count = Math.round((percent / 100) * total);
+    return this.masterHandOrder.slice(0, count);
+  }
+
+  // Helper: Get next Y% of hands, skipping those in excludeList
+  getNextPercentHands(percent, excludeList) {
+    const total = 169;
+    const count = Math.round((percent / 100) * total);
+    const filtered = this.masterHandOrder.filter(h => !excludeList.includes(h));
+    return filtered.slice(0, count);
+  }
+
+  // Helper: Pair up call/raise contexts for exclusivity
+  // Example: { raise: {key, percent}, call: {key, percent} }
+  getExclusiveRanges(raisePercent, callPercent, raiseKey, callKey) {
+    const raiseHands = this.getTopPercentHands(raisePercent);
+    const callHands = this.getNextPercentHands(callPercent, raiseHands);
+    return {
+      [raiseKey]: raiseHands,
+      [callKey]: callHands
+    };
   }
 
   // Helper to count raises in preflop betting round
@@ -255,45 +353,32 @@ class PokerBot {
   shouldBBDefend(handNotation, aggressorPosition) {
     if (!aggressorPosition) return false;
     
-    // BB defends wide against all positions - pairs, suited connectors, broadways, suited aces
-    const bbDefendRange = [
-      // Pairs
-      '22', '33', '44', '55', '66', '77', '88', '99', 'TT', 'JJ', 'QQ', 'KK', 'AA',
-      // Suited aces
-      'A2s', 'A3s', 'A4s', 'A5s', 'A6s', 'A7s', 'A8s', 'A9s', 'ATs', 'AJs', 'AQs', 'AKs',
-      // Suited broadways
-      'K2s', 'K3s', 'K4s', 'K5s', 'K6s', 'K7s', 'K8s', 'K9s', 'KTs', 'KJs', 'KQs',
-      'Q2s', 'Q3s', 'Q4s', 'Q5s', 'Q6s', 'Q7s', 'Q8s', 'Q9s', 'QTs', 'QJs',
-      'J2s', 'J3s', 'J4s', 'J5s', 'J6s', 'J7s', 'J8s', 'J9s', 'JTs',
-      'T2s', 'T3s', 'T4s', 'T5s', 'T6s', 'T7s', 'T8s', 'T9s',
-      '92s', '93s', '94s', '95s', '96s', '97s', '98s',
-      '82s', '83s', '84s', '85s', '86s', '87s',
-      '72s', '73s', '74s', '75s', '76s',
-      '62s', '63s', '64s', '65s',
-      '52s', '53s', '54s',
-      '42s', '43s',
-      '32s',
-      // Offsuit broadways
-      'AKo', 'AQo', 'AJo', 'ATo', 'A9o', 'A8o', 'A7o', 'A6o', 'A5o', 'A4o', 'A3o', 'A2o',
-      'KQo', 'KJo', 'KTo', 'K9o', 'K8o', 'K7o', 'K6o', 'K5o', 'K4o', 'K3o', 'K2o',
-      'QJo', 'QTo', 'Q9o', 'Q8o', 'Q7o', 'Q6o', 'Q5o', 'Q4o', 'Q3o', 'Q2o',
-      'JTo', 'J9o', 'J8o', 'J7o', 'J6o', 'J5o', 'J4o', 'J3o', 'J2o',
-      'T9o', 'T8o', 'T7o', 'T6o', 'T5o', 'T4o', 'T3o', 'T2o',
-      '98o', '97o', '96o', '95o', '94o', '93o', '92o',
-      '87o', '86o', '85o', '84o', '83o', '82o',
-      '76o', '75o', '74o', '73o', '72o',
-      '65o', '64o', '63o', '62o',
-      '54o', '53o', '52o',
-      '43o', '42o',
-      '32o'
-    ];
+    // Get the appropriate BB defend range based on aggressor position
+    const bbDefendKey = `BB_vs_${aggressorPosition}_RFI`;
+    const bbDefendRange = this.bbDefendRanges[bbDefendKey];
+    
+    if (!bbDefendRange) {
+      console.log(`[PokerBot][WARNING] BB defend range not found: ${bbDefendKey}`);
+      return false;
+    }
     
     return bbDefendRange.includes(handNotation);
   }
 
   // Helper to check if hand is in a specific range
   isHandInSpecificRange(handNotation, rangeKey, rangeType) {
-    const range = this[rangeType][rangeKey];
+    let range = this[rangeType][rangeKey];
+    if (!range) {
+      // Try reversed key if not found, preserving suffix (e.g., _3B, _4B, etc)
+      const match = rangeKey.match(/^([^_]+)_vs_([^_]+)(.*)$/);
+      if (match) {
+        const reversedKey = `${match[2]}_vs_${match[1]}${match[3]}`;
+        range = this[rangeType][reversedKey];
+        if (range) {
+          console.log(`[PokerBot][INFO] Used reversed key: ${rangeType}[${reversedKey}]`);
+        }
+      }
+    }
     if (!range) {
       console.log(`[PokerBot][WARNING] Range not found: ${rangeType}[${rangeKey}]`);
       return false;
@@ -309,6 +394,12 @@ class PokerBot {
       return `${aggressorPosition}_vs_${ourPosition}_3B`;
     } else if (rangeType === 'fourBetRanges') {
       return `${aggressorPosition}_vs_${ourPosition}_4B`;
+    } else if (rangeType === 'fourBetCallingRanges') {
+      return `${aggressorPosition}_3B_vs_${ourPosition}_4B`;
+    } else if (rangeType === 'fiveBetRanges') {
+      return `${aggressorPosition}_vs_${ourPosition}_5B`;
+    } else if (rangeType === 'fiveBetCallingRanges') {
+      return `${aggressorPosition}_4B_vs_${ourPosition}_5B`;
     } else if (rangeType === 'flattingRanges') {
       return `${ourPosition}_vs_${aggressorPosition}_RFI`;
     }
@@ -317,8 +408,8 @@ class PokerBot {
 
   // Safety check to prevent infinite loops
   shouldPreventInfiniteLoop(numPreflopRaises, stackSize, currentHighestBet) {
-    // If we've had more than 4 raises, something is wrong
-    if (numPreflopRaises > 4) {
+    // If we've had more than 5 raises, something is wrong
+    if (numPreflopRaises > 5) {
       console.log(`[PokerBot][SAFETY] Too many raises (${numPreflopRaises}), forcing fold`);
       return true;
     }
@@ -332,73 +423,7 @@ class PokerBot {
     return false;
   }
 
-  // Validation method to check that all ranges are properly defined
-  validateRanges() {
-    const errors = [];
-    
-    // Check RFI ranges
-    const expectedPositions = ['EP', 'MP', 'CO', 'BTN', 'SB'];
-    for (const pos of expectedPositions) {
-      if (!this.rfiRanges[pos]) {
-        errors.push(`Missing RFI range for position: ${pos}`);
-      }
-    }
-    
-    // Check 3-bet ranges for common scenarios
-    const commonThreeBetScenarios = [
-      'BTN_vs_EP', 'BTN_vs_MP', 'BTN_vs_CO', 'BTN_vs_BTN', 'BTN_vs_SB',
-      'SB_vs_EP', 'SB_vs_MP', 'SB_vs_CO', 'SB_vs_BTN', 'SB_vs_BB',
-      'BB_vs_EP', 'BB_vs_MP', 'BB_vs_CO', 'BB_vs_BTN', 'BB_vs_SB',
-      'EP_vs_MP', 'EP_vs_CO', 'EP_vs_BTN', 'EP_vs_SB',
-      'MP_vs_EP', 'MP_vs_CO', 'MP_vs_BTN', 'MP_vs_SB', 'MP_vs_BB',
-      'CO_vs_EP', 'CO_vs_MP', 'CO_vs_BTN', 'CO_vs_SB', 'CO_vs_BB',
-      'BTN_vs_EP', 'BTN_vs_MP', 'BTN_vs_CO', 'BTN_vs_SB', 'BTN_vs_BB'
-    ];
-    
-    for (const scenario of commonThreeBetScenarios) {
-      if (!this.threeBetRanges[scenario]) {
-        errors.push(`Missing 3-bet range for scenario: ${scenario}`);
-      }
-    }
-    
-    if (errors.length > 0) {
-      console.error('[PokerBot][VALIDATION] Range validation errors:', errors);
-      return false;
-    }
-    
-    console.log('[PokerBot][VALIDATION] All ranges validated successfully');
-    return true;
-  }
-
-  // Debug method to log range information
-  debugRangeInfo(handNotation, positionName, aggressorPosition, originalRaiserPosition, numPreflopRaises) {
-    console.log(`[PokerBot][DEBUG] Range Analysis:`);
-    console.log(`  Hand: ${handNotation}`);
-    console.log(`  Position: ${positionName}`);
-    console.log(`  Aggressor: ${aggressorPosition}`);
-    console.log(`  Original Raiser: ${originalRaiserPosition}`);
-    console.log(`  Preflop Raises: ${numPreflopRaises}`);
-    
-    // Check RFI range
-    const isInRfi = this.isHandInSpecificRange(handNotation, positionName, 'rfiRanges');
-    console.log(`  In RFI Range: ${isInRfi}`);
-    
-    // Check 3-bet range if applicable
-    if (aggressorPosition && aggressorPosition !== positionName) {
-      const threeBetKey = this.getRangeKey(positionName, aggressorPosition, 'threeBetRanges');
-      const isInThreeBet = this.isHandInSpecificRange(handNotation, threeBetKey, 'threeBetRanges');
-      console.log(`  3-Bet Key: ${threeBetKey}, In 3-Bet Range: ${isInThreeBet}`);
-    }
-    
-    // Check flatting range if applicable
-    if (originalRaiserPosition && originalRaiserPosition !== positionName) {
-      const flattingKey = this.getRangeKey(positionName, originalRaiserPosition, 'flattingRanges');
-      const isInFlatting = this.isHandInSpecificRange(handNotation, flattingKey, 'flattingRanges');
-      console.log(`  Flatting Key: ${flattingKey}, In Flatting Range: ${isInFlatting}`);
-    }
-  }
-
-  // Main decision function
+  // Main decision function - PREFLOP ONLY
   calculateAction(gameState, playerState) {
     const {
       communityCards,
@@ -411,24 +436,26 @@ class PokerBot {
       numPlayers,
       activePlayers,
       isPreflop,
-      isPostflop,
       stackSize,
       currentBet
     } = this.parseGameState(gameState, playerState);
 
-    const numPreflopRaises = this.countPreflopRaises(gameState);
+    // Only handle preflop decisions
+    if (!isPreflop) {
+      console.log(`[PokerBot][ERROR] Postflop action requested but bot is preflop-only`);
+      return { action: 'fold', amount: 0 };
+    }
 
-    // Calculate hand strength
-    const handStrength = this.evaluateHandStrength(communityCards, holeCards);
+    const numPreflopRaises = this.countPreflopRaises(gameState);
     const position = this.getPositionValue(playerPosition);
-    const potOdds = this.calculatePotOdds(currentHighestBet - currentBet, currentPotValue);
-    const stackToPotRatio = stackSize / currentPotValue;
     
-    // Determine action based on street
-    if (isPreflop) {
-      return this.preflopDecision(gameState, playerState, handStrength, position, currentHighestBet, currentBet, stackSize, numPlayers, activePlayers, holeCards, playerPosition, numPreflopRaises);
+    // Check if user is involved in the action
+    const userInvolved = this.isUserInvolved(gameState, playerState);
+    
+    if (userInvolved) {
+      return this.handleUserInvolvedAction(gameState, playerState, currentHighestBet, currentBet, stackSize, holeCards, playerPosition, numPreflopRaises);
     } else {
-      return this.postflopDecision(handStrength, currentBettingRound, currentHighestBet, currentBet, currentPotValue, stackSize, activePlayers, communityCards, gameState, playerState);
+      return this.preflopDecision(gameState, playerState, currentHighestBet, currentBet, stackSize, numPlayers, activePlayers, holeCards, playerPosition, numPreflopRaises);
     }
   }
 
@@ -444,13 +471,12 @@ class PokerBot {
       numPlayers: gameState.players?.length || 6,
       activePlayers: gameState.players?.filter(p => !p.isFolded).length || 6,
       isPreflop: gameState.currentBettingRound === 'PREFLOP',
-      isPostflop: gameState.currentBettingRound !== 'PREFLOP',
       stackSize: playerState.stack || 1000,
       currentBet: playerState.currentBet || 0
     };
   }
 
-  preflopDecision(gameState, playerState, handStrength, position, currentHighestBet, currentBet, stackSize, numPlayers, activePlayers, holeCards, playerPosition, numPreflopRaises) {
+  preflopDecision(gameState, playerState, currentHighestBet, currentBet, stackSize, numPlayers, activePlayers, holeCards, playerPosition, numPreflopRaises) {
     const callAmount = currentHighestBet - currentBet;
     const positionName = normalizePositionName(playerPosition);
     const handNotation = this.getHandNotation(holeCards);
@@ -459,7 +485,6 @@ class PokerBot {
 
     // Debug: Print all relevant info
     console.log(`[PokerBot][DEBUG] PreflopDecision: hand=${handNotation}, pos=${positionName}, raises=${numPreflopRaises}, aggressor=${aggressorPosition}, originalRaiser=${originalRaiserPosition}`);
-    console.log(`[PokerBot][DEBUG] Hand history:`, gameState.handHistory);
 
     // Safety check to prevent infinite loops
     if (this.shouldPreventInfiniteLoop(numPreflopRaises, stackSize, currentHighestBet)) {
@@ -552,196 +577,55 @@ class PokerBot {
 
     // 3 raises: Facing a 4-bet (5-bet, call, or fold)
     if (numPreflopRaises === 3) {
-      const in5Bet = this.fiveBetRanges.includes(handNotation);
-      const inCall = this.fiveBetCallingRanges.includes(handNotation);
-      console.log(`[PokerBot][DEBUG] 3 raises: hand=${handNotation}, in5Bet=${in5Bet}, inCall=${inCall}`);
-      if (in5Bet) {
-        return this.decideRaise(currentHighestBet, stackSize, '5bet');
-      }
-      if (inCall) {
-        return { action: 'call', amount: callAmount };
-      }
-      return { action: 'fold', amount: 0 };
-    }
-
-    // 4+ raises: Only AA calls, all else folds
-      if (handNotation === 'AA') {
-      console.log(`[PokerBot][DEBUG] 4+ raises: hand=AA, call`);
-        return { action: 'call', amount: callAmount };
-    }
-    console.log(`[PokerBot][DEBUG] 4+ raises: hand=${handNotation}, fold`);
-    return { action: 'fold', amount: 0 };
-  }
-
-  // Handle RFI (Raise First In) scenarios
-  handleRFI(handNotation, positionName, currentHighestBet, stackSize) {
-    const isInRfiRange = this.isHandInSpecificRange(handNotation, positionName, 'rfiRanges');
-    if (isInRfiRange) {
-      console.log(`[PokerBot][PREFLOP] RFI with ${handNotation} from ${positionName}`);
-      return this.decideRaise(currentHighestBet, stackSize, 'open');
-      } else {
-      console.log(`[PokerBot][PREFLOP] Fold ${handNotation} from ${positionName} - not in RFI range`);
+      // Original raiser facing a 4-bet
+      if (originalRaiserPosition === positionName && aggressorPosition && aggressorPosition !== positionName) {
+        const fiveBetKey = this.getRangeKey(positionName, aggressorPosition, 'fiveBetRanges');
+        const fourBetCallingKey = this.getRangeKey(positionName, aggressorPosition, 'fourBetCallingRanges');
+        const in5Bet = this.isHandInSpecificRange(handNotation, fiveBetKey, 'fiveBetRanges');
+        const inCall = this.isHandInSpecificRange(handNotation, fourBetCallingKey, 'fourBetCallingRanges');
+        console.log(`[PokerBot][DEBUG] 3 raises: origRaiser=${positionName}, 4bettor=${aggressorPosition}, 5betKey=${fiveBetKey}, in5Bet=${in5Bet}, 4betCallKey=${fourBetCallingKey}, inCall=${inCall}`);
+        if (in5Bet) {
+          return this.decideRaise(currentHighestBet, stackSize, '5bet');
+        }
+        if (inCall) {
+          return { action: 'call', amount: callAmount };
+        }
         return { action: 'fold', amount: 0 };
       }
+      // 4-bettor facing a 5-bet
+      if (aggressorPosition === positionName && originalRaiserPosition && originalRaiserPosition !== positionName) {
+        const fiveBetCallingKey = `${positionName}_4B_vs_${originalRaiserPosition}_5B`;
+        const inCall = this.isHandInSpecificRange(handNotation, fiveBetCallingKey, 'fiveBetCallingRanges');
+        console.log(`[PokerBot][DEBUG] 3 raises: 4bettor=${positionName}, origRaiser=${originalRaiserPosition}, 5betCallKey=${fiveBetCallingKey}, inCall=${inCall}`);
+        if (inCall) {
+          return { action: 'call', amount: callAmount };
+        }
+        return { action: 'fold', amount: 0 };
+      }
+      // Bystander: fold
+      console.log(`[PokerBot][DEBUG] 3 raises bystander fold`);
+      return { action: 'fold', amount: 0 };
     }
 
-  // Handle facing a single raise (3-bet, call, or fold)
-  handleFacingSingleRaise(handNotation, positionName, aggressorPosition, originalRaiserPosition, callAmount, currentHighestBet, stackSize) {
-    // Special case: BB defense
-    if (positionName === 'BB' && aggressorPosition && aggressorPosition !== 'BB') {
-      return this.handleBBDefense(handNotation, aggressorPosition, callAmount, currentHighestBet, stackSize);
-    }
-    
-    // Regular position logic (non-BB positions)
-    if (positionName !== 'BB' && aggressorPosition && aggressorPosition !== positionName) {
-      return this.handleNonBBFacingRaise(handNotation, positionName, aggressorPosition, originalRaiserPosition, callAmount, currentHighestBet, stackSize);
-    }
-    
-    // Fallback: fold if we can't determine the scenario
-    console.log(`[PokerBot][PREFLOP] Fold ${handNotation} from ${positionName} - unclear scenario`);
-    return { action: 'fold', amount: 0 };
-  }
-
-  // Handle BB defense against a raise
-  handleBBDefense(handNotation, aggressorPosition, callAmount, currentHighestBet, stackSize) {
-    // Check if we should 3-bet as BB
-    const threeBetKey = this.getRangeKey('BB', aggressorPosition, 'threeBetRanges');
-    const shouldThreeBet = this.isHandInSpecificRange(handNotation, threeBetKey, 'threeBetRanges');
-    
-    if (shouldThreeBet) {
-      console.log(`[PokerBot][PREFLOP] BB 3-bet with ${handNotation} vs ${aggressorPosition}`);
-      return this.decideRaise(currentHighestBet, stackSize, '3bet');
-    }
-    
-    // BB defends wide against all positions
-    if (this.shouldBBDefend(handNotation, aggressorPosition)) {
-      console.log(`[PokerBot][PREFLOP] BB defend with ${handNotation} vs ${aggressorPosition}`);
-      return { action: 'call', amount: callAmount };
-    }
-    
-    console.log(`[PokerBot][PREFLOP] BB fold ${handNotation} vs ${aggressorPosition}`);
-    return { action: 'fold', amount: 0 };
-  }
-
-  // Handle non-BB positions facing a raise
-  handleNonBBFacingRaise(handNotation, positionName, aggressorPosition, originalRaiserPosition, callAmount, currentHighestBet, stackSize) {
-    // Check if we should 3-bet
-    const threeBetKey = this.getRangeKey(positionName, aggressorPosition, 'threeBetRanges');
-    const shouldThreeBet = this.isHandInSpecificRange(handNotation, threeBetKey, 'threeBetRanges');
-    
-    if (shouldThreeBet) {
-      console.log(`[PokerBot][PREFLOP] 3-bet with ${handNotation} from ${positionName} vs ${aggressorPosition}`);
-      return this.decideRaise(currentHighestBet, stackSize, '3bet');
-    }
-    
-    // Check if we should call (flatting ranges)
-    if (originalRaiserPosition && originalRaiserPosition !== positionName) {
-      const flattingKey = this.getRangeKey(positionName, originalRaiserPosition, 'flattingRanges');
-      const shouldCall = this.isHandInSpecificRange(handNotation, flattingKey, 'flattingRanges');
-      
-      if (shouldCall) {
-        console.log(`[PokerBot][PREFLOP] Call with ${handNotation} from ${positionName} vs ${originalRaiserPosition}`);
+    // 4 raises: Facing a 5-bet (call or fold)
+    if (numPreflopRaises === 4) {
+      // 5-bettor facing a 6-bet (should be very rare, only AA calls)
+      if (handNotation === 'AA') {
+        console.log(`[PokerBot][DEBUG] 4 raises: hand=AA, call`);
         return { action: 'call', amount: callAmount };
       }
-    }
-    
-    // Default fold if not in any range
-    console.log(`[PokerBot][PREFLOP] Fold ${handNotation} from ${positionName} - not in any range`);
-    return { action: 'fold', amount: 0 };
-  }
-
-  // Handle facing a 3-bet (4-bet or call)
-  handleFacingThreeBet(handNotation, positionName, aggressorPosition, originalRaiserPosition, callAmount, currentHighestBet, stackSize) {
-    // We are the original raiser, facing a 3-bet
-    if (originalRaiserPosition === positionName && aggressorPosition && aggressorPosition !== positionName) {
-      return this.handleOriginalRaiserFacingThreeBet(handNotation, positionName, aggressorPosition, callAmount, currentHighestBet, stackSize);
-    }
-    
-    // We are the 3-bettor, facing a 4-bet
-    if (aggressorPosition === positionName && originalRaiserPosition && originalRaiserPosition !== positionName) {
-      return this.handleThreeBettorFacingFourBet(handNotation, positionName, originalRaiserPosition, callAmount, currentHighestBet, stackSize);
-    }
-    
-    // We are a bystander facing a 3-bet (should rarely happen, but handle it)
-    if (positionName !== originalRaiserPosition && positionName !== aggressorPosition) {
-      console.log(`[PokerBot][PREFLOP] Bystander fold ${handNotation} from ${positionName} facing 3-bet`);
+      console.log(`[PokerBot][DEBUG] 4 raises: hand=${handNotation}, fold`);
       return { action: 'fold', amount: 0 };
     }
-    
-    // Fallback: fold
-    console.log(`[PokerBot][PREFLOP] Fold ${handNotation} from ${positionName} - unclear 3-bet scenario`);
-    return { action: 'fold', amount: 0 };
-  }
 
-  // Handle original raiser facing a 3-bet
-  handleOriginalRaiserFacingThreeBet(handNotation, positionName, aggressorPosition, callAmount, currentHighestBet, stackSize) {
-    // Check if we should 4-bet
-    const fourBetKey = this.getRangeKey(positionName, aggressorPosition, 'fourBetRanges');
-    const shouldFourBet = this.isHandInSpecificRange(handNotation, fourBetKey, 'fourBetRanges');
-    
-    if (shouldFourBet) {
-      console.log(`[PokerBot][PREFLOP] 4-bet with ${handNotation} from ${positionName} vs ${aggressorPosition}`);
-      return this.decideRaise(currentHighestBet, stackSize, '4bet');
-    }
-    
-    // Check if we should call the 3-bet
-    const threeBetCallingKey = this.getRangeKey(positionName, aggressorPosition, 'threeBetCallingRanges');
-    const shouldCall = this.isHandInSpecificRange(handNotation, threeBetCallingKey, 'threeBetCallingRanges');
-    
-    if (shouldCall) {
-      console.log(`[PokerBot][PREFLOP] Call 3-bet with ${handNotation} from ${positionName} vs ${aggressorPosition}`);
-      return { action: 'call', amount: callAmount };
-    }
-    
-    // Default fold
-    console.log(`[PokerBot][PREFLOP] Fold ${handNotation} from ${positionName} - not in 4-bet or calling range`);
-    return { action: 'fold', amount: 0 };
-  }
-
-  // Handle 3-bettor facing a 4-bet
-  handleThreeBettorFacingFourBet(handNotation, positionName, originalRaiserPosition, callAmount, currentHighestBet, stackSize) {
-    const fourBetCallingKey = `${positionName}_3B_vs_${originalRaiserPosition}_4B`;
-    const shouldCall = this.isHandInSpecificRange(handNotation, fourBetCallingKey, 'fourBetCallingRanges');
-    
-    if (shouldCall) {
-      console.log(`[PokerBot][PREFLOP] Call 4-bet with ${handNotation} from ${positionName} vs ${originalRaiserPosition}`);
-      return { action: 'call', amount: callAmount };
-    }
-    
-    // Default fold
-    console.log(`[PokerBot][PREFLOP] Fold ${handNotation} from ${positionName} - not in 4-bet calling range`);
-    return { action: 'fold', amount: 0 };
-  }
-
-  // Handle facing a 4-bet (5-bet or call)
-  handleFacingFourBet(handNotation, callAmount, currentHighestBet, stackSize) {
-    const shouldFiveBet = this.fiveBetRanges.includes(handNotation);
-    if (shouldFiveBet) {
-      console.log(`[PokerBot][PREFLOP] 5-bet with ${handNotation}`);
-      return this.decideRaise(currentHighestBet, stackSize, '5bet');
-    }
-    
-    const shouldCall = this.fiveBetCallingRanges.includes(handNotation);
-    if (shouldCall) {
-      console.log(`[PokerBot][PREFLOP] Call 5-bet with ${handNotation}`);
-      return { action: 'call', amount: callAmount };
-    }
-    
-    console.log(`[PokerBot][PREFLOP] Fold ${handNotation} - not in 5-bet range`);
-    return { action: 'fold', amount: 0 };
-  }
-
-  // Handle multiple raises (more than 3)
-  handleMultipleRaises(handNotation, callAmount) {
+    // 5+ raises: Only AA calls, all else folds
     if (handNotation === 'AA') {
-      console.log(`[PokerBot][PREFLOP] Call with AA in multi-way action`);
+      console.log(`[PokerBot][DEBUG] 5+ raises: hand=AA, call`);
       return { action: 'call', amount: callAmount };
-    } else {
-      console.log(`[PokerBot][PREFLOP] Fold ${handNotation} - too many raises`);
-      return { action: 'fold', amount: 0 };
     }
+    console.log(`[PokerBot][DEBUG] 5+ raises: hand=${handNotation}, fold`);
+    return { action: 'fold', amount: 0 };
   }
-
 
   decideRaise(currentHighestBet, stackSize, raiseType) {
     let raiseAmount;
@@ -759,12 +643,6 @@ class PokerBot {
       case '5bet':
         raiseAmount = Math.min(currentHighestBet * 2, stackSize * 0.25);
         break;
-      case 'value':
-        raiseAmount = Math.min(currentHighestBet * 2, stackSize * 0.2);
-        break;
-      case 'bluff':
-        raiseAmount = Math.min(currentHighestBet * 1.5, stackSize * 0.1);
-        break;
       default:
         raiseAmount = currentHighestBet * 2;
     }
@@ -778,547 +656,12 @@ class PokerBot {
     return { action: 'bet', amount: Math.round(raiseAmount) };
   }
 
-  evaluateHandStrength(communityCards, holeCards) {
-    if (!holeCards || holeCards.length !== 2) return 0;
-    
-    const allCards = [...communityCards, ...holeCards];
-    if (allCards.length < 2) return 0;
-    
-    // Convert cards to numeric format
-    const formattedCards = allCards.map(card => {
-      const rank = card[0];
-      const suit = card[1];
-      return { rank: this.rankValues[rank], suit };
-    });
-    
-    const holeCardRanks = holeCards.map(card => this.rankValues[card[0]]);
-    const holeCardSuits = holeCards.map(card => card[1]);
-    
-    // Calculate made hand strength
-    const madeHandStrength = this.calculateMadeHandStrength(formattedCards);
-    
-    // Calculate hole card strength
-    const holeCardStrength = this.calculateHoleCardStrength(holeCardRanks, holeCardSuits);
-    
-    // Calculate potential (drawing strength)
-    const potential = this.calculatePotential(formattedCards, communityCards.length);
-    
-    // Calculate board interaction strength
-    const boardInteraction = this.calculateBoardInteraction(formattedCards, holeCardRanks, holeCardSuits);
-    
-    // Weight the components based on street
-    let finalStrength;
-    if (communityCards.length === 0) {
-      // Preflop - focus on hole cards
-      finalStrength = holeCardStrength * 0.8 + potential * 0.2;
-    } else if (communityCards.length === 3) {
-      // Flop - balance made hands and draws
-      finalStrength = madeHandStrength * 0.6 + holeCardStrength * 0.2 + potential * 0.15 + boardInteraction * 0.05;
-    } else if (communityCards.length === 4) {
-      // Turn - made hands more important
-      finalStrength = madeHandStrength * 0.7 + holeCardStrength * 0.15 + potential * 0.1 + boardInteraction * 0.05;
-    } else {
-      // River - made hands dominate
-      finalStrength = madeHandStrength * 0.8 + holeCardStrength * 0.1 + potential * 0.05 + boardInteraction * 0.05;
-    }
-    
-    return finalStrength;
-  }
-
-  calculateBoardInteraction(allCards, holeCardRanks, holeCardSuits) {
-    if (allCards.length < 5) return 0; // Need at least flop + hole cards
-    
-    const communityCards = allCards.slice(0, -2);
-    const communityRanks = communityCards.map(c => c.rank);
-    const communitySuits = communityCards.map(c => c.suit);
-    
-    let interaction = 0;
-    
-    // Check if hole cards connect with the board
-    const highHoleCard = Math.max(...holeCardRanks);
-    const lowHoleCard = Math.min(...holeCardRanks);
-    const isSuited = holeCardSuits[0] === holeCardSuits[1];
-    
-    // Overcard potential
-    const maxBoardRank = Math.max(...communityRanks);
-    if (highHoleCard > maxBoardRank) {
-      interaction += 0.3;
-    }
-    
-    // Connected to board
-    const allRanks = [...communityRanks, ...holeCardRanks];
-    const uniqueRanks = [...new Set(allRanks)].sort((a, b) => a - b);
-    for (let i = 0; i < uniqueRanks.length - 2; i++) {
-      if (uniqueRanks[i + 2] - uniqueRanks[i] <= 4) {
-        interaction += 0.2;
-        break;
-      }
-    }
-    
-    // Suited with board
-    if (isSuited) {
-      const suitCounts = {};
-      allCards.forEach(card => suitCounts[card.suit] = (suitCounts[card.suit] || 0) + 1);
-      const maxSuitCount = Math.max(...Object.values(suitCounts));
-      if (maxSuitCount >= 4) {
-        interaction += 0.4;
-      } else if (maxSuitCount === 3) {
-        interaction += 0.2;
-      }
-    }
-    
-    // Pair with board
-    const rankCounts = {};
-    allRanks.forEach(rank => rankCounts[rank] = (rankCounts[rank] || 0) + 1);
-    const pairs = Object.values(rankCounts).filter(count => count >= 2);
-    if (pairs.length > 0) {
-      interaction += 0.3;
-    }
-    
-    return interaction;
-  }
-
-  calculateMadeHandStrength(cards) {
-    const ranks = cards.map(c => c.rank).sort((a, b) => a - b);
-    const suits = cards.map(c => c.suit);
-    
-    // Check for made hands with kicker consideration
-    if (this.isStraightFlush(ranks, suits)) {
-      return 9 + this.getKickerValue(ranks) * 0.01;
-    }
-    if (this.isFourOfAKind(ranks)) {
-      return 8 + this.getKickerValue(ranks) * 0.01;
-    }
-    if (this.isFullHouse(ranks)) {
-      return 7 + this.getFullHouseValue(ranks) * 0.01;
-    }
-    if (this.isFlush(suits)) {
-      return 6 + this.getKickerValue(ranks) * 0.01;
-    }
-    if (this.isStraight(ranks)) {
-      return 5 + this.getStraightValue(ranks) * 0.01;
-    }
-    if (this.isThreeOfAKind(ranks)) {
-      return 4 + this.getKickerValue(ranks) * 0.01;
-    }
-    if (this.isTwoPair(ranks)) {
-      return 3 + this.getTwoPairValue(ranks) * 0.01;
-    }
-    if (this.isOnePair(ranks)) {
-      return this.getOnePairValue(ranks, cards) * 0.01;
-    }
-    
-    return 1 + this.getKickerValue(ranks) * 0.01; // High card
-  }
-
-  // Enhanced one pair evaluation that distinguishes top/middle/bottom pair
-  getOnePairValue(ranks, allCards) {
-    const counts = {};
-    ranks.forEach(rank => counts[rank] = (counts[rank] || 0) + 1);
-    
-    // Find the pair rank
-    let pairRank = 0;
-    for (const [rank, count] of Object.entries(counts)) {
-      if (count >= 2) {
-        pairRank = parseInt(rank);
-        break;
-      }
-    }
-    
-    // Get kickers (ranks not in the pair)
-    const kickers = ranks.filter(rank => rank !== pairRank).sort((a, b) => b - a);
-    
-    // Determine if this is a pocket pair or board pair
-    const holeCardRanks = allCards.slice(-2).map(c => c.rank);
-    const communityRanks = allCards.slice(0, -2).map(c => c.rank);
-    
-    const isPocketPair = holeCardRanks[0] === holeCardRanks[1];
-    const isBoardPair = communityRanks.includes(pairRank);
-    const isHoleCardPair = holeCardRanks.includes(pairRank);
-    
-    let baseValue = 2.0; // Base value for one pair
-    
-    if (isPocketPair) {
-      // Pocket pairs are strong - overpair to most boards
-      baseValue = 5.0 + (pairRank / 14) * 2.0; // 5.0 to 7.0 range - much stronger
-    } else if (isHoleCardPair && isBoardPair) {
-      // Top pair with hole card
-      baseValue = this.getTopPairValue(pairRank, communityRanks, kickers);
-    } else if (isBoardPair) {
-      // Board pair with hole card kicker
-      baseValue = this.getBoardPairValue(pairRank, communityRanks, kickers);
-    } else {
-      // This shouldn't happen with one pair, but handle it
-      baseValue = 3.0 + (pairRank / 14) * 0.5;
-    }
-    
-    // Add kicker value
-    const kickerValue = this.calculateKickerValue(kickers);
-    
-    return baseValue + kickerValue;
-  }
-
-  // Evaluate top pair strength
-  getTopPairValue(pairRank, communityRanks, kickers) {
-    const maxBoardRank = Math.max(...communityRanks);
-    const minBoardRank = Math.min(...communityRanks);
-    
-    // Top pair is when our pair rank is higher than all board cards
-    if (pairRank > maxBoardRank) {
-      // Overpair - very strong
-      return 6.0 + (pairRank / 14) * 2.0; // 6.0 to 8.0 range - much stronger
-    }
-    
-    // Top pair - our pair matches the highest board card
-    if (pairRank === maxBoardRank) {
-      let baseValue = 4.5; // Base top pair value - much higher
-      
-      // Adjust based on kicker strength
-      const topKicker = kickers[0] || 0;
-      if (topKicker >= 12) baseValue += 0.5; // Broadway kicker
-      else if (topKicker >= 10) baseValue += 0.3; // Ten kicker
-      else if (topKicker >= 8) baseValue += 0.2; // Eight kicker
-      
-      // Adjust based on board texture
-      const uniqueBoardRanks = [...new Set(communityRanks)];
-      if (uniqueBoardRanks.length === 3) {
-        // Rainbow board - top pair is stronger
-        baseValue += 0.2;
-      } else if (uniqueBoardRanks.length === 2) {
-        // Paired board - top pair is weaker
-        baseValue -= 0.2;
-      }
-      
-      return baseValue;
-    }
-    
-    // Middle pair - our pair is between highest and lowest board cards
-    if (pairRank < maxBoardRank && pairRank > minBoardRank) {
-      let baseValue = 3.0; // Base middle pair value - higher
-      
-      // Adjust based on kicker strength
-      const topKicker = kickers[0] || 0;
-      if (topKicker >= 12) baseValue += 0.3; // Broadway kicker
-      else if (topKicker >= 10) baseValue += 0.2; // Ten kicker
-      
-      // Middle pair is weaker than top pair
-      baseValue -= 0.3;
-      
-      return baseValue;
-    }
-    
-    // Bottom pair - our pair matches the lowest board card
-    if (pairRank === minBoardRank) {
-      let baseValue = 2.5; // Base bottom pair value - higher
-      
-      // Adjust based on kicker strength
-      const topKicker = kickers[0] || 0;
-      if (topKicker >= 12) baseValue += 0.3; // Broadway kicker
-      else if (topKicker >= 10) baseValue += 0.2; // Ten kicker
-      
-      // Bottom pair is much weaker
-      baseValue -= 0.5;
-      
-      return baseValue;
-    }
-    
-    // Fallback
-    return 3.0 + (pairRank / 14) * 0.5;
-  }
-
-  // Evaluate board pair strength (when board is paired and we have a kicker)
-  getBoardPairValue(pairRank, communityRanks, kickers) {
-    const maxBoardRank = Math.max(...communityRanks);
-    const minBoardRank = Math.min(...communityRanks);
-    
-    let baseValue = 2.5; // Base board pair value - higher
-    
-    // Adjust based on kicker strength
-    const topKicker = kickers[0] || 0;
-    if (topKicker >= 12) baseValue += 0.5; // Broadway kicker
-    else if (topKicker >= 10) baseValue += 0.3; // Ten kicker
-    else if (topKicker >= 8) baseValue += 0.2; // Eight kicker
-    
-    // Adjust based on pair rank relative to board
-    if (pairRank === maxBoardRank) {
-      baseValue += 0.3; // Top board pair
-    } else if (pairRank === minBoardRank) {
-      baseValue -= 0.3; // Bottom board pair
-    }
-    
-    return baseValue;
-  }
-
-  // Calculate kicker value for pairs
-  calculateKickerValue(kickers) {
-    if (!kickers || kickers.length === 0) return 0;
-    
-    let kickerValue = 0;
-    for (let i = 0; i < kickers.length; i++) {
-      kickerValue += kickers[i] * Math.pow(0.01, i + 1);
-    }
-    
-    return kickerValue;
-  }
-
-  getKickerValue(ranks) {
-    const counts = {};
-    ranks.forEach(rank => counts[rank] = (counts[rank] || 0) + 1);
-    
-    // Find the main hand rank (most frequent)
-    let mainRank = 0;
-    let maxCount = 0;
-    for (const [rank, count] of Object.entries(counts)) {
-      if (count > maxCount) {
-        maxCount = count;
-        mainRank = parseInt(rank);
-      }
-    }
-    
-    // Get kickers (ranks not in the main hand)
-    const kickers = ranks.filter(rank => rank !== mainRank).sort((a, b) => b - a);
-    
-    // Calculate kicker value (weighted by position)
-    let kickerValue = 0;
-    for (let i = 0; i < kickers.length; i++) {
-      kickerValue += kickers[i] * Math.pow(0.1, i + 1);
-    }
-    
-    return mainRank + kickerValue;
-  }
-
-  getFullHouseValue(ranks) {
-    const counts = {};
-    ranks.forEach(rank => counts[rank] = (counts[rank] || 0) + 1);
-    
-    let threeRank = 0;
-    let pairRank = 0;
-    
-    for (const [rank, count] of Object.entries(counts)) {
-      if (count >= 3 && parseInt(rank) > threeRank) {
-        threeRank = parseInt(rank);
-      } else if (count >= 2 && parseInt(rank) > pairRank) {
-        pairRank = parseInt(rank);
-      }
-    }
-    
-    return threeRank * 100 + pairRank;
-  }
-
-  getTwoPairValue(ranks) {
-    const counts = {};
-    ranks.forEach(rank => counts[rank] = (counts[rank] || 0) + 1);
-    
-    const pairs = [];
-    for (const [rank, count] of Object.entries(counts)) {
-      if (count >= 2) {
-        pairs.push(parseInt(rank));
-      }
-    }
-    
-    pairs.sort((a, b) => b - a);
-    const kicker = ranks.find(rank => !pairs.includes(rank)) || 0;
-    
-    return pairs[0] * 10000 + pairs[1] * 100 + kicker;
-  }
-
-  getStraightValue(ranks) {
-    const uniqueRanks = [...new Set(ranks)].sort((a, b) => a - b);
-    
-    // Find the highest straight
-    for (let i = uniqueRanks.length - 1; i >= 4; i--) {
-      if (uniqueRanks[i] - uniqueRanks[i - 4] === 4) {
-        return uniqueRanks[i]; // Return the high card of the straight
-      }
-    }
-    
-    // Check for Ace-low straight
-    if (uniqueRanks.includes(14)) { // Ace
-      const lowRanks = uniqueRanks.filter(r => r <= 5);
-      if (lowRanks.length >= 4 && lowRanks.includes(2)) {
-        return 5; // A-2-3-4-5 straight
-      }
-    }
-    
-    return 0;
-  }
-
-  calculateHoleCardStrength(ranks, suits) {
-    const highCard = Math.max(...ranks);
-    const lowCard = Math.min(...ranks);
-    const isSuited = suits[0] === suits[1];
-    const isConnected = Math.abs(highCard - lowCard) <= 4;
-    const isBroadway = highCard >= 10;
-    
-    let strength = 0;
-    
-    // Suited bonus
-    if (isSuited) strength += 0.3;
-    
-    // Connected bonus
-    if (isConnected) strength += 0.2;
-    
-    // Broadway bonus
-    if (isBroadway) strength += 0.2;
-    
-    // High card value
-    strength += highCard / 14 * 0.3;
-    
-    // Pair bonus
-    if (highCard === lowCard) strength += 0.5;
-    
-    return strength;
-  }
-
-  calculatePotential(cards, communityCardCount) {
-    if (communityCardCount === 0) return 0; // Preflop
-    
-    const ranks = cards.map(c => c.rank);
-    const suits = cards.map(c => c.suit);
-    
-    let potential = 0;
-    
-    // Flush draw potential - give much more credit
-    const suitCounts = {};
-    suits.forEach(suit => suitCounts[suit] = (suitCounts[suit] || 0) + 1);
-    const maxSuitCount = Math.max(...Object.values(suitCounts));
-    if (maxSuitCount >= 4) potential += 2.5; // Much higher - flush draws are strong
-    else if (maxSuitCount === 3) potential += 1.5; // Much higher - flush draws are strong
-    
-    // Straight draw potential - give much more credit
-    const uniqueRanks = [...new Set(ranks)].sort((a, b) => a - b);
-    for (let i = 0; i < uniqueRanks.length - 2; i++) {
-      if (uniqueRanks[i + 2] - uniqueRanks[i] <= 4) {
-        potential += 1.8; // Much higher - straight draws are strong
-        break;
-      }
-    }
-    
-    // Overcard potential - give more credit
-    const holeCardRanks = ranks.slice(-2);
-    const communityRanks = ranks.slice(0, -2);
-    const maxCommunityRank = Math.max(...communityRanks);
-    if (holeCardRanks.some(rank => rank > maxCommunityRank)) {
-      potential += 0.8; // Higher - overcards have value
-    }
-    
-    // Gutshot potential - give more credit
-    for (let i = 0; i < uniqueRanks.length - 3; i++) {
-      if (uniqueRanks[i + 3] - uniqueRanks[i] <= 4) {
-        potential += 1.0; // Higher - gutshots have value
-        break;
-      }
-    }
-    
-    // Backdoor flush potential
-    if (maxSuitCount === 2) {
-      potential += 0.3; // Slight boost for backdoor flush
-    }
-    
-    // Open-ended straight draw (even stronger)
-    for (let i = 0; i < uniqueRanks.length - 3; i++) {
-      if (uniqueRanks[i + 3] - uniqueRanks[i] === 3) {
-        potential += 0.5; // Bonus for open-ended
-        break;
-      }
-    }
-    
-    return potential;
-  }
-
-  getHandRank(strength) {
-    // Convert hand strength to percentile (0-1)
-    return Math.min(1, Math.max(0, strength / 10));
-  }
-
   getPositionValue(position) {
     const positionValues = {
       'BTN': 1.0, 'CO': 0.8, 'MP': 0.6, 'LJ': 0.5, 'UTG+1': 0.4, 'UTG': 0.3,
       'SB': 0.7, 'BB': 0.9, 'BTN/SB': 1.0
     };
     return positionValues[position] || 0.5;
-  }
-
-  getPositionMultiplier(position, numPlayers) {
-    const baseMultiplier = this.getPositionValue(position);
-    
-    // Adjust for number of players
-    if (numPlayers <= 3) return baseMultiplier * 1.2; // Heads-up or 3-way
-    if (numPlayers <= 6) return baseMultiplier; // 6-max
-    return baseMultiplier * 0.8; // 9-max
-  }
-
-  calculatePotOdds(callAmount, potSize) {
-    if (callAmount === 0) return 0;
-    return callAmount / (potSize + callAmount);
-  }
-
-  // Hand evaluation helper functions
-  isStraightFlush(ranks, suits) {
-    return this.isFlush(suits) && this.isStraight(ranks);
-  }
-
-  isFourOfAKind(ranks) {
-    const counts = {};
-    ranks.forEach(rank => counts[rank] = (counts[rank] || 0) + 1);
-    return Object.values(counts).some(count => count >= 4);
-  }
-
-  isFullHouse(ranks) {
-    const counts = {};
-    ranks.forEach(rank => counts[rank] = (counts[rank] || 0) + 1);
-    const values = Object.values(counts).sort((a, b) => b - a);
-    return values.length >= 2 && values[0] >= 3 && values[1] >= 2;
-  }
-
-  isFlush(suits) {
-    const suitCounts = {};
-    suits.forEach(suit => suitCounts[suit] = (suitCounts[suit] || 0) + 1);
-    return Object.values(suitCounts).some(count => count >= 5);
-  }
-
-  isStraight(ranks) {
-    const uniqueRanks = [...new Set(ranks)].sort((a, b) => a - b);
-    for (let i = 0; i <= uniqueRanks.length - 5; i++) {
-      if (uniqueRanks[i + 4] - uniqueRanks[i] === 4) {
-        return true;
-      }
-    }
-    // Check for Ace-low straight (A-2-3-4-5)
-    if (uniqueRanks.includes(14)) { // Ace
-      const lowRanks = uniqueRanks.filter(r => r <= 5);
-      if (lowRanks.length >= 4 && lowRanks.includes(2)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  isThreeOfAKind(ranks) {
-    const counts = {};
-    ranks.forEach(rank => counts[rank] = (counts[rank] || 0) + 1);
-    return Object.values(counts).some(count => count >= 3);
-  }
-
-  isTwoPair(ranks) {
-    const counts = {};
-    ranks.forEach(rank => counts[rank] = (counts[rank] || 0) + 1);
-    const pairs = Object.values(counts).filter(count => count >= 2);
-    return pairs.length >= 2;
-  }
-
-  isOnePair(ranks) {
-    const counts = {};
-    ranks.forEach(rank => counts[rank] = (counts[rank] || 0) + 1);
-    return Object.values(counts).some(count => count >= 2);
-  }
-
-  // Convert action to game format
-  formatAction(action) {
-    return {
-      type: action.action,
-      amount: action.amount || 0
-    };
   }
 
   // Get hand notation (e.g., "AKs", "QQ", "72o")
@@ -1361,336 +704,159 @@ class PokerBot {
     return range.includes(handNotation);
   }
 
-  // Enhanced postflop decision with bluffing and board texture analysis
-  postflopDecision(handStrength, bettingRound, currentHighestBet, currentBet, potSize, stackSize, activePlayers, communityCards, gameState, playerState) {
+  // Convert action to game format
+  formatAction(action) {
+    return {
+      type: action.action,
+      amount: action.amount || 0
+    };
+  }
+
+  // Check if the user (human player) is involved in the current action
+  isUserInvolved(gameState, playerState) {
+    if (!gameState.handHistory || gameState.handHistory.length === 0) {
+      return false;
+    }
+
+    // Check if user has acted in this hand
+    const userHasActed = gameState.handHistory.some(action => 
+      action.playerId === 'user' || action.playerId === 'human' || action.playerId === 'player'
+    );
+
+    // Check if user is still in the hand (not folded)
+    const userStillIn = gameState.players?.some(p => 
+      (p.id === 'user' || p.id === 'human' || p.id === 'player') && !p.isFolded
+    );
+
+    return userHasActed || userStillIn;
+  }
+
+  // Handle actions when user is involved - make bots fold to help user
+  handleUserInvolvedAction(gameState, playerState, currentHighestBet, currentBet, stackSize, holeCards, playerPosition, numPreflopRaises) {
     const callAmount = currentHighestBet - currentBet;
-    const potOdds = callAmount / (potSize + callAmount);
-    const isRaised = currentHighestBet > 0;
-    const betSize = this.getBetSize(currentHighestBet, potSize);
-    const position = this.getPositionValue(playerState.positionName || 'BB');
-    const isAggressor = this.isAggressor(gameState, playerState);
-    const isLastAggressor = this.isLastAggressor(gameState, playerState);
-    
-    // Get raw hand strength without excessive scaling
-    const rawHandStrength = handStrength;
-    
-    // Analyze board texture
-    const boardTexture = this.analyzeBoardTexture(communityCards);
-    
-    // Get pair type for better decision making
-    const pairType = this.getPairType(handStrength, communityCards, playerState.cards || []);
-    
-    // Calculate adjusted hand strength based on pair type and board texture
-    const adjustedHandStrength = this.calculateAdjustedHandStrength(rawHandStrength, pairType, boardTexture, bettingRound, position, activePlayers);
-    
-    // Get opponent betting pattern
-    const opponentBettingPattern = this.getOpponentBettingPattern(gameState, bettingRound);
-    
-    console.log(`[PokerBot][POSTFLOP] Hand: ${this.getHandNotation(playerState.cards || [])}, Raw Strength: ${rawHandStrength.toFixed(3)}, Adjusted: ${adjustedHandStrength.toFixed(3)}, Pair Type: ${pairType}, Bet: ${betSize}, Pot: ${potSize}, Call: ${callAmount}, Position: ${playerState.positionName}, Pattern: ${opponentBettingPattern}`);
-    
-    if (isRaised) {
-      // Facing a bet/raise
-      return this.handleFacingBet(adjustedHandStrength, betSize, potOdds, callAmount, stackSize, bettingRound, boardTexture, position, isAggressor, currentHighestBet, opponentBettingPattern, pairType);
-    } else {
-      // First to act
-      return this.handleFirstToAct(adjustedHandStrength, bettingRound, boardTexture, position, isLastAggressor, currentHighestBet, stackSize, potSize, pairType);
-    }
-  }
+    const handNotation = this.getHandNotation(holeCards);
+    const aggressorPosition = this.getAggressorPosition(gameState);
+    const originalRaiserPosition = this.getOriginalRaiserPosition(gameState);
 
-  // Calculate adjusted hand strength based on pair type and context
-  calculateAdjustedHandStrength(rawStrength, pairType, boardTexture, bettingRound, position, activePlayers) {
-    let adjusted = rawStrength;
-    
-    // Boost overpairs significantly - they're very strong
-    if (pairType === 'overpair') {
-      adjusted = Math.max(adjusted, 8.0); // Very strong
-    }
-    
-    // Boost top pair hands
-    if (pairType === 'top_pair') {
-      adjusted = Math.max(adjusted, 4.0); // Strong
-    }
-    
-    // Boost pocket pairs that aren't overpairs
-    if (pairType === 'pocket_pair') {
-      adjusted = Math.max(adjusted, 3.5); // Strong
-    }
-    
-    // Boost draws based on board texture
-    if (boardTexture === 'drawHeavy' && rawStrength > 2.0) {
-      adjusted *= 1.5; // Draws are stronger on draw-heavy boards
-    }
-    
-    // Position bonus
-    if (position > 0.7) {
-      adjusted *= 1.2; // In position bonus
-    }
-    
-    // Player count adjustment
-    if (activePlayers <= 3) {
-      adjusted *= 1.3; // Heads-up or 3-way bonus
-    }
-    
-    return adjusted;
-  }
+    console.log(`[PokerBot][USER INVOLVED] Bot helping user: hand=${handNotation}, raises=${numPreflopRaises}, aggressor=${aggressorPosition}, originalRaiser=${originalRaiserPosition}`);
 
-  // Handle facing a bet/raise - simplified logic
-  handleFacingBet(handStrength, betSize, potOdds, callAmount, stackSize, bettingRound, boardTexture, position, isAggressor, currentHighestBet, opponentBettingPattern, pairType) {
-    // Very strong hands (overpairs, sets, etc.) - always raise
-    if (handStrength >= 7.0) {
-      console.log(`[PokerBot][POSTFLOP] Very strong hand (${handStrength.toFixed(3)}), raising for value`);
-      return this.decideRaise(currentHighestBet, stackSize, 'value');
+    // If user raised first, make all bots fold
+    if (numPreflopRaises === 1 && this.isUserOriginalRaiser(gameState)) {
+      console.log(`[PokerBot][USER INVOLVED] User raised first, bot folding to help`);
+      return { action: 'fold', amount: 0 };
     }
-    
-    // Strong hands (top pair, good draws) - call or raise based on bet size
-    if (handStrength >= 4.0) {
-      if (betSize === 'tiny' || betSize === 'small') {
-        console.log(`[PokerBot][POSTFLOP] Strong hand (${handStrength.toFixed(3)}) raising small bet`);
-        return this.decideRaise(currentHighestBet, stackSize, 'value');
-      } else {
-        console.log(`[PokerBot][POSTFLOP] Strong hand (${handStrength.toFixed(3)}) calling`);
-        return { action: 'call', amount: Math.round(callAmount) };
-      }
+
+    // If user is facing a 3-bet, make all bots fold around to user
+    if (numPreflopRaises === 2 && this.isUserFacingThreeBet(gameState)) {
+      console.log(`[PokerBot][USER INVOLVED] User facing 3-bet, bot folding to help`);
+      return { action: 'fold', amount: 0 };
     }
-    
-    // Medium hands (middle pair, weak draws) - call small bets, fold large bets
-    if (handStrength >= 2.5) {
-      if (betSize === 'tiny' || betSize === 'small') {
-        console.log(`[PokerBot][POSTFLOP] Medium hand (${handStrength.toFixed(3)}) calling small bet`);
-        return { action: 'call', amount: Math.round(callAmount) };
-      } else if (betSize === 'medium' && potOdds < 0.3) {
-        console.log(`[PokerBot][POSTFLOP] Medium hand (${handStrength.toFixed(3)}) calling medium bet with good odds`);
-        return { action: 'call', amount: Math.round(callAmount) };
-      } else {
-        console.log(`[PokerBot][POSTFLOP] Medium hand (${handStrength.toFixed(3)}) folding to large bet`);
+
+    // If user is the 3-bettor, make all bots fold around to user
+    if (numPreflopRaises === 2 && this.isUserThreeBettor(gameState)) {
+      console.log(`[PokerBot][USER INVOLVED] User is 3-bettor, bot folding to help`);
+      return { action: 'fold', amount: 0 };
+    }
+
+    // If user is facing a 4-bet, make all bots fold around to user
+    if (numPreflopRaises === 3 && this.isUserFacingFourBet(gameState)) {
+      console.log(`[PokerBot][USER INVOLVED] User facing 4-bet, bot folding to help`);
         return { action: 'fold', amount: 0 };
-      }
     }
-    
-    // Weak hands - only call with very good pot odds or against tiny bets
-    if (handStrength >= 1.5) {
-      if (betSize === 'tiny' && potOdds < 0.15) {
-        console.log(`[PokerBot][POSTFLOP] Weak hand (${handStrength.toFixed(3)}) calling tiny bet with good odds`);
-        return { action: 'call', amount: Math.round(callAmount) };
-      } else if (potOdds < 0.1) {
-        console.log(`[PokerBot][POSTFLOP] Weak hand (${handStrength.toFixed(3)}) calling with excellent odds`);
-        return { action: 'call', amount: Math.round(callAmount) };
-      } else {
-        console.log(`[PokerBot][POSTFLOP] Weak hand (${handStrength.toFixed(3)}) folding`);
+
+    // If user is the 4-bettor, make all bots fold around to user
+    if (numPreflopRaises === 3 && this.isUserFourBettor(gameState)) {
+      console.log(`[PokerBot][USER INVOLVED] User is 4-bettor, bot folding to help`);
         return { action: 'fold', amount: 0 };
-      }
     }
-    
-    // Very weak hands - only call with excellent pot odds
-    if (potOdds < 0.05) {
-      console.log(`[PokerBot][POSTFLOP] Very weak hand (${handStrength.toFixed(3)}) calling with excellent odds`);
-      return { action: 'call', amount: Math.round(callAmount) };
-    }
-    
-    console.log(`[PokerBot][POSTFLOP] Very weak hand (${handStrength.toFixed(3)}) folding`);
+
+    // If user is involved in any other action, fold to help
+    console.log(`[PokerBot][USER INVOLVED] User involved in action, bot folding to help`);
     return { action: 'fold', amount: 0 };
   }
 
-  // Handle first to act - simplified logic
-  handleFirstToAct(handStrength, bettingRound, boardTexture, position, isLastAggressor, currentHighestBet, stackSize, potSize, pairType) {
-    // Very strong hands - always bet for value
-    if (handStrength >= 7.0) {
-      console.log(`[PokerBot][POSTFLOP] Very strong hand (${handStrength.toFixed(3)}) betting for value`);
-      return this.decideRaise(currentHighestBet, stackSize, 'value');
-    }
+  // Check if user is the original raiser
+  isUserOriginalRaiser(gameState) {
+    if (!gameState.handHistory) return false;
     
-    // Strong hands - bet for value
-    if (handStrength >= 4.0) {
-      console.log(`[PokerBot][POSTFLOP] Strong hand (${handStrength.toFixed(3)}) betting for value`);
-      return this.decideRaise(currentHighestBet, stackSize, 'value');
-    }
-    
-    // Medium hands - check/call or bet depending on position and board
-    if (handStrength >= 2.5) {
-      if (position > 0.7 && isLastAggressor) {
-        console.log(`[PokerBot][POSTFLOP] Medium hand (${handStrength.toFixed(3)}) betting in position as aggressor`);
-        return this.decideRaise(currentHighestBet, stackSize, 'bluff');
-      } else {
-        console.log(`[PokerBot][POSTFLOP] Medium hand (${handStrength.toFixed(3)}) checking`);
-        return { action: 'check', amount: 0 };
+    for (const action of gameState.handHistory) {
+      if (action.round === 'PREFLOP' && (action.type === 'raise' || action.type === 'bet')) {
+        return action.playerId === 'user' || action.playerId === 'human' || action.playerId === 'player';
       }
     }
-    
-    // Weak hands - check unless we have position and were aggressor
-    if (handStrength >= 1.5) {
-      if (position > 0.8 && isLastAggressor && Math.random() < 0.3) {
-        console.log(`[PokerBot][POSTFLOP] Weak hand (${handStrength.toFixed(3)}) bluffing in position`);
-        return this.decideRaise(currentHighestBet, stackSize, 'bluff');
-      } else {
-        console.log(`[PokerBot][POSTFLOP] Weak hand (${handStrength.toFixed(3)}) checking`);
-        return { action: 'check', amount: 0 };
-      }
-    }
-    
-    // Very weak hands - check
-    console.log(`[PokerBot][POSTFLOP] Very weak hand (${handStrength.toFixed(3)}) checking`);
-    return { action: 'check', amount: 0 };
+    return false;
   }
 
-  // Helper to determine pair type for debugging
-  getPairType(handStrength, communityCards, holeCards) {
-    if (!communityCards || communityCards.length === 0) return 'preflop';
+  // Check if user is facing a 3-bet
+  isUserFacingThreeBet(gameState) {
+    if (!gameState.handHistory) return false;
     
-    const allCards = [...communityCards, ...holeCards];
-    const formattedCards = allCards.map(card => {
-      const rank = card[0];
-      const suit = card[1];
-      return { rank: this.rankValues[rank], suit };
-    });
+    let userRaised = false;
+    let someoneElseRaised = false;
     
-    const holeCardRanks = holeCards.map(card => this.rankValues[card[0]]);
-    const communityRanks = communityCards.map(card => this.rankValues[card[0]]);
-    
-    // Check if it's a pocket pair
-    if (holeCardRanks[0] === holeCardRanks[1]) {
-      const maxBoardRank = Math.max(...communityRanks);
-      if (holeCardRanks[0] > maxBoardRank) {
-        return 'overpair';
+    for (const action of gameState.handHistory) {
+      if (action.round === 'PREFLOP' && (action.type === 'raise' || action.type === 'bet')) {
+        if (action.playerId === 'user' || action.playerId === 'human' || action.playerId === 'player') {
+          userRaised = true;
       } else {
-        return 'pocket_pair';
-      }
-    }
-    
-    // Check for one pair
-    const allRanks = [...communityRanks, ...holeCardRanks];
-    const counts = {};
-    allRanks.forEach(rank => counts[rank] = (counts[rank] || 0) + 1);
-    
-    let pairRank = 0;
-    for (const [rank, count] of Object.entries(counts)) {
-      if (count >= 2) {
-        pairRank = parseInt(rank);
-        break;
-      }
-    }
-    
-    if (pairRank > 0) {
-      const maxBoardRank = Math.max(...communityRanks);
-      const minBoardRank = Math.min(...communityRanks);
-      
-      if (holeCardRanks.includes(pairRank)) {
-        if (pairRank > maxBoardRank) {
-          return 'overpair';
-        } else if (pairRank === maxBoardRank) {
-          return 'top_pair';
-        } else if (pairRank < maxBoardRank && pairRank > minBoardRank) {
-          return 'middle_pair';
-        } else if (pairRank === minBoardRank) {
-          return 'bottom_pair';
+          someoneElseRaised = true;
         }
-      } else {
-        return 'board_pair';
       }
     }
     
-    return 'no_pair';
+    return userRaised && someoneElseRaised;
   }
 
-  isAggressor(gameState, playerState) {
+  // Check if user is the 3-bettor
+  isUserThreeBettor(gameState) {
     if (!gameState.handHistory) return false;
     
-    // Check if we were the last to bet/raise in the current round
-    for (let i = gameState.handHistory.length - 1; i >= 0; i--) {
-      const action = gameState.handHistory[i];
-      if (action.round === gameState.currentBettingRound) {
-        return action.playerId === playerState.id && (action.type === 'bet' || action.type === 'raise');
-      }
+    const raises = gameState.handHistory.filter(action => 
+      action.round === 'PREFLOP' && (action.type === 'raise' || action.type === 'bet')
+    );
+    
+    if (raises.length >= 2) {
+      const lastRaiser = raises[raises.length - 1];
+      return lastRaiser.playerId === 'user' || lastRaiser.playerId === 'human' || lastRaiser.playerId === 'player';
     }
+    
     return false;
   }
 
-  isLastAggressor(gameState, playerState) {
+  // Check if user is facing a 4-bet
+  isUserFacingFourBet(gameState) {
     if (!gameState.handHistory) return false;
     
-    // Check if we were the last aggressor in any postflop round
-    for (let i = gameState.handHistory.length - 1; i >= 0; i--) {
-      const action = gameState.handHistory[i];
-      if (action.round !== 'PREFLOP') {
-        return action.playerId === playerState.id && (action.type === 'bet' || action.type === 'raise');
-      }
+    const raises = gameState.handHistory.filter(action => 
+      action.round === 'PREFLOP' && (action.type === 'raise' || action.type === 'bet')
+    );
+    
+    if (raises.length >= 3) {
+      const lastRaiser = raises[raises.length - 1];
+      const secondLastRaiser = raises[raises.length - 2];
+      
+      // User was the 3-bettor and someone else 4-bet
+      return (secondLastRaiser.playerId === 'user' || secondLastRaiser.playerId === 'human' || secondLastRaiser.playerId === 'player') &&
+             (lastRaiser.playerId !== 'user' && lastRaiser.playerId !== 'human' && lastRaiser.playerId !== 'player');
     }
+    
     return false;
   }
 
-
-
-  // Track opponent betting pattern across streets
-  getOpponentBettingPattern(gameState, currentBettingRound) {
-    if (!gameState.handHistory) return 'unknown';
+  // Check if user is the 4-bettor
+  isUserFourBettor(gameState) {
+    if (!gameState.handHistory) return false;
     
-    const streetOrder = ['FLOP', 'TURN', 'RIVER'];
-    const currentStreetIndex = streetOrder.indexOf(currentBettingRound);
-    if (currentStreetIndex <= 0) return 'unknown'; // Can't analyze pattern on flop or preflop
+    const raises = gameState.handHistory.filter(action => 
+      action.round === 'PREFLOP' && (action.type === 'raise' || action.type === 'bet')
+    );
     
-    const pattern = [];
-    
-    // Check previous streets for opponent betting
-    for (let i = 0; i < currentStreetIndex; i++) {
-      const street = streetOrder[i];
-      const streetActions = gameState.handHistory.filter(action => action.round === street);
-      
-      // Check if opponent bet on this street
-      const opponentBet = streetActions.some(action => 
-        action.type === 'bet' || action.type === 'raise'
-      );
-      
-      pattern.push(opponentBet ? 'bet' : 'check');
+    if (raises.length >= 3) {
+      const lastRaiser = raises[raises.length - 1];
+      return lastRaiser.playerId === 'user' || lastRaiser.playerId === 'human' || lastRaiser.playerId === 'player';
     }
     
-    return pattern.join('-');
-  }
-
-  // Analyze board texture for better decision making
-  analyzeBoardTexture(communityCards) {
-    if (!communityCards || communityCards.length === 0) return 'preflop';
-    
-    const ranks = communityCards.map(card => this.rankValues[card[0]]);
-    const suits = communityCards.map(card => card[1]);
-    
-    // Check for flush draw
-    const suitCounts = {};
-    suits.forEach(suit => suitCounts[suit] = (suitCounts[suit] || 0) + 1);
-    const maxSuitCount = Math.max(...Object.values(suitCounts));
-    const hasFlushDraw = maxSuitCount >= 3;
-    
-    // Check for straight draw
-    const uniqueRanks = [...new Set(ranks)].sort((a, b) => a - b);
-    let hasStraightDraw = false;
-    for (let i = 0; i <= uniqueRanks.length - 3; i++) {
-      if (uniqueRanks[i + 2] - uniqueRanks[i] <= 4) {
-        hasStraightDraw = true;
-        break;
-      }
-    }
-    
-    // Check for paired board
-    const rankCounts = {};
-    ranks.forEach(rank => rankCounts[rank] = (rankCounts[rank] || 0) + 1);
-    const pairs = Object.values(rankCounts).filter(count => count >= 2);
-    const isPaired = pairs.length > 0;
-    
-    // Determine texture type
-    if (hasFlushDraw && hasStraightDraw) return 'drawHeavy';
-    if (hasFlushDraw) return 'flushDraw';
-    if (hasStraightDraw) return 'straightDraw';
-    if (isPaired) return 'paired';
-    if (Math.max(...ranks) >= 12) return 'highCard';
-    return 'lowCard';
-  }
-
-  // Helper methods for postflop decision making
-  getBetSize(betAmount, potSize) {
-    if (betAmount === 0) return 'none';
-    const betPercentage = betAmount / potSize;
-    if (betPercentage <= 0.25) return 'tiny'; // Very small bets
-    if (betPercentage <= 0.33) return 'small';
-    if (betPercentage <= 0.66) return 'medium';
-    return 'large';
+    return false;
   }
 }
 
