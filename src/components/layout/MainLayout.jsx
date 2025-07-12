@@ -1,41 +1,67 @@
 import React from 'react';
+import { useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 
 const MainLayout = ({ children }) => {
+  const location = useLocation();
+  const path = location.pathname;
+
+  // Check if current route is a play page that should not have scrolling
+  const isPlayPage = () => {
+    return (
+      path.startsWith('/play') ||
+      path.startsWith('/cash-game') ||
+      path.startsWith('/heads-up') ||
+      path.startsWith('/play-bot-heads-up') ||
+      path.startsWith('/play-bot-6max') ||
+      path.startsWith('/play-bot-9max') ||
+      path.startsWith('/deep-stack') ||
+      path.startsWith('/tournament') ||
+      path.startsWith('/play-with-friends') ||
+      path.startsWith('/gto-trainer')
+    );
+  };
+
+  const shouldAllowScrolling = !isPlayPage();
+
   return (
     <div className="flex min-h-screen bg-black text-white">
       <Sidebar />
       <main
-        className="flex-1 flex items-center justify-center overflow-hidden bg-black transition-all duration-300 ml-[var(--sidebar-width)]"
+        className={`flex-1 flex items-center justify-center bg-black transition-all duration-300 ml-[var(--sidebar-width)] ${
+          shouldAllowScrolling ? 'overflow-y-auto' : 'overflow-hidden'
+        }`}
         style={{ minHeight: '100vh', minWidth: 0 }}
       >
         <div
-          className="aspect-ratio-keeper flex items-center justify-center bg-black w-full h-full"
+          className={`aspect-ratio-keeper flex items-center justify-center bg-black w-full h-full ${
+            shouldAllowScrolling ? 'min-h-full' : ''
+          }`}
           style={{
             position: 'relative',
             width: '100%',
-            height: '100%',
+            height: shouldAllowScrolling ? 'auto' : '100%',
             display: 'flex',
-            alignItems: 'center',
+            alignItems: shouldAllowScrolling ? 'flex-start' : 'center',
             justifyContent: 'center',
             background: 'black',
-            overflow: 'hidden',
+            overflow: shouldAllowScrolling ? 'visible' : 'hidden',
           }}
         >
           <div
             style={{
               position: 'relative',
               width: '100%',
-              height: '100%',
-              maxWidth: 'calc(100vh * 16 / 9)',
-              maxHeight: '100%',
-              aspectRatio: '16/9',
+              height: shouldAllowScrolling ? 'auto' : '100%',
+              maxWidth: shouldAllowScrolling ? 'none' : 'calc(100vh * 16 / 9)',
+              maxHeight: shouldAllowScrolling ? 'none' : '100%',
+              aspectRatio: shouldAllowScrolling ? 'auto' : '16/9',
               margin: 'auto',
               background: 'black',
               display: 'flex',
-              alignItems: 'center',
+              alignItems: shouldAllowScrolling ? 'flex-start' : 'center',
               justifyContent: 'center',
-              overflow: 'hidden',
+              overflow: shouldAllowScrolling ? 'visible' : 'hidden',
             }}
           >
             {children}

@@ -169,30 +169,98 @@ Source of Profit:
               title: 'Hand Reading',
               content: 'Develop your hand reading skills to make better decisions...',
               completed: false
+            },
+            {
+              id: 'post-4',
+              title: 'Multiway Pots & Adjustments',
+              content: 'See lesson page for details.',
+              completed: false
+            },
+            {
+              id: 'post-5',
+              title: 'Turn & River Play: Probing and Overbets',
+              content: 'See lesson page for details.',
+              completed: false
+            },
+            {
+              id: 'post-6',
+              title: 'Bluffing and Blockers in Practice',
+              content: 'See lesson page for details.',
+              completed: false
             }
           ]
         },
         {
           id: 'module-4',
-          title: 'Advanced Concepts',
-          description: 'Take your game to the next level',
+          title: 'Tournament Play',
+          description: 'Specialized strategies for tournament poker, including ICM, bubble play, and pay jumps.',
           lessons: [
             {
-              id: 'adv-1',
-              title: 'Exploitative Play',
-              content: 'Learn to identify and exploit opponent weaknesses...',
+              id: 'tourn-1',
+              title: 'ICM Bubble Play',
+              content: 'See lesson page for details.',
               completed: false
             },
             {
-              id: 'adv-2',
-              title: 'Multi-Street Planning',
-              content: 'Develop strategies that span multiple betting rounds...',
+              id: 'tourn-2',
+              title: 'Short Stack Play',
+              content: 'See lesson page for details.',
               completed: false
             },
             {
-              id: 'adv-3',
-              title: 'Mental Game',
-              content: 'Master the psychological aspects of poker...',
+              id: 'tourn-3',
+              title: 'Final Table Adjustments',
+              content: 'See lesson page for details.',
+              completed: false
+            }
+          ]
+        },
+        {
+          id: 'module-5',
+          title: 'Deep Stack Play',
+          description: 'How to play deep-stacked poker, including leverage and overbets.',
+          lessons: [
+            {
+              id: 'deep-1',
+              title: 'Deep Stack Preflop',
+              content: 'See lesson page for details.',
+              completed: false
+            },
+            {
+              id: 'deep-2',
+              title: 'Deep Stack Postflop',
+              content: 'See lesson page for details.',
+              completed: false
+            },
+            {
+              id: 'deep-3',
+              title: 'Overbets & Leverage',
+              content: 'See lesson page for details.',
+              completed: false
+            }
+          ]
+        },
+        {
+          id: 'module-7',
+          title: 'Mental Game',
+          description: 'Develop the psychological resilience needed for poker, including tilt control, focus, and emotional regulation.',
+          lessons: [
+            {
+              id: 'mental-1',
+              title: 'Understanding Tilt & Emotional Triggers',
+              content: 'See lesson page for details.',
+              completed: false
+            },
+            {
+              id: 'mental-2',
+              title: 'Spotting Tilt in Yourself and Others',
+              content: 'See lesson page for details.',
+              completed: false
+            },
+            {
+              id: 'mental-3',
+              title: 'Anger, Focus, and Recovery Routines',
+              content: 'See lesson page for details.',
               completed: false
             }
           ]
@@ -424,7 +492,9 @@ Source of Profit:
                                 className="bg-[#23273a] rounded-xl p-6 hover:bg-[#252831] transition-all cursor-pointer transform hover:scale-105 relative"
                                 onClick={() => {
                                   window.dispatchEvent(new Event('minimizeSidebar'));
-                                  navigate(`/learn/lessons/${lesson.id}`);
+                                  navigate(`/learn/lessons/${lesson.id}`, {
+                                    state: { module, course }
+                                  });
                                 }}
                               >
                                 <h3 className="text-lg font-bold text-white mb-2">{lesson.title}</h3>
