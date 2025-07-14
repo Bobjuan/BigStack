@@ -99,7 +99,7 @@ function createHandStatsObject(playerId) {
 
 /**
  * Analyzes a single player action and updates the temporary hand stats object.
- * This function contains the logic for tracking VPIP and PFR.
+ * This function contains the core logic for tracking VPIP, PFR, and post-flop aggression.
  * 
  * @param {object} handStats - The temporary stats object for all players in the hand.
  * @param {object} game - The current game state from gameEngine.
@@ -110,53 +110,69 @@ function trackAction(handStats, game, player, action) {
   const stats = handStats[player.userId];
   if (!stats) return;
 
-  // We only track pre-flop stats for VPIP and PFR
-  if (game.currentBettingRound !== 'PREFLOP') {
-      return;
-  }
-  
-  // A VPIP opportunity is now counted by default. We only need to check if the BB had a free option.
-  const isBBOption = player.isBB && game.currentHighestBet === game.bigBlind && action === 'check';
-  if (isBBOption) {
-    // If the BB checks their option for free, it was not a voluntary action.
-    // Remove overall and positional opportunity.
-    stats.increments.vpip_opportunities = 0;
-    if (stats.positionIncrements[player.positionName]) {
-      stats.positionIncrements[player.positionName].vpip_opportunities = 0;
-    }
-    console.log(`[StatsTracker] Game ${game.id}: VPIP opportunity revoked for ${player.name} due to BB option check.`);
-  }
-  
-  // If an opportunity existed, check if they took a voluntary action.
-  if (action === 'call' || action === 'bet' || action === 'raise') {
-      stats.increments.vpip_actions = 1;
-      // Position-specific VPIP
-      const posStats = stats.positionIncrements[player.positionName] || { vpip_opportunities: 0, vpip_actions: 0, pfr_opportunities: 0, pfr_actions: 0 };
-      if (posStats.vpip_actions === 0) {
-        posStats.vpip_actions = 1;
+  // We split logic by betting round.
+  if (game.currentBettingRound === 'PREFLOP') {
+    // --- Pre-Flop VPIP Tracking ---
+    // A VPIP opportunity is now counted by default. We only need to check if the BB had a free option.
+    const isBBOption = player.isBB && game.currentHighestBet === game.bigBlind && action === 'check';
+    if (isBBOption) {
+      // If the BB checks their option for free, it was not a voluntary action.
+      // Remove overall and positional opportunity.
+      stats.increments.vpip_opportunities = 0;
+      if (stats.positionIncrements[player.positionName]) {
+        stats.positionIncrements[player.positionName].vpip_opportunities = 0;
       }
-      stats.positionIncrements[player.positionName] = posStats;
-      console.log(`[StatsTracker] Game ${game.id}: VPIP action taken by ${player.name}.`);
-  }
-
-  // --- PFR (Pre-Flop Raise) Tracking ---
-  // A PFR action is ANY raise made pre-flop. We only count it once per hand.
-  // CRITICAL FIX: We check for 'bet' OR 'raise' as the engine uses 'bet' for the first aggression.
-  const isPreflopRaise = (action === 'bet' || action === 'raise');
-
-  if (isPreflopRaise && !stats.handState.hasRaisedPreflop) {
-    stats.increments.pfr_actions = 1;
-    // Position-specific PFR
-    const posStats = stats.positionIncrements[player.positionName] || { vpip_opportunities: 0, vpip_actions: 0, pfr_opportunities: 0, pfr_actions: 0 };
-    posStats.pfr_actions = 1;
-    stats.positionIncrements[player.positionName] = posStats;
-    stats.handState.hasRaisedPreflop = true; // Mark that they have now raised.
-    
-    // We still set this shared flag for other stats that depend on it (like 3-Bet opportunities).
-    if (handStats.sharedState) {
-      handStats.sharedState.preflopRaiseMade = true;
+      console.log(`[StatsTracker] Game ${game.id}: VPIP opportunity revoked for ${player.name} due to BB option check.`);
     }
-    console.log(`[StatsTracker] Game ${game.id}: PFR action taken by ${player.name}.`);
+    
+    // If an opportunity existed, check if they took a voluntary action.
+    if (action === 'call' || action === 'bet' || action === 'raise') {
+        stats.increments.vpip_actions = 1;
+        // Position-specific VPIP
+        const posStats = stats.positionIncrements[player.positionName] || { vpip_opportunities: 0, vpip_actions: 0, pfr_opportunities: 0, pfr_actions: 0 };
+        if (posStats.vpip_actions === 0) {
+          posStats.vpip_actions = 1;
+        }
+        stats.positionIncrements[player.positionName] = posStats;
+        console.log(`[StatsTracker] Game ${game.id}: VPIP action taken by ${player.name}.`);
+    }
+
+    // --- PFR (Pre-Flop Raise) Tracking ---
+    // A PFR action is ANY raise made pre-flop. We only count it once per hand.
+    // CRITICAL FIX: We check for 'bet' OR 'raise' as the engine uses 'bet' for the first aggression.
+    const isPreflopRaise = (action === 'bet' || action === 'raise');
+
+    if (isPreflopRaise && !stats.handState.hasRaisedPreflop) {
+      stats.increments.pfr_actions = 1;
+      // Position-specific PFR
+      const posStats = stats.positionIncrements[player.positionName] || { vpip_opportunities: 0, vpip_actions: 0, pfr_opportunities: 0, pfr_actions: 0 };
+      posStats.pfr_actions = 1;
+      stats.positionIncrements[player.positionName] = posStats;
+      stats.handState.hasRaisedPreflop = true; // Mark that they have now raised.
+      
+      // We still set this shared flag for other stats that depend on it (like 3-Bet opportunities).
+      if (handStats.sharedState) {
+        handStats.sharedState.preflopRaiseMade = true;
+      }
+      console.log(`[StatsTracker] Game ${game.id}: PFR action taken by ${player.name}.`);
+    }
+  } else { // Post-Flop Logic (FLOP, TURN, RIVER)
+    // Post-flop actions are simpler to track for Aggression Factor.
+    switch (action) {
+      case 'bet':
+        stats.increments.agg_bets += 1;
+        console.log(`[StatsTracker] Game ${game.id}: Post-flop Bet tracked for ${player.name}.`);
+        break;
+      case 'raise':
+        stats.increments.agg_raises += 1;
+        console.log(`[StatsTracker] Game ${game.id}: Post-flop Raise tracked for ${player.name}.`);
+        break;
+      case 'call':
+        stats.increments.agg_calls += 1;
+        console.log(`[StatsTracker] Game ${game.id}: Post-flop Call tracked for ${player.name}.`);
+        break;
+      // 'check' and 'fold' do not contribute to Aggression Factor.
+    }
   }
 }
 

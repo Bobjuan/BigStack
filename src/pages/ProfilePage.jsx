@@ -149,8 +149,7 @@ const ProfilePage = () => {
 
   const handleEvaluatePlay = () => {
     if (canEvaluate) {
-      // TODO: Navigate to evaluation page or open modal
-      console.log('Starting poker DNA analysis...');
+      navigate('/dna-analysis');
     }
   };
 

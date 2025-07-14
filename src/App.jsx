@@ -14,6 +14,7 @@ import BotHeadsUpPage from './pages/game/BotHeadsUpPage';
 import GTOTrainerPage from './pages/game/GTOTrainerPage';
 import TournamentPage from './pages/game/TournamentPage';
 import DeepStackPage from './pages/game/DeepStackPage';
+import DnaAnalysisPage from './pages/DnaAnalysisPage';
 import QuizPage from './pages/learn/QuizPage';
 import LearnPage from './pages/learn/LearnPage';
 import CoursePage from './pages/learn/CoursePage';
@@ -116,6 +117,7 @@ function AppRoutes() {
       <Route path="/learn/lessons/:lessonId" element={<AuthenticatedPage><LessonPage /></AuthenticatedPage>} />
       <Route path="/quiz" element={<AuthenticatedPage><QuizPage /></AuthenticatedPage>} />
       <Route path="/profile" element={<AuthenticatedPage><ProfilePage /></AuthenticatedPage>} />
+      <Route path="/dna-analysis" element={<AuthenticatedPage><DnaAnalysisPage /></AuthenticatedPage>} />
       <Route path="/learn/practice" element={<AuthenticatedPage><PracticeMenuPage /></AuthenticatedPage>} />
       <Route path="/learn/practice/:scenarioId" element={<AuthenticatedPage><PracticeScenarioPage /></AuthenticatedPage>} />
       <Route path="/play-bot-6max" element={<AuthenticatedPage><Bot6MaxPage /></AuthenticatedPage>} />
@@ -126,44 +128,76 @@ function AppRoutes() {
 }
 
 function App() {
+  return (
+    <AuthProvider>
+      <Router>
+        <Routes>
+          {/* Public pre-launch and auth routes */}
+          <Route path="/" element={<PreLaunchPage />} />
+          <Route path="/welcome" element={<LandingPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+
+          {/* Main App Routes (Protected and with Layout) */}
+          <Route path="/" element={<ProtectedRoute><MainLayoutWithChat /></ProtectedRoute>}>
+            <Route path="dashboard" element={<DashboardPage />} />
+            <Route path="profile" element={<ProfilePage />} />
+            <Route path="dna-analysis" element={<DnaAnalysisPage />} />
+            
+            {/* Play Routes */}
+            <Route path="play" element={<PlayPage />} />
+            <Route path="play/6-max-bot" element={<Bot6MaxPage />} />
+            <Route path="play/9-max-bot" element={<Bot9MaxPage />} />
+            <Route path="play/heads-up-bot" element={<BotHeadsUpPage />} />
+            <Route path="play/friends" element={<PlayWithFriendsPage />} />
+            <Route path="play/friends/:gameId" element={<PlayWithFriendsPage />} />
+            <Route path="play/cash-game" element={<CashGamePage />} />
+            <Route path="play/heads-up" element={<HeadsUpPage />} />
+            <Route path="play/deep-stack" element={<DeepStackPage />} />
+            <Route path="play/gto-trainer" element={<GTOTrainerPage />} />
+            <Route path="play/tournament" element={<TournamentPage />} />
+
+            {/* Learn Routes */}
+            <Route path="learn" element={<LearnPage />} />
+            <Route path="learn/course/:courseId" element={<ModulesPage />} />
+            <Route path="learn/course/:courseId/module/:moduleId" element={<CoursePage />} />
+            <Route path="learn/course/:courseId/module/:moduleId/lesson/:lessonId" element={<LessonPage />} />
+            <Route path="learn/lessons/:lessonId" element={<LessonPage />} />
+            <Route path="learn/quiz" element={<QuizPage />} />
+            <Route path="learn/practice" element={<PracticeMenuPage />} />
+            <Route path="learn/practice/:scenarioId" element={<PracticeScenarioPage />} />
+
+            {/* Other Routes */}
+            <Route path="ai-review" element={<AiReviewPage />} />
+            <Route path="contact" element={<ContactPage />} />
+            <Route path="pricing" element={<PricingPage />} />
+            <Route path="product" element={<ProductPage />} />
+            <Route path="resources" element={<ResourcesPage />} />
+            <Route path="customers" element={<CustomersPage />} />
+          </Route>
+
+          {/* Redirect any other path to the welcome page if logged in, otherwise to login */}
+          <Route path="*" element={<Navigate to="/welcome" replace />} />
+        </Routes>
+      </Router>
+    </AuthProvider>
+  );
+}
+
+// Helper to combine MainLayout and the FloatingChatWidget logic
+const MainLayoutWithChat = () => {
   const location = useLocation();
-  const path = location.pathname;
-
-  // Helper: Only show chat widget if not on bot/liveplay/lesson pages
-  const isChatWidgetAllowed = () => {
-    // Exclude AI review page
-    if (path.startsWith('/ai-review')) return false;
-    // Exclude lessons with built-in chat
-    if (path.startsWith('/learn/lessons')) return false;
-    // Exclude live play pages
-    if (
-      path.startsWith('/play') ||
-      path.startsWith('/cash-game') ||
-      path.startsWith('/heads-up') ||
-      path.startsWith('/play-bot-heads-up') ||
-      path.startsWith('/deep-stack') ||
-      path.startsWith('/tournament') ||
-      path.startsWith('/play-with-friends')
-    ) return false;
-    // Exclude practice mode
-    if (path.startsWith('/learn/practice')) return false;
-    return true;
-  };
+  const isChatWidgetDisallowed = [
+    '/play', '/ai-review', '/learn/lessons', '/learn/practice', '/cash-game', 
+    '/heads-up', '/deep-stack', '/tournament', '/play-with-friends'
+  ].some(path => location.pathname.startsWith(path));
 
   return (
-    <>
-      <AppRoutes />
-      {isChatWidgetAllowed() && <FloatingChatWidget />}
-    </>
+    <MainLayout>
+      {!isChatWidgetDisallowed && <FloatingChatWidget />}
+    </MainLayout>
   );
-}
+};
 
-export default function AppWithRouter() {
-  return (
-    <Router>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
-    </Router>
-  );
-}
+
+export default App;
