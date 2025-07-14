@@ -1,0 +1,125 @@
+Open Raise:
+  UTG: 17.5%
+  MP: 21.3%
+  CO: 28.5%
+  BTN: 41.8%
+  SB: 41.8%
+
+Call vs RFI:
+  MP vs UTG: 0%
+  CO vs UTG: 0%
+  BTN vs UTG: 4.2%
+  SB vs UTG: 0%
+  BB vs UTG: 18.4%
+  CO vs MP: 0%
+  BTN vs MP: 3.2%
+  SB vs MP: 0%
+  BB vs MP: 19.5%
+  BTN vs CO: 2.3%
+  SB vs CO: 0%
+  BB vs CO: 21.9%
+  SB vs BTN: 0%
+  BB vs BTN: 25.8%
+  BB vs SB: 35%
+
+3-Bet:
+  MP vs UTG: 7.9%
+  CO vs UTG: 8.3%
+  BTN vs UTG: 8.3%
+  SB vs UTG: 7.4%
+  BB vs UTG: 5.6%
+  CO vs MP: 9.5%
+  BTN vs MP: 9.5%
+  SB vs MP: 9.2%
+  BB vs MP: 7.2%
+  BTN vs CO: 12.8%
+  SB vs CO: 11.5%
+  BB vs CO: 9.1%
+  SB vs BTN: 15.1%
+  BB vs BTN: 13.9%
+  BB vs SB: 17.4%
+
+Call 3-Bet:
+  UTG vs MP: 2.3%
+  UTG vs CO: 2.3%
+  UTG vs BTN: 2.7%
+  UTG vs SB: 3.2%
+  UTG vs BB: 3.6%
+  MP vs CO: 2.3%
+  MP vs BTN: 2.7%
+  MP vs SB: 2.7%
+  MP vs BB: 3.9%
+  CO vs BTN: 4.2%
+  CO vs SB: 2.9%
+  CO vs BB: 4.5%
+  BTN vs SB: 4.4%
+  BTN vs BB: 7.1%
+  SB vs BB: 5%
+
+4-Bet:
+  UTG vs MP: 4.2%
+  UTG vs CO: 4.5%
+  UTG vs BTN: 4.5%
+  UTG vs SB: 3%
+  UTG vs BB: 2.7%
+  MP vs CO: 5.1%
+  MP vs BTN: 5.1%
+  MP vs SB: 5.1%
+  MP vs BB: 3.3%
+  CO vs BTN: 6.3%
+  CO vs SB: 5.3%
+  CO vs BB: 4.5%
+  BTN vs SB: 5.6%
+  BTN vs BB: 5%
+  SB vs BB: 7.7%
+
+Call 4-Bet:
+  MP vs UTG: 1.8%
+  CO vs UTG: 1.8%
+  BTN vs UTG: 1.8%
+  SB vs UTG: 1.8%
+  BB vs UTG: 0.8%
+  CO vs MP: 2.6%
+  BTN vs MP: 2.1%
+  SB vs MP: 2.1%
+  BB vs MP: 1.2%
+  BTN vs CO: 2.7%
+  SB vs CO: 1.4%
+  BB vs CO: 0.6%
+  SB vs BTN: 1.8%
+  BB vs BTN: 2%
+  BB vs SB: 2.6%
+
+5-Bet:
+  MP vs UTG: 2.1%
+  CO vs UTG: 2.1%
+  BTN vs UTG: 2.1%
+  SB vs UTG: 2.1%
+  BB vs UTG: 2.1%
+  CO vs MP: 2.1%
+  BTN vs MP: 2.6%
+  SB vs MP: 2.9%
+  BB vs MP: 2.6%
+  BTN vs CO: 3.3%
+  SB vs CO: 3.8%
+  BB vs CO: 3.5%
+  SB vs BTN: 5%
+  BB vs BTN: 4.4%
+  BB vs SB: 4.5%
+
+Call 5-Bet:
+  UTG vs MP: 2.1%
+  UTG vs CO: 2.1%
+  UTG vs BTN: 2.1%
+  UTG vs SB: 2.1%
+  UTG vs BB: 2.1%
+  MP vs CO: 2.6%
+  MP vs BTN: 2.6%
+  MP vs SB: 2.6%
+  MP vs BB: 2.1%
+  CO vs BTN: 3%
+  CO vs SB: 3.5%
+  CO vs BB: 3%
+  BTN vs SB: 3.3%
+  BTN vs BB: 3%
+  SB vs BB: 3.8%

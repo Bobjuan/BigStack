@@ -92,56 +92,53 @@ const PlayPage = () => {
   );
 
   return (
-    <div className="flex-1 flex flex-col h-screen bg-black text-white">
-      {/* Play Header - Always visible and sticky */}
-      <div className="bg-black py-8 px-8 border-b-2 border-white sticky top-0 z-20">
-        <h2 className="text-3xl font-bold text-white mt-4 -mb-4">
-          Play Poker
-        </h2>
-      </div>
+    <div className="w-full min-h-screen bg-black text-white p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Play Header */}
+        <div className="mb-8">
+          <h2 className="text-3xl font-bold text-white">
+            Play Poker
+          </h2>
+        </div>
 
-      {/* Content Area */}
-      <div className="flex-1 overflow-y-auto py-8 px-6 md:px-12">
-        <div className="max-w-7xl mx-auto">
-          {/* Game Type Toggle */}
-          <div className="flex justify-center mb-8">
-            <div className="bg-[#1F2127] rounded-full p-1 inline-flex border border-gray-700">
-              <button
-                onClick={() => setGameType('cash')}
-                className={`px-6 py-2 rounded-full text-base font-semibold transition-all duration-200 ${
-                  gameType === 'cash'
-                    ? 'bg-indigo-600 text-white'
-                    : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                Play a Bot
-              </button>
-              <button
-                onClick={() => setGameType('tournament')}
-                className={`px-6 py-2 rounded-full text-base font-semibold transition-all duration-200 ${
-                  gameType === 'tournament'
-                    ? 'bg-indigo-600 text-white'
-                    : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                Tournaments
-              </button>
-              <Link
-                to="/play-with-friends"
-                className="px-6 py-2 rounded-full text-base font-semibold text-gray-400 hover:text-white transition-all duration-200"
-              >
-                Play with Friends
-              </Link>
-            </div>
+        {/* Game Type Toggle */}
+        <div className="flex justify-center mb-8">
+          <div className="bg-[#1F2127] rounded-full p-1 inline-flex border border-gray-700">
+            <button
+              onClick={() => setGameType('cash')}
+              className={`px-6 py-2 rounded-full text-base font-semibold transition-all duration-200 ${
+                gameType === 'cash'
+                  ? 'bg-indigo-600 text-white'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Play a Bot
+            </button>
+            <button
+              onClick={() => setGameType('tournament')}
+              className={`px-6 py-2 rounded-full text-base font-semibold transition-all duration-200 ${
+                gameType === 'tournament'
+                  ? 'bg-indigo-600 text-white'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Tournaments
+            </button>
+            <Link
+              to="/play-with-friends"
+              className="px-6 py-2 rounded-full text-base font-semibold text-gray-400 hover:text-white transition-all duration-200"
+            >
+              Play with Friends
+            </Link>
           </div>
+        </div>
 
-          {/* Game Options */}
-          <div className="max-w-4xl mx-auto">
-            <h1 className="text-3xl font-bold tracking-tight text-center mb-8 text-white">
-              {gameType === 'cash' ? 'Choose Your Cash Game Format' : 'Choose Your Tournament Format'}
-            </h1>
-            {gameType === 'cash' ? renderGameOptions(cashGames) : renderGameOptions(tournamentGames)}
-          </div>
+        {/* Game Options */}
+        <div className="max-w-4xl mx-auto">
+          <h1 className="text-3xl font-bold tracking-tight text-center mb-8 text-white">
+            {gameType === 'cash' ? 'Choose Your Cash Game Format' : 'Choose Your Tournament Format'}
+          </h1>
+          {gameType === 'cash' ? renderGameOptions(cashGames) : renderGameOptions(tournamentGames)}
         </div>
       </div>
     </div>

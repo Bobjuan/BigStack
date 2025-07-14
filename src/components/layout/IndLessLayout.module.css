@@ -19,8 +19,6 @@
   padding-bottom: 0rem;
   padding-left: 0rem;
   padding-right: 0rem;
-  height: 100vh;
-  min-height: 100vh;
   align-items: stretch;
 }
 
@@ -51,8 +49,9 @@
   overflow-x: auto;
   flex: 1;
   height: 100%;
-  position: sticky;
   top: 1rem;
+  position: sticky;
+
 }
 
 @media (min-width: 768px) {

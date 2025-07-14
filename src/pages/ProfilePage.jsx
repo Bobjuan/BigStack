@@ -180,7 +180,7 @@ const ProfilePage = () => {
 
   return (
     <div 
-      className="min-h-screen w-full relative overflow-hidden"
+      className="w-full min-h-screen relative"
       style={{
         backgroundImage: `url(${profBack})`,
         backgroundSize: 'cover',
@@ -198,9 +198,9 @@ const ProfilePage = () => {
         <div className="absolute bottom-[10%] right-[5%] w-[25vw] h-[25vw] max-w-[400px] max-h-[400px] bg-white/5 rounded-full blur-3xl"></div>
       </div>
 
-      {/* Scrollable Profile Content */}
-      <div className="relative z-30 h-screen overflow-y-auto">
-        <div className="w-full max-w-5xl mx-auto p-4 pb-8">
+      {/* Profile Content */}
+      <div className="relative z-30 p-8">
+        <div className="w-full max-w-5xl mx-auto">
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
             {/* Profile Card */}
             <div className="xl:col-span-1">
@@ -398,39 +398,38 @@ const ProfilePage = () => {
                         ))}
                       </div>
                     ) : (
-                      <div className="text-center py-6">
-                        <div className="text-gray-500 mb-2">
-                          <svg className="w-12 h-12 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                      <div className="text-center py-8">
+                        <div className="text-gray-400 mb-4">
+                          <svg className="w-12 h-12 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                           </svg>
                         </div>
-                        <p className="text-gray-400 text-sm">No hands played yet.</p>
-                        <p className="text-gray-500 text-xs">Start playing to see your hand history!</p>
+                        <p className="text-gray-400 mb-4">No hands played yet</p>
+                        <button
+                          onClick={handleEnterHand}
+                          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-150"
+                        >
+                          Enter Your First Hand
+                        </button>
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* Enter a Hand */}
-                <div className="bg-gray-800/30 rounded-xl p-4 border border-gray-700/30">
-                  <h3 className="text-sm font-semibold text-gray-300 mb-4 flex items-center">
-                    <svg className="w-4 h-4 mr-2 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    Enter a Hand for Analysis
-                  </h3>
-                  
-                  <div className="text-center py-4">
-                    <p className="text-gray-400 text-sm mb-4">
-                      Enter a hand from memory and get AI-powered analysis
-                    </p>
-                    <button
-                      onClick={handleEnterHand}
-                      className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl"
-                    >
-                      Enter Hand Details
-                    </button>
-                  </div>
+                {/* Quick Actions */}
+                <div className="flex space-x-3">
+                  <button
+                    onClick={handleEnterHand}
+                    className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl"
+                  >
+                    Enter New Hand
+                  </button>
+                  <button
+                    onClick={() => navigate('/ai-review?tab=hand-review')}
+                    className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl"
+                  >
+                    Review Hands
+                  </button>
                 </div>
               </div>
             </div>
