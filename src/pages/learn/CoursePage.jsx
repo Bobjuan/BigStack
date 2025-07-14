@@ -103,10 +103,23 @@ const CoursePage = () => {
     return lessons[currentIndex + 1] || null;
   };
 
+  const getPreviousLesson = () => {
+    if (!lessons || !selectedLesson) return null;
+    const currentIndex = lessons.findIndex(lesson => lesson.id === selectedLesson.id);
+    return lessons[currentIndex - 1] || null;
+  };
+
   const handleNextLesson = () => {
     const nextLesson = getNextLesson();
     if (nextLesson) {
       handleLessonClick(nextLesson);
+    }
+  };
+
+  const handlePreviousLesson = () => {
+    const prevLesson = getPreviousLesson();
+    if (prevLesson) {
+      handleLessonClick(prevLesson);
     }
   };
 
@@ -209,14 +222,24 @@ const CoursePage = () => {
                 >
                   {selectedLesson.completed ? 'Mark Incomplete' : 'Mark Complete'}
                 </button>
-                {getNextLesson() && (
-                  <button
-                    onClick={handleNextLesson}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    Next Lesson
-                  </button>
-                )}
+                <div className="flex gap-4">
+                  {getPreviousLesson() && (
+                    <button
+                      onClick={handlePreviousLesson}
+                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Previous Lesson
+                    </button>
+                  )}
+                  {getNextLesson() && (
+                    <button
+                      onClick={handleNextLesson}
+                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Next Lesson
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           ) : (

@@ -621,16 +621,29 @@ const LESSON_ORDER = [
   'found-0-2', // Self-Assessment
   'found-0-3', // Essential Mindset
   'fund-1',    // Cash vs Tournaments
-  'fund-2',    // Table Selection
+  'fund-2',    // Bankroll Management
+  'fund-3',    // Table Selection
   'pre-1',     // Starting Hand Selection
   'pre-2',     // Position and Hand Ranges
   'pre-3',     // 3-Betting Strategy
   'post-1',    // Board Texture Analysis
   'post-2',    // Bet Sizing
   'post-3',    // Hand Reading
+  'post-4',    // Multiway Pots
+  'post-5',    // Turn & River Probing
+  'post-6',    // Bluffing Blockers
   'adv-1',     // Exploitative Play
   'adv-2',     // Multi-Street Planning
-  'adv-3'      // Mental Game
+  'adv-3',     // Mental Game
+  'tourn-1',   // ICM Bubble
+  'tourn-2',   // Short Stack
+  'tourn-3',   // Final Table
+  'deep-1',    // Deep Stack Preflop
+  'deep-2',    // Deep Stack Postflop
+  'deep-3',    // Overbets Leverage
+  'mental-1',  // Tilt Triggers
+  'mental-2',  // Spotting Tilt
+  'mental-3'   // Anger Focus
 ];
 
 const LessonPage = () => {
