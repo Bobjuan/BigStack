@@ -104,6 +104,21 @@ export const createScenarioState = ({
     // Calculate current highest bet
     const currentHighestBet = Math.max(...players.map(p => p.currentBet));
 
+    // Calculate previous highest bet (before the last action)
+    // We'll scan the players' currentBet values, sort, and pick the second highest (or BB if only one raise)
+    const sortedBets = players.map(p => p.currentBet).sort((a, b) => b - a);
+    const previousHighestBet = sortedBets.length > 1 ? sortedBets[1] : 1; // fallback to BB if only one bet
+    let minRaiseAmount;
+    if (currentHighestBet > 1) {
+        // There has been a raise
+        minRaiseAmount = currentHighestBet - previousHighestBet;
+        // If for some reason this is 0 (e.g. all folded to BB), fallback to 1
+        if (minRaiseAmount <= 0) minRaiseAmount = 1;
+    } else {
+        // No raise yet, min raise is BB
+        minRaiseAmount = 1;
+    }
+
     return {
         players,
         communityCards: [],
@@ -112,7 +127,7 @@ export const createScenarioState = ({
         currentPlayerIndex: heroIndex,
         dealerIndex: positions.indexOf('BTN'),
         currentHighestBet,
-        minRaiseAmount: 2.5, // Default min raise
+        minRaiseAmount,
         lastAggressorIndex: -1,
         actionClosingPlayerIndex: -1
     };

@@ -41,7 +41,8 @@ const PracticeScenarioPage = () => {
             return false;
         }
         if ((action === 'RAISE' || action === 'BET') && scenario.correctSizing) {
-            if (amount < scenario.correctSizing.min || amount > scenario.correctSizing.max) {
+            const EPSILON = 0.01;
+            if (amount < scenario.correctSizing.min - EPSILON || amount > scenario.correctSizing.max + EPSILON) {
                 setFeedback({
                     type: 'error',
                     message: `Incorrect sizing. The optimal sizing is between ${scenario.correctSizing.min} and ${scenario.correctSizing.max} BB.`

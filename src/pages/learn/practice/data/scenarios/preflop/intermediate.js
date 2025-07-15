@@ -146,5 +146,112 @@ export const intermediatePreflopScenarios = [
             "3. We have decent equity when called.\n" +
             "4. The hand is too weak to call but has good removal effects.\n" +
             "(Standard 4-bet sizing is 18-22BB over an 8BB 3-bet.)"
+    },
+    {
+        id: 'preflop_intermediate_6',
+        title: "Flatting Suited Broadway in Position",
+        description: "You're on the BTN with QJs. HJ opens to 2.5BB. Action is on you.",
+        difficulty: 'Intermediate',
+        category: 'preflop',
+        setup: createScenarioState({
+            heroPosition: 'BTN',
+            heroHand: ['Qs', 'Js'],
+            action: [
+                { position: 'UTG', type: 'FOLD' },
+                { position: 'HJ', type: 'RAISE', amount: 2.5 },
+                { position: 'CO', type: 'FOLD' }
+            ],
+            pot: 4
+        }),
+        preFolded: [],
+        correctActions: ['CALL'],
+        explanation: "Flatting QJs on the BTN is optimal because:\n" +
+            "1. QJs plays well in position with good post-flop equity.\n" +
+            "2. 3-betting is too loose and folding is too tight.\n" +
+            "3. You keep dominated hands in villain's range.\n" +
+            "4. You have position for the rest of the hand."
+    },
+    {
+        id: 'preflop_intermediate_7',
+        title: "3-Betting Light from the Small Blind with Suited Connectors",
+        description: "You're in the SB with 65s. CO opens to 2.5BB. Action is on you.",
+        difficulty: 'Intermediate',
+        category: 'preflop',
+        setup: createScenarioState({
+            heroPosition: 'SB',
+            heroHand: ['6h', '5h'],
+            action: [
+                { position: 'UTG', type: 'FOLD' },
+                { position: 'HJ', type: 'FOLD' },
+                { position: 'CO', type: 'RAISE', amount: 2.5 }
+            ],
+            pot: 3.5
+        }),
+        preFolded: [],
+        correctActions: ['RAISE'],
+        correctSizing: {
+            min: 8, // About 3x the open
+            max: 10
+        },
+        explanation: "3-betting 65s from the SB is a good light bluff because:\n" +
+            "1. Suited connectors have good equity when called.\n" +
+            "2. You can fold out better hands and balance your range.\n" +
+            "3. Flatting is weak and can be squeezed by the BB.\n" +
+            "4. 3-betting light from the SB is standard in modern play."
+    },
+    {
+        id: 'preflop_intermediate_8',
+        title: "Folding Marginal Ace to a 3-Bet",
+        description: "You're in the CO with AJo. You open to 2.5BB, BTN 3-bets to 8BB. Action is on you.",
+        difficulty: 'Intermediate',
+        category: 'preflop',
+        setup: createScenarioState({
+            heroPosition: 'CO',
+            heroHand: ['As', 'Jd'],
+            action: [
+                { position: 'UTG', type: 'FOLD' },
+                { position: 'HJ', type: 'FOLD' },
+                { position: 'CO', type: 'RAISE', amount: 2.5 },
+                { position: 'BTN', type: 'RAISE', amount: 8 }
+            ],
+            pot: 11.5
+        }),
+        preFolded: [],
+        correctActions: ['FOLD'],
+        explanation: "Folding AJo to a BTN 3-bet is correct because:\n" +
+            "1. AJo is dominated by BTN's 3-betting range.\n" +
+            "2. Calling out of position is difficult and unprofitable.\n" +
+            "3. 4-betting is too loose and likely to get called by better hands.\n" +
+            "4. Better spots will come along to play AJo."
+    },
+    {
+        id: 'preflop_intermediate_9',
+        title: "Squeezing with a Pocket Pair",
+        description: "MP opens to 2.5BB, BTN calls. You're in the BB with 99. Action is on you.",
+        difficulty: 'Intermediate',
+        category: 'preflop',
+        setup: createScenarioState({
+            heroPosition: 'BB',
+            heroHand: ['9c', '9d'],
+            action: [
+                { position: 'UTG', type: 'FOLD' },
+                { position: 'HJ', type: 'RAISE', amount: 2.5 },
+                { position: 'CO', type: 'FOLD' },
+                { position: 'BTN', type: 'CALL', amount: 2.5 },
+                { position: 'SB', type: 'FOLD' }
+            ],
+            pot: 7.5
+        }),
+        preFolded: [],
+        correctActions: ['RAISE'],
+        correctSizing: {
+            min: 12, // About 4.5x the open
+            max: 15
+        },
+        explanation: "Squeezing 99 from the BB is optimal because:\n" +
+            "1. 99 is strong enough to play for stacks against two wide ranges.\n" +
+            "2. Squeezing can fold out overcards and isolate the opener.\n" +
+            "3. Flatting is vulnerable to multiway pots.\n" +
+            "4. You build the pot with a hand that plays well post-flop."
     }
 ]; 

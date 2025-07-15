@@ -163,5 +163,127 @@ export const advancedPreflopScenarios = [
             "3. Smaller sizing risks less when CO continues.\n" +
             "4. QQ benefits from fold equity against stronger hands.\n" +
             "5. Adjusting sizing based on player tendencies increases EV."
+    },
+    {
+        id: 'preflop_advanced_6',
+        title: "4-Bet Bluffing with Suited Wheel Ace",
+        description: "Hero opens to 2.5BB in CO with A5s, BTN 3-bets to 8BB. Action is on you.",
+        difficulty: 'Advanced',
+        category: 'preflop',
+        setup: createScenarioState({
+            heroPosition: 'CO',
+            heroHand: ['As', '5s'],
+            action: [
+                { position: 'UTG', type: 'FOLD' },
+                { position: 'HJ', type: 'FOLD' },
+                { position: 'SB', type: 'FOLD' },
+                { position: 'BB', type: 'FOLD' },
+
+                { position: 'CO', type: 'RAISE', amount: 2.5 },
+                { position: 'BTN', type: 'RAISE', amount: 8 }
+            ],
+            pot: 13
+        }),
+        preFolded: [],
+        correctActions: ['RAISE'],
+        correctSizing: {
+            min: 20, // About 2.5x the 3-bet size
+            max: 24
+        },
+        explanation: "4-bet bluffing with A5s is optimal because:\n" +
+            "1. A5s blocks strong Ax and 5-bet shoves.\n" +
+            "2. Suited wheel aces are standard 4-bet bluffs.\n" +
+            "3. You can fold out better hands and balance your value range.\n" +
+            "4. If called, you have playability and equity."
+    },
+    {
+        id: 'preflop_advanced_7',
+        title: "Flatting a 3-Bet in Position with a Suited Connector",
+        description: "BTN opens to 2.5BB, SB 3-bets to 9BB, you have 87s on BTN. Action is on you.",
+        difficulty: 'Advanced',
+        category: 'preflop',
+        setup: createScenarioState({
+            heroPosition: 'BTN',
+            heroHand: ['8h', '7h'],
+            action: [
+                { position: 'UTG', type: 'FOLD' },
+                { position: 'HJ', type: 'FOLD' },
+                { position: 'CO', type: 'FOLD' },
+                { position: 'BB', type: 'FOLD' },
+                { position: 'BTN', type: 'RAISE', amount: 2.5 },
+                { position: 'SB', type: 'RAISE', amount: 9 }
+            ],
+            pot: 13.5
+        }),
+        preFolded: [],
+        correctActions: ['CALL'],
+        explanation: "Flatting 87s in position vs a 3-bet is optimal because:\n" +
+            "1. Suited connectors play well in position with deep stacks.\n" +
+            "2. 4-betting is too loose and folding is too tight.\n" +
+            "3. You keep dominated hands in villain's range.\n" +
+            "4. You have position for the rest of the hand."
+    },
+    {
+        id: 'preflop_advanced_8',
+        title: "Folding a Strong but Dominated Hand in ICM Spot",
+        description: "Final table, you are SB with AJs, CO (short stack) shoves all-in for 10BB, you cover, pay jumps are huge. Action is on you.",
+        difficulty: 'Advanced',
+        category: 'preflop',
+        setup: createScenarioState({
+            heroPosition: 'SB',
+            heroHand: ['As', 'Js'],
+            action: [
+                { position: 'UTG', type: 'FOLD' },
+                { position: 'HJ', type: 'FOLD' },
+                { position: 'BTN', type: 'FOLD' },
+                { position: 'CO', type: 'RAISE', amount: 10 }
+            ],
+            pot: 12.5,
+            stackSizes: {
+                'CO': 10,
+                'SB': 40,
+                'BB': 30
+            }
+        }),
+        preFolded: [],
+        correctActions: ['CALL'],
+        explanation: "Calling with AJs in this ICM spot is correct because:\n" +
+            "1. AJs is well ahead of a typical short stack shoving range.\n" +
+            "2. You cover the short stack and can eliminate them, increasing your pay jump potential.\n" +
+            "3. The risk/reward is favorable given your stack and the pot odds.\n" +
+            "4. Folding would be too tight with a hand this strong in the small blind."
+    },
+    {
+        id: 'preflop_advanced_9',
+        title: "Squeezing All-In with Suited Broadway as a Short Stack",
+        description: "You have 15BB in the BB. MP opens to 2.2BB, CO calls. You have KQs. Action is on you.",
+        difficulty: 'Advanced',
+        category: 'preflop',
+        setup: createScenarioState({
+            heroPosition: 'BB',
+            heroHand: ['Ks', 'Qs'],
+            action: [
+                { position: 'UTG', type: 'FOLD' },
+                { position: 'HJ', type: 'RAISE', amount: 2.2 },
+                { position: 'CO', type: 'CALL', amount: 2.2 },
+                { position: 'BTN', type: 'FOLD' },
+                { position: 'SB', type: 'FOLD' }
+            ],
+            pot: 7.4,
+            stackSizes: {
+                'BB': 15
+            }
+        }),
+        preFolded: [],
+        correctActions: ['RAISE'],
+        correctSizing: {
+            min: 15, // Jam all-in
+            max: 15
+        },
+        explanation: "Jamming KQs as a short stack is optimal because:\n" +
+            "1. KQs has strong equity and fold equity against two wide ranges.\n" +
+            "2. Squeezing all-in maximizes fold equity and isolates the opener.\n" +
+            "3. Flatting is weak and exposes you to multiway pots.\n" +
+            "4. You build the pot with a hand that plays well when called."
     }
 ]; 

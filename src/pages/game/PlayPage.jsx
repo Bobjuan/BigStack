@@ -44,17 +44,17 @@ const PlayPage = () => {
     {
       title: 'Heads Up',
       description: 'One-on-one matches to sharpen your postflop tactics and reads.',
-      href: '/play-bot-heads-up'
+      href: '/play/heads-up-bot'
     },
     {
       title: '6-Max',
       description: 'Fast-paced 6-player table. Great for practicing range reading and aggression.',
-      href: '/play-bot-6max'
+      href: '/play/6-max-bot'
     },
     {
       title: '9-Max',
       description: 'Full ring games with more players and complex dynamics.',
-      href: '/play-bot-9max'
+      href: '/play/9-max-bot'
     }
   ];
 

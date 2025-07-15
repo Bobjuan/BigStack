@@ -152,7 +152,7 @@ function ActionButtons({
             <button onClick={onCheck} className={checkCallClass} disabled={!canCheck}>CHECK</button>
           ) : (
             <button onClick={onCall} className={checkCallClass} disabled={!canCall}>
-              CALL {callAmount > 0 ? `$${callAmount}` : ''}
+              CALL {callAmount > 0 ? `$${parseFloat(callAmount.toFixed(2)).toString()}` : ''}
             </button>
           )}
           <button onClick={() => setIsRaiseMode(true)} className={raiseClass} disabled={!canBet}>
@@ -178,7 +178,7 @@ function ActionButtons({
                     {opt.label}
                   </button>
                 ))}
-                <button onClick={() => setExactBetAmount(maxBetAmount)} className={betSizeButtonClass} disabled={!canBet || maxBetAmount <= 0}>All In</button>
+                {/* Only one All In button should be present, so remove any duplicate */}
               </>
             ) : (
               <>

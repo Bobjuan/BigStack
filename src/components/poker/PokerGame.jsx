@@ -460,9 +460,12 @@ function getActionButtonState(gameState) {
     const canCheck = currentPlayer?.currentBet === gameState.currentHighestBet;
     const callAmount = gameState.currentHighestBet - (currentPlayer?.currentBet || 0);
     const canCall = callAmount > 0 && (currentPlayer?.stack || 0) > 0 && !currentPlayer?.isAllIn;
-    const minNewTotalBet = gameState.currentHighestBet + gameState.minRaiseAmount;
-    const minChipsToAdd = Math.max(1, minNewTotalBet - (currentPlayer?.currentBet || 0));
-    const maxChipsToAdd = currentPlayer?.stack || 0;
+    // The minimum raise is always at least 1BB, and must be at least the previous raise size
+    const minRaise = Math.max(gameState.minRaiseAmount, BIG_BLIND_AMOUNT);
+    // The minimum total bet is currentHighestBet + minRaise
+    const minNewTotalBet = gameState.currentHighestBet + minRaise;
+    // The max total bet is currentBet + stack (i.e., all-in is your total possible bet for the round)
+    const maxBetAmount = (currentPlayer?.currentBet || 0) + (currentPlayer?.stack || 0);
     const canBet = (currentPlayer?.stack || 0) > 0 && !currentPlayer?.isAllIn;
     return {
         currentPlayer,
@@ -470,8 +473,8 @@ function getActionButtonState(gameState) {
         canCall,
         callAmount,
         canBet,
-        minBetAmount: minChipsToAdd,
-        maxBetAmount: maxChipsToAdd,
+        minBetAmount: minNewTotalBet,
+        maxBetAmount,
     };
 }
 
@@ -1255,33 +1258,26 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
             const playerIndex = prevState.currentPlayerIndex;
             const player = prevState.players[playerIndex];
             const currentBet = player.currentBet || 0;
-            const totalBetAmount = currentBet + amount;
-            const raiseAmount = totalBetAmount - prevState.currentHighestBet;
-
-            if (amount <= 0) return { ...prevState, message: "Bet amount must be positive." };
-            if (amount > player.stack) return { ...prevState, message: "Not enough chips." };
-            
-            const minNewTotalBet = prevState.currentHighestBet + prevState.minRaiseAmount;
-            const minChipsToAdd = Math.max(1, minNewTotalBet - currentBet);
-            const maxChipsToAdd = player.stack;
-
-            if (amount < minChipsToAdd && amount < maxChipsToAdd) {
-                return { ...prevState, message: `Min bet/raise: add ${minChipsToAdd} chips.` };
+            // amount is the intended TOTAL bet for this round
+            const minRaise = Math.max(prevState.minRaiseAmount, BIG_BLIND_AMOUNT);
+            const minNewTotalBet = prevState.currentHighestBet + minRaise;
+            const chipsToAdd = amount - currentBet;
+            if (amount < minNewTotalBet && chipsToAdd < player.stack) {
+                return { ...prevState, message: `Min bet/raise: total ${minNewTotalBet} chips.` };
             }
-            
+            if (chipsToAdd > player.stack) return { ...prevState, message: "Not enough chips." };
             const newState = JSON.parse(JSON.stringify(prevState));
-            newState.players[playerIndex].stack -= amount;
-            newState.players[playerIndex].currentBet += amount;
-            newState.players[playerIndex].totalBetInHand += amount;
-            newState.players[playerIndex].isAllIn = amount === player.stack;
+            newState.players[playerIndex].stack -= chipsToAdd;
+            newState.players[playerIndex].currentBet = amount;
+            newState.players[playerIndex].totalBetInHand += chipsToAdd;
+            newState.players[playerIndex].isAllIn = chipsToAdd === player.stack;
             newState.players[playerIndex].hasActedThisRound = true;
             newState.players[playerIndex].isTurn = false;
-            newState.pot += amount;
-
-            newState.currentHighestBet = totalBetAmount;
+            newState.pot += chipsToAdd;
+            newState.currentHighestBet = amount;
             newState.lastAggressorIndex = playerIndex;
-            if (!newState.players[playerIndex].isAllIn || raiseAmount >= prevState.minRaiseAmount) { 
-                newState.minRaiseAmount = raiseAmount > 0 ? raiseAmount : prevState.minRaiseAmount;
+            if (!newState.players[playerIndex].isAllIn || (amount - prevState.currentHighestBet) >= prevState.minRaiseAmount) {
+                newState.minRaiseAmount = (amount - prevState.currentHighestBet) > 0 ? (amount - prevState.currentHighestBet) : prevState.minRaiseAmount;
             }
             // Log the raise/bet action in handHistory for bot logic
             newState.handHistory = newState.handHistory || [];
@@ -1293,9 +1289,6 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
               playerId: player.id,
               timestamp: Date.now()
             });
-            // Ensure currentBet for all players always reflects the total amount put into the pot for this betting round.
-            // No reset needed; currentBet is cumulative for the round and is only reset at the start of a new round.
-            // This ensures the yellow circle always shows the correct amount each player has contributed so far.
             return newState;
             }
         });

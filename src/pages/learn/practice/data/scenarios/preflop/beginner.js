@@ -129,5 +129,111 @@ export const beginnerPreflopScenarios = [
             "2. Suited connectors play well post-flop.\n" +
             "3. We can realize our equity well in position.\n" +
             "4. Our hand has good implied odds when we hit strong draws or pairs."
+    },
+    {
+        id: 'preflop_beginner_6',
+        title: "Isolating a Limper with AQo on the Button",
+        description: "MP limps, folds to you on the BTN with AQo. Action is on you.",
+        difficulty: 'Beginner',
+        category: 'preflop',
+        setup: createScenarioState({
+            heroPosition: 'BTN',
+            heroHand: ['Ad', 'Qh'],
+            action: [
+                { position: 'UTG', type: 'FOLD' },
+                { position: 'HJ', type: 'CALL', amount: 1.0 },
+                { position: 'CO', type: 'FOLD' }
+            ],
+            pot: 2.5
+        }),
+        preFolded: [],
+        correctActions: ['RAISE'],
+        correctSizing: {
+            min: 4.5, // 3.5x the limp
+            max: 6.5
+        },
+        explanation: "Isolating a limper with AQo is optimal because:\n" +
+            "1. AQo is far ahead of a typical limping range.\n" +
+            "2. Raising gives you initiative and isolates the weaker player.\n" +
+            "3. You have position for the rest of the hand.\n" +
+            "4. Limping behind misses value and allows more players in."
+    },
+    {
+        id: 'preflop_beginner_7',
+        title: "Folding Dominated Offsuit Broadway",
+        description: "You're in the CO with KJo. UTG opens to 2.5BB. Action is on you.",
+        difficulty: 'Beginner',
+        category: 'preflop',
+        setup: createScenarioState({
+            heroPosition: 'CO',
+            heroHand: ['Ks', 'Jd'],
+            action: [
+                { position: 'UTG', type: 'RAISE', amount: 2.5 },
+                { position: 'HJ', type: 'FOLD' }
+            ],
+            pot: 4
+        }),
+        preFolded: [],
+        correctActions: ['FOLD'],
+        explanation: "Folding KJo to an early position open is correct because:\n" +
+            "1. KJo is dominated by UTG's strong opening range.\n" +
+            "2. Calling risks being outkicked and out of position post-flop.\n" +
+            "3. 3-betting is too loose and likely to get called by better hands.\n" +
+            "4. Better spots will come along to play KJo."
+    },
+    {
+        id: 'preflop_beginner_8',
+        title: "Defending Big Blind with Suited Connectors",
+        description: "You're in the BB with 76s. CO opens to 2.5BB. Action is on you.",
+        difficulty: 'Beginner',
+        category: 'preflop',
+        setup: createScenarioState({
+            heroPosition: 'BB',
+            heroHand: ['7h', '6h'],
+            action: [
+                { position: 'UTG', type: 'FOLD' },
+                { position: 'HJ', type: 'FOLD' },
+                { position: 'CO', type: 'RAISE', amount: 2.5 },
+                { position: 'BTN', type: 'FOLD' },
+                { position: 'SB', type: 'FOLD' }
+            ],
+            pot: 4
+        }),
+        preFolded: [],
+        correctActions: ['CALL'],
+        explanation: "Defending the BB with suited connectors is good because:\n" +
+            "1. 76s has good playability and equity realization in the BB.\n" +
+            "2. You are closing the action and getting a good price.\n" +
+            "3. Suited connectors can make strong hands post-flop.\n" +
+            "4. 3-betting is too loose and folding is too tight."
+    },
+    {
+        id: 'preflop_beginner_9',
+        title: "Value 3-Betting TT from the Small Blind",
+        description: "You're in the SB with TT. BTN opens to 2.5BB. Action is on you.",
+        difficulty: 'Beginner',
+        category: 'preflop',
+        setup: createScenarioState({
+            heroPosition: 'SB',
+            heroHand: ['Td', 'Tc'],
+            action: [
+                { position: 'UTG', type: 'FOLD' },
+                { position: 'HJ', type: 'FOLD' },
+                { position: 'CO', type: 'FOLD' },
+                { position: 'BTN', type: 'RAISE', amount: 2.5 }
+            ],
+            pot: 3.5
+        }),
+        preFolded: [],
+        correctActions: ['RAISE'],
+        correctSizing: {
+            min: 9, // 3.5x the open
+            max: 11
+        },
+        explanation: "3-betting TT from the SB vs BTN is optimal because:\n" +
+            "1. TT is ahead of BTN's wide opening range.\n" +
+            "2. 3-betting for value builds the pot and denies equity.\n" +
+            "3. Flatting is vulnerable to squeezes from the BB.\n" +
+            "4. You want to play a strong hand aggressively out of position."
     }
 ]; 
