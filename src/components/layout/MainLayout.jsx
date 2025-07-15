@@ -33,40 +33,45 @@ const MainLayout = ({ children }) => {
         }`}
         style={{ minHeight: '100vh', minWidth: 0 }}
       >
-        <div
-          className={`aspect-ratio-keeper flex items-center justify-center bg-black w-full h-full ${
-            shouldAllowScrolling ? 'min-h-full' : ''
-          }`}
-          style={{
-            position: 'relative',
-            width: '100%',
-            height: shouldAllowScrolling ? 'auto' : '100%',
-            display: 'flex',
-            alignItems: shouldAllowScrolling ? 'flex-start' : 'center',
-            justifyContent: 'center',
-            background: 'black',
-            overflow: shouldAllowScrolling ? 'visible' : 'hidden',
-          }}
-        >
+        {/* For play pages, fill the available space with no aspect ratio or centering */}
+        {isPlayPage() ? (
+          <div className="w-full h-full flex-1">{children}</div>
+        ) : (
           <div
+            className={`aspect-ratio-keeper flex items-center justify-center bg-black w-full h-full ${
+              shouldAllowScrolling ? 'min-h-full' : ''
+            }`}
             style={{
               position: 'relative',
               width: '100%',
               height: shouldAllowScrolling ? 'auto' : '100%',
-              maxWidth: shouldAllowScrolling ? 'none' : 'calc(100vh * 16 / 9)',
-              maxHeight: shouldAllowScrolling ? 'none' : '100%',
-              aspectRatio: shouldAllowScrolling ? 'auto' : '16/9',
-              margin: 'auto',
-              background: 'black',
               display: 'flex',
               alignItems: shouldAllowScrolling ? 'flex-start' : 'center',
               justifyContent: 'center',
+              background: 'black',
               overflow: shouldAllowScrolling ? 'visible' : 'hidden',
             }}
           >
-            {children}
+            <div
+              style={{
+                position: 'relative',
+                width: '100%',
+                height: shouldAllowScrolling ? 'auto' : '100%',
+                maxWidth: shouldAllowScrolling ? 'none' : 'calc(100vh * 16 / 9)',
+                maxHeight: shouldAllowScrolling ? 'none' : '100%',
+                aspectRatio: shouldAllowScrolling ? 'auto' : '16/9',
+                margin: 'auto',
+                background: 'black',
+                display: 'flex',
+                alignItems: shouldAllowScrolling ? 'flex-start' : 'center',
+                justifyContent: 'center',
+                overflow: shouldAllowScrolling ? 'visible' : 'hidden',
+              }}
+            >
+              {children}
+            </div>
           </div>
-        </div>
+        )}
       </main>
     </div>
   );

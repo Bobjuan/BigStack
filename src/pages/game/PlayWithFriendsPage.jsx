@@ -70,50 +70,8 @@ const PlayWithFriendsPage = () => {
 
   // Idle mode: show create/join options
   return (
-    <div className="min-h-screen bg-[#0F1115] text-white font-inter">
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-[#0F1115]/80 backdrop-blur-xl">
-        <div className="flex items-center justify-between px-6 md:px-12 h-20">
-          <div className="flex gap-8">
-            <Link 
-              to="/play"
-              className="text-xl font-semibold tracking-tight hover:text-indigo-400 transition-colors duration-200"
-            >
-              Play
-            </Link>
-            <Link 
-              to="/learn"
-              className="text-xl font-semibold tracking-tight text-gray-400 hover:text-white transition-colors duration-200"
-            >
-              Learn
-            </Link>
-            <Link 
-              to="/quiz"
-              className="text-xl font-semibold tracking-tight text-gray-400 hover:text-white transition-colors duration-200"
-            >
-              Quiz
-            </Link>
-          </div>
-          <div className="flex gap-4">
-            <Link 
-              to="/"
-              className="px-6 py-2 rounded-full bg-gradient-to-r from-indigo-500 to-indigo-700 text-white font-semibold hover:from-indigo-600 hover:to-indigo-800 transition-all duration-200"
-            >
-              Home
-            </Link>
-            <Link 
-              to="/profile"
-              className="px-6 py-2 rounded-full bg-gradient-to-r from-indigo-500 to-indigo-700 text-white font-semibold hover:from-indigo-600 hover:to-indigo-800 transition-all duration-200"
-            >
-              Profile
-            </Link>
-          </div>
-        </div>
-      </nav>
-
-      {/* Main Content */}
-      <main className="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto">
+    <div className="w-full h-full flex-1 overflow-y-auto p-8 bg-[#000000] text-white font-inter">
+      <div className="w-full">
           <h1 className="text-4xl font-bold tracking-tight text-center mb-12">Play With Friends</h1>
           
           <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
@@ -214,7 +172,6 @@ const PlayWithFriendsPage = () => {
             </section>
           </div>
         </div>
-      </main>
     </div>
   );
 };

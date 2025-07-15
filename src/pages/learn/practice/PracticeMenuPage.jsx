@@ -22,6 +22,8 @@ const PracticeMenuPage = () => {
     const navigate = useNavigate();
     const [openCategory, setOpenCategory] = useState(null);
     const [openLevels, setOpenLevels] = useState({});
+    // Add state for postflop open/closed
+    const [isPostflopOpen, setIsPostflopOpen] = useState(false);
 
     const handleScenarioClick = (e, scenarioId) => {
         e.preventDefault();
@@ -41,33 +43,34 @@ const PracticeMenuPage = () => {
 
     if (!categories || !Array.isArray(categories) || categories.length === 0) {
         return (
-            <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+            <div className="min-h-screen bg-black flex items-center justify-center">
                 <div className="text-white">No practice scenarios available.</div>
             </div>
         );
     }
 
     return (
-        <div className="h-screen w-screen bg-gray-900">
+        <div className="h-screen w-screen bg-black">
             <div className="practice-menu h-full w-full flex flex-col">
-                <h1 className="text-3xl font-bold mb-8 text-white px-8 pt-8">Practice Scenarios</h1>
-                <div className="space-y-4 px-8 pb-8 flex-1 overflow-y-auto">
+                <h1 className="text-3xl font-bold mb-8 text-white px-8 pt-8 text-center">Practice Scenarios</h1>
+                <div className="flex justify-center w-full">
+                  <div className="space-y-4 px-8 pb-8 flex-1 overflow-y-auto max-w-3xl w-full">
                     {categories.map(category => {
                         if (!category || !category.scenarios) return null;
                         
                         const isCategoryOpen = openCategory === category.id;
                         
                         return (
-                            <div key={category.id} className="bg-gray-800 rounded-xl shadow-xl overflow-hidden border border-gray-700">
+                            <div key={category.id} className="bg-[#1a1a1a] rounded-xl shadow-xl overflow-hidden border border-gray-700 my-6 max-w-3xl w-full">
                                 <button
                                     onClick={() => toggleCategory(category.id)}
                                     className={`w-full px-6 py-5 flex items-center justify-between text-white transition-colors ${
                                         isCategoryOpen ? 'bg-gray-700' : 'hover:bg-gray-750'
                                     }`}
                                 >
-                                    <div>
-                                        <h2 className="text-2xl font-bold">{category.title}</h2>
-                                        <p className="text-gray-300 text-sm mt-1">{category.description}</p>
+                                    <div className="text-left w-full">
+                                        <h2 className="text-2xl font-bold text-left">{category.title}</h2>
+                                        <p className="text-gray-300 text-sm mt-1 text-left">{category.description}</p>
                                     </div>
                                     <ChevronIcon isOpen={isCategoryOpen} />
                                 </button>
@@ -128,6 +131,23 @@ const PracticeMenuPage = () => {
                             </div>
                         );
                     })}
+                    {/* Postflop Decisions Card */}
+                    <div className="bg-[#1a1a1a] rounded-xl shadow-xl overflow-hidden border border-gray-700 my-26 max-w-3xl w-full">
+                      <button
+                        onClick={() => setIsPostflopOpen(v => !v)}
+                        className={`w-full px-6 py-5 flex items-center justify-between text-white transition-colors ${isPostflopOpen ? 'bg-gray-700' : 'hover:bg-gray-750'}`}
+                      >
+                        <div className="text-left w-full">
+                          <h2 className="text-2xl font-bold text-left">Postflop Decisions</h2>
+                          <p className="text-gray-300 text-sm mt-1 text-left">Master postflop play with scenarios covering c-betting, turn/river play, and more. (Coming soon!)</p>
+                        </div>
+                        <ChevronIcon isOpen={isPostflopOpen} />
+                      </button>
+                      {isPostflopOpen && (
+                        <div className="p-4 text-gray-400 text-center text-sm">No postflop scenarios available yet. Stay tuned!</div>
+                      )}
+                    </div>
+                  </div>
                 </div>
             </div>
         </div>

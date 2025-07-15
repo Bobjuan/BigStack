@@ -26,7 +26,7 @@ const PageLayout = ({ children, showProfile = true, showNavigation = true }) => 
           <Link to="/dashboard" className="nav-button secondary">
             Back to Dashboard
           </Link>
-          <Link to="/quiz" className="nav-button primary">
+          <Link to="/learn/quiz" className="nav-button primary">
             Try a Quiz
           </Link>
         </div>
