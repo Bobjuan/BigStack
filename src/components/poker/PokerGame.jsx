@@ -12,6 +12,7 @@ import SlumbotAPI from '../../services/slumbotAPI';
 import PokerBot from '../../services/pokerBot';
 import { supabase } from '../../config/supabase';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 // Assuming these SVG files exist in /src/assets/
 // import feltDark from '/src/assets/felt_dark.svg'; // Remove this
@@ -486,7 +487,7 @@ function getPlayerInfoClasses(player, tableTheme, isShowdownOrHandOver, winnerPl
 }
 // --- End Helper Functions ---
 
-function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = null, vsBot = false, botPlayerIndex = 1, initialNumPlayers }) {
+function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = null, vsBot = false, botPlayerIndex = 1, initialNumPlayers, scenarioTitle, scenarioDescription, actionSequence = null }) {
     const { user } = useAuth(); // Get authenticated user for stats tracking
     const defaultNumPlayers = vsBot ? (initialNumPlayers || 2) : initialGameState.numPlayers;
     const [numPlayers, setNumPlayers] = useState(defaultNumPlayers);
@@ -509,6 +510,8 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
     
     // Bot game stats tracking
     const [botGameHandStats, setBotGameHandStats] = useState(null);
+    // Add a ref to guard against multiple stats commits per hand (6/9 max only)
+    const hasCommittedStatsRef = useRef(false);
     
     // HUD stats tracking
     const [visibleHudPlayerId, setVisibleHudPlayerId] = useState(null);
@@ -689,6 +692,11 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
         // In startNewHand, after initializing the new hand, reset botsPlayedPreflop
         setBotsPlayedPreflop(new Set());
 
+        // Reset stats commit guard for new hand (6/9 max only)
+        if (vsBot && numPlayers > 2) {
+            hasCommittedStatsRef.current = false;
+        }
+
         return currentState;
     }
 
@@ -733,6 +741,81 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
                 Object.keys(scenarioSetup).forEach(key => {
                     newState[key] = scenarioSetup[key];
                 });
+
+                // Restore previous folding logic for practice mode
+                if (newState.players && typeof newState.currentPlayerIndex === 'number') {
+                    const heroIndex = newState.currentPlayerIndex;
+                    const hero = newState.players[heroIndex];
+                    const currentHighestBet = newState.currentHighestBet || 0;
+                    const numPlayers = newState.players.length;
+
+                    // Determine preflop action order (starts after BB, wraps around)
+                    let actionOrder = [];
+                    const bbIndex = newState.players.findIndex(p => p.isBB);
+                    for (let i = 1; i < numPlayers; i++) {
+                        actionOrder.push((bbIndex + i) % numPlayers);
+                    }
+
+                    // Find last aggressor (last player to raise/bet before hero)
+                    let lastAggressorIndex = -1;
+                    let maxBet = 0;
+                    newState.players.forEach((p, idx) => {
+                        if (idx !== heroIndex && p.currentBet > maxBet) {
+                            maxBet = p.currentBet;
+                            lastAggressorIndex = idx;
+                        }
+                    });
+                    if (lastAggressorIndex === -1) lastAggressorIndex = bbIndex; // Default to BB if no raiser
+
+                    if (hero.currentBet < currentHighestBet && currentHighestBet > 0) {
+                        // Facing a bet: only hero and last aggressor remain
+                        newState.players.forEach((p, idx) => {
+                            if (idx !== heroIndex && idx !== lastAggressorIndex) {
+                                for (x in preFolded){
+                                    if (p.position == x){
+                                        p.isFolded = true;
+
+                                    }
+                                }
+                            } else {
+                                p.isFolded = false;
+                            }
+                        });
+                    } else {
+                        // Not facing a bet: fold only those who would have acted before hero
+                        // Find all indices between lastAggressorIndex (exclusive) and heroIndex (exclusive) in action order
+                        let foldIndices = [];
+                        let found = false;
+                        for (let i = 0; i < actionOrder.length; i++) {
+                            const idx = actionOrder[i];
+                            if (idx === lastAggressorIndex) {
+                                found = true;
+                                continue;
+                            }
+                            if (found) {
+                                if (idx === heroIndex) break;
+                                foldIndices.push(idx);
+                            }
+                        }
+                        // If wrap-around needed
+                        if (found && foldIndices.length === 0 && lastAggressorIndex !== heroIndex) {
+                            for (let i = 0; i < actionOrder.length; i++) {
+                                const idx = actionOrder[i];
+                                if (idx === heroIndex) break;
+                                foldIndices.push(idx);
+                            }
+                        }
+                        newState.players.forEach((p, idx) => {
+                            if (foldIndices.includes(idx)) {
+                                p.isFolded = true;
+                            } else {
+                                p.isFolded = false;
+                            }
+                        });
+                    }
+                }
+                // End restore
+
                 return newState;
             });
             // Ensure test mode is enabled in practice mode
@@ -921,10 +1004,11 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
         newState.currentPlayerIndex = -1;
         newState.players.forEach(p => { p.isTurn = false; p.currentBet = 0; p.totalBetInHand = 0; });
         
-        // Commit bot game stats when hand is over
-        if (vsBot && user?.id && botGameHandStats) {
+        // Commit bot game stats when hand is over (6/9 max only, guard against double commit)
+        if (vsBot && user?.id && botGameHandStats && numPlayers > 2 && !hasCommittedStatsRef.current) {
             commitBotGameStats(botGameHandStats);
             setBotGameHandStats(null); // Clear stats for next hand
+            hasCommittedStatsRef.current = true;
             console.log('[BotStats] Committed hand stats to database');
         }
         
@@ -1530,7 +1614,16 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
 
     // Before rendering players:
     let rotatedPlayers = gameState.players;
-    if (vsBot) {
+    if (isPracticeMode) {
+        // In practice mode, always put the hero (currentPlayerIndex) at the bottom
+        const heroIndex = gameState.currentPlayerIndex;
+        if (heroIndex !== -1) {
+            rotatedPlayers = [
+                ...gameState.players.slice(heroIndex),
+                ...gameState.players.slice(0, heroIndex)
+            ];
+        }
+    } else {
         const humanId = getHumanPlayerId();
         const humanIndex = gameState.players.findIndex(p => p.id === humanId);
         if (humanIndex !== -1) {
@@ -1541,63 +1634,138 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
         }
     }
 
+    const navigate = useNavigate();
+    // Set infoBarMinimized to true by default
+    const [infoBarMinimized, setInfoBarMinimized] = useState(true);
+
+    // --- Action Replay Logic for Practice Scenarios ---
+    useEffect(() => {
+        if (!isPracticeMode || !actionSequence || !Array.isArray(actionSequence) || actionSequence.length === 0) return;
+        // Only run when scenarioSetup or actionSequence changes
+        let cancelled = false;
+        // Helper to map position to player index
+        const getPlayerIndexByPosition = (players, position) => {
+            return players.findIndex(p => p.positionName === position || p.position === position);
+        };
+        // Step through actions sequentially
+        const playActions = async () => {
+            for (let i = 0; i < actionSequence.length; i++) {
+                if (cancelled) return;
+                const act = actionSequence[i];
+                setGameState(prevState => {
+                    // Defensive: clone state
+                    let state = JSON.parse(JSON.stringify(prevState));
+                    // Find player index by position
+                    const idx = getPlayerIndexByPosition(state.players, act.position);
+                    if (idx === -1) return state;
+                    state.currentPlayerIndex = idx;
+                    state.players.forEach((p, j) => { p.isTurn = (j === idx); });
+                    // Apply action
+                    if (act.type === 'FOLD') {
+                        state.players[idx].isFolded = true;
+                        state.players[idx].hasActedThisRound = true;
+                        state.players[idx].isTurn = false;
+                    } else if (act.type === 'CALL') {
+                        const callAmount = state.currentHighestBet - state.players[idx].currentBet;
+                        const actualCall = Math.min(callAmount, state.players[idx].stack);
+                        state.players[idx].stack -= actualCall;
+                        state.players[idx].currentBet += actualCall;
+                        state.players[idx].totalBetInHand += actualCall;
+                        state.players[idx].isAllIn = actualCall === state.players[idx].stack;
+                        state.players[idx].hasActedThisRound = true;
+                        state.players[idx].isTurn = false;
+                        state.pot += actualCall;
+                    } else if (act.type === 'RAISE' || act.type === 'BET') {
+                        const amount = act.amount;
+                        state.players[idx].stack -= amount;
+                        state.players[idx].currentBet += amount;
+                        state.players[idx].totalBetInHand += amount;
+                        state.players[idx].isAllIn = amount === state.players[idx].stack;
+                        state.players[idx].hasActedThisRound = true;
+                        state.players[idx].isTurn = false;
+                        state.pot += amount;
+                        state.currentHighestBet = state.players[idx].currentBet;
+                        state.lastAggressorIndex = idx;
+                        state.minRaiseAmount = amount;
+                    } else if (act.type === 'CHECK') {
+                        state.players[idx].hasActedThisRound = true;
+                        state.players[idx].isTurn = false;
+                    }
+                    // Optionally, add to handHistory
+                    state.handHistory = state.handHistory || [];
+                    state.handHistory.push({
+                        round: state.currentBettingRound,
+                        type: act.type.toLowerCase(),
+                        position: act.position,
+                        amount: act.amount || 0,
+                        playerId: state.players[idx].id,
+                        timestamp: Date.now()
+                    });
+                    return state;
+                });
+                await new Promise(res => setTimeout(res, 300));
+            }
+            // After all actions, set the hero's turn
+            setGameState(prevState => {
+                let state = JSON.parse(JSON.stringify(prevState));
+                // Find hero (first non-folded, isTurn false)
+                const heroIdx = state.players.findIndex(p => p.isTurn || (!p.isFolded && !p.isTurn));
+                if (heroIdx !== -1) {
+                    state.currentPlayerIndex = heroIdx;
+                    state.players.forEach((p, j) => { p.isTurn = (j === heroIdx); });
+                }
+                return state;
+            });
+        };
+        playActions();
+        return () => { cancelled = true; };
+    }, [isPracticeMode, actionSequence, scenarioSetup]);
+
+    // Add preFolded variable for manual use
+    const preFolded = scenarioSetup && scenarioSetup.preFolded ? scenarioSetup.preFolded : [];
+
     return (
         <div className="poker-wrapper w-full h-full" style={{ width: '100%', height: '100%', background: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
-            {/* Add practice mode UI elements if needed */}
+            {/* Top Overlay Info Bar (Practice Mode Only) */}
             {isPracticeMode && (
-                <div className="absolute top-0 left-0 z-50 bg-blue-500 text-white px-4 py-2">
-                    Practice Mode
+                <div
+                    className={`fixed left-0 top-0 w-full z-40 flex flex-col items-center transition-all duration-300 ${infoBarMinimized ? 'h-12' : 'h-auto'} bg-gradient-to-b from-black/90 to-black/40 shadow-lg`}
+                    style={{ minHeight: infoBarMinimized ? 48 : 80, maxHeight: infoBarMinimized ? 48 : 220, justifyContent: infoBarMinimized ? 'center' : undefined }}
+                >
+                    <div className="w-full relative flex items-center justify-center px-4 pt-2" style={infoBarMinimized ? {height: '100%', paddingTop: 0} : {}}>
+                        {/* Centered scenario description */}
+                        <span className="text-sm text-blue-200 text-center">{scenarioDescription}</span>
+                        {/* Arrow always at top right */}
+                        <button
+                            className="absolute top-1 right-4 text-gray-300 hover:text-white focus:outline-none"
+                            onClick={() => setInfoBarMinimized(v => !v)}
+                            aria-label={infoBarMinimized ? 'Expand Info Bar' : 'Minimize Info Bar'}
+                        >
+                            <span style={{ fontSize: 22, display: 'inline-block', transform: infoBarMinimized ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
+                                ▼
+                            </span>
+                        </button>
+                    </div>
+                    {!infoBarMinimized && (
+                        <div className="w-full flex flex-col items-center px-4 pb-2">
+                            {scenarioTitle && (
+                                <h1 className="text-xl font-bold text-white tracking-wide mb-1 text-center">{scenarioTitle}</h1>
+                            )}
+                            {scenarioDescription && (
+                                <p className="text-sm text-blue-200 mb-2 text-center max-w-2xl">{scenarioDescription}</p>
+                            )}
+                            <h2 className="text-base font-bold text-yellow-200 tracking-wide">{`Round: ${gameState.currentBettingRound}`}</h2>
+                            <p className="text-xs text-yellow-300 h-auto text-center">{gameState.message || ' '}</p>
+                        </div>
+                    )}
                 </div>
             )}
+           
              <div
                 ref={tableRef}
                 className="poker-table relative overflow-hidden"
                 style={getTableStyle(tableTheme)}
             >
-                {/* Game Info - Top Left */}
-                <div className="absolute top-4 left-4 z-20 text-left max-w-xs">
-                    <h2 className={`text-sm font-bold ${tableTheme === 'light' ? 'text-gray-800' : 'text-gray-200'}`}>{`Round: ${gameState.currentBettingRound}`}</h2>
-                    <p className={`text-xs ${tableTheme === 'light' ? 'text-gray-800' : 'text-yellow-300'} h-auto`}>{gameState.message || ' '}</p>
-                </div>
-
-                {/* Test Mode / Player Count Controls - Top Right */}
-                <div className="absolute top-4 right-4 z-20 flex flex-col items-end space-y-1">
-                    {/* Test Mode Buttons - Only show if not in practice mode and not in bot mode */}
-                    {!isPracticeMode && !vsBot && (
-                        <>
-                            <div className="flex space-x-2">
-                                <button
-                                    onClick={() => setIsTestMode(prev => !prev)}
-                                    className={`px-3 py-1 text-xs rounded ${isTestMode ? 'bg-red-600' : 'bg-gray-600'} hover:bg-gray-500 text-white`}
-                                >
-                                    Test Mode: {isTestMode ? 'ON' : 'OFF'}
-                                </button>
-                                {isTestMode && (
-                                    <button
-                                        onClick={() => setShowAllCards(prev => !prev)}
-                                        className={`px-3 py-1 text-xs rounded ${showAllCards ? 'bg-blue-600' : 'bg-gray-600'} hover:bg-gray-500 text-white`}
-                                    >
-                                        Show Cards: {showAllCards ? 'ON' : 'OFF'}
-                                    </button>
-                                )}
-                            </div>
-                            {/* Player Count Selection */}
-                            <div className="flex space-x-1 items-center">
-                                <span className={`text-xs ${tableTheme === 'light' ? 'text-gray-800' : 'text-gray-400'} mr-1`}>Players:</span>
-                                {[2, 6, 9].map(count => (
-                                    <button
-                                        key={count}
-                                        onClick={() => handleSetNumPlayers(count)}
-                                        className={`px-2 py-0.5 text-xs rounded ${numPlayers === count ? 'bg-green-700' : 'bg-gray-600'} hover:bg-gray-500 text-white`}
-                                    >
-                                        {count}
-                                    </button>
-                                ))}
-                            </div>
-                        </>
-                    )}
-                </div>
-
                 {/* Central Area for Community Cards & Pot */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none">
                     {/* Use the same cardWidth as PlayerHand for community cards */}
@@ -1696,8 +1864,8 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
                                     />
                                 </div>
                                 {/* Player Bet Amount - Positioned Separately */}
-                                {player.currentBet > 0 && !player.isFolded && (
-                                    <div style={betStyle} className="player-bet-amount">
+                                {player.currentBet > 0 && gameState.currentBettingRound !== GamePhase.HAND_OVER && (
+                                    <div style={betStyle} className={`player-bet-amount${player.isFolded ? ' opacity-50 grayscale' : ''}`}>
                                         <span className="bg-gray-800 text-yellow-300 text-base font-bold rounded-full px-3 py-1.5 shadow-md border border-yellow-400">
                                             {player.currentBet}
                                         </span>

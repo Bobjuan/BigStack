@@ -43,26 +43,30 @@ const getCardSvgFilename = (card) => {
 };
 
 // Updated Card component to display SVG image
-function Card({ card, show }) {
-  const svgSrc = getCardSvgFilename(show ? card : '?'); // Determine src based on show prop
+function Card({ card, show, showBacks }) {
+  let svgSrc;
+  if (showBacks) {
+    svgSrc = '/src/assets/Card_back_01.svg';
+  } else {
+    svgSrc = getCardSvgFilename(show ? card : '?');
+  }
 
   return (
     <img
       src={svgSrc}
-      alt={show ? card : 'Card Back'}
-      className="inline-block mx-[-4px] shadow-5xl rounded-sm" // Removed w-full
-      style={{ width: '85px', transition: 'transform 0.15s ease-out' }} // Set fixed width
+      alt={showBacks ? 'Card Back' : (show ? card : 'Card Back')}
+      className="inline-block mx-[-4px] shadow-5xl rounded-sm"
+      style={{ width: '85px', transition: 'transform 0.15s ease-out' }}
     />
   );
 }
 
 // Updated PlayerHand component
-function PlayerHand({ cards = [], showAll = false, cardContainerStyle = {}, isWinner = false }) {
-  // Ensure we always render 2 card slots, even if dealt fewer (e.g., during deal)
-  const displayCards = [
-      cards.length > 0 ? cards[0] : null, 
-      cards.length > 1 ? cards[1] : null
-  ];
+function PlayerHand({ cards = [], showAll = false, cardContainerStyle = {}, isWinner = false, showBacks = false }) {
+  // If showBacks is true, always render two card backs
+  const displayCards = showBacks
+    ? [null, null]
+    : [cards.length > 0 ? cards[0] : null, cards.length > 1 ? cards[1] : null];
 
   return (
     <div className={`player-hand mt-1 flex justify-center items-end${isWinner ? ' winner-glow-bounce' : ''}`} style={{ pointerEvents: 'none', zIndex: 20, ...cardContainerStyle }}>
@@ -70,15 +74,15 @@ function PlayerHand({ cards = [], showAll = false, cardContainerStyle = {}, isWi
       {displayCards.map((card, index) => (
         <div
           key={index}
-          className={index > 0 ? '-ml-3 flex-shrink-0' : 'flex-shrink-0'} // Add flex-shrink-0
+          className={index > 0 ? '-ml-3 flex-shrink-0' : 'flex-shrink-0'}
           style={{
             zIndex: 20 + index,
             pointerEvents: 'auto',
             transform: index === 0 ? 'rotate(-6deg)' : 'rotate(6deg)',
-            boxShadow: index === 1 ? '-6px 0 12px -4px rgba(76, 76, 76, 0.85)' : 'none', // Shadow only between cards
+            boxShadow: index === 1 ? '-6px 0 12px -4px rgba(76, 76, 76, 0.85)' : 'none',
           }}
         >
-          <Card card={card} show={showAll} />
+          <Card card={card} show={showBacks ? false : showAll} showBacks={showBacks} />
         </div>
       ))}
     </div>

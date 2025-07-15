@@ -1,3 +1,4 @@
+// Assumed stack sizes: 100BB unless otherwise noted
 import { createScenarioState } from '../utils';
 
 export const intermediatePreflopScenarios = [
@@ -11,20 +12,23 @@ export const intermediatePreflopScenarios = [
             heroPosition: 'BTN',
             heroHand: ['Ah', '5h'],
             action: [
+                { position: 'UTG', type: 'FOLD'},
+                { position: 'HJ', type: 'FOLD'},
                 { position: 'CO', type: 'RAISE', amount: 2.5 }
             ],
             pot: 3.5
         }),
+        preFolded: [],
         correctActions: ['RAISE'],
         correctSizing: {
             min: 8,   // About 3x the original raise
             max: 11   // About 4x the original raise
         },
         explanation: "3-betting A5s as a semi-bluff is optimal because:\n" +
-            "1. We have blockers to strong Ax hands\n" +
-            "2. Our hand has good playability when called\n" +
-            "3. We can realize our equity well in position\n" +
-            "4. The hand is too weak to just call but has good removal"
+            "1. We have blockers to strong Ax hands.\n" +
+            "2. Our hand has good playability when called.\n" +
+            "3. We can realize our equity well in position.\n" +
+            "4. The hand is too weak to just call but has good removal effects."
     },
     {
         id: 'preflop_intermediate_2',
@@ -36,17 +40,26 @@ export const intermediatePreflopScenarios = [
             heroPosition: 'HJ',
             heroHand: ['Ks', 'Qs'],
             action: [
+                { position: 'UTG', type: 'FOLD'},
+                { position: 'BTN', type: 'FOLD'},
+                { position: 'SB', type: 'FOLD'},
+                { position: 'BB', type: 'FOLD'},
                 { position: 'HJ', type: 'RAISE', amount: 2.5 },
-                { position: 'CO', type: 'RAISE', amount: 8 }
+                { position: 'CO', type: 'RAISE', amount: 8 },
+  
+
+
             ],
             pot: 11.5
         }),
+        preFolded: [],
         correctActions: ['CALL'],
         explanation: "Calling with KQs against a 3-bet is correct because:\n" +
-            "1. We have good equity against CO's 3-betting range\n" +
-            "2. Our hand plays well post-flop with its high card strength\n" +
-            "3. Being suited gives us additional playability\n" +
-            "4. 4-betting would be too aggressive and folding too tight"
+            "1. We have good equity against CO's 3-betting range.\n" +
+            "2. Our hand plays well post-flop with its high card strength.\n" +
+            "3. Being suited gives us additional playability.\n" +
+            "4. 4-betting would be too aggressive and folding too tight.\n" +
+            "(Assume 100BB effective stacks.)"
     },
     {
         id: 'preflop_intermediate_3',
@@ -58,21 +71,25 @@ export const intermediatePreflopScenarios = [
             heroPosition: 'BB',
             heroHand: ['Ah', 'Jh'],
             action: [
+                { position: 'UTG', type: 'FOLD'},
+                { position: 'HJ', type: 'FOLD'},
+                { position: 'CO', type: 'FOLD'},
                 { position: 'BTN', type: 'RAISE', amount: 2.5 },
                 { position: 'SB', type: 'CALL', amount: 2.5 }
             ],
             pot: 7
         }),
+        preFolded: [],
         correctActions: ['RAISE'],
         correctSizing: {
             min: 12,  // About 4.5x the original raise
             max: 15   // About 6x the original raise
         },
         explanation: "Squeezing with AJs is optimal because:\n" +
-            "1. We can get folds from both players' weak ranges\n" +
-            "2. SB's call indicates weakness\n" +
-            "3. Our hand has good equity when called\n" +
-            "4. The larger sizing puts pressure on both opponents"
+            "1. We can get folds from both players' weak ranges.\n" +
+            "2. SB's call indicates weakness.\n" +
+            "3. Our hand has good equity when called.\n" +
+            "4. The larger sizing puts pressure on both opponents."
     },
     {
         id: 'preflop_intermediate_4',
@@ -89,12 +106,14 @@ export const intermediatePreflopScenarios = [
             ],
             pot: 11.5
         }),
+        preFolded: [],
         correctActions: ['FOLD'],
         explanation: "Folding JJ is correct in this spot because:\n" +
-            "1. We're facing two strong ranges from early position\n" +
-            "2. JJ is vulnerable against the likely continuing ranges\n" +
-            "3. We have reverse implied odds against better pairs\n" +
-            "4. Better spots will come along to play JJ aggressively"
+            "1. We're facing two strong ranges from early position.\n" +
+            "2. JJ is vulnerable against the likely continuing ranges.\n" +
+            "3. We have reverse implied odds against better pairs.\n" +
+            "4. Better spots will come along to play JJ aggressively.\n" +
+            "(Calling is sometimes reasonable depending on table dynamics and player tendencies.)"
     },
     {
         id: 'preflop_intermediate_5',
@@ -104,22 +123,28 @@ export const intermediatePreflopScenarios = [
         category: 'preflop',
         setup: createScenarioState({
             heroPosition: 'CO',
-            heroHand: ['At', 'Th'],
+            heroHand: ['Ac', 'Th'],
             action: [
+                { position: 'UTG', type: 'FOLD'},
+                { position: 'SB', type: 'FOLD'},
+                { position: 'BB', type: 'FOLD'},
+                { position: 'HJ', type: 'FOLD'},
                 { position: 'CO', type: 'RAISE', amount: 2.5 },
                 { position: 'BTN', type: 'RAISE', amount: 8 }
             ],
             pot: 11.5
         }),
+        preFolded: [],
         correctActions: ['RAISE'],
         correctSizing: {
-            min: 22,  // About 2.75x the 3-bet size
-            max: 26   // About 3.25x the 3-bet size
+            min: 18,  // About 2.2x the 3-bet size
+            max: 22   // About 2.75x the 3-bet size
         },
         explanation: "4-bet bluffing with ATo is a good play because:\n" +
-            "1. We block strong Ax hands in BTN's range\n" +
-            "2. BTN's 3-bet range is wide and can fold better hands\n" +
-            "3. We have decent equity when called\n" +
-            "4. The hand is too weak to call but has good removal effects"
+            "1. We block strong Ax hands in BTN's range.\n" +
+            "2. BTN's 3-bet range is wide and can fold better hands.\n" +
+            "3. We have decent equity when called.\n" +
+            "4. The hand is too weak to call but has good removal effects.\n" +
+            "(Standard 4-bet sizing is 18-22BB over an 8BB 3-bet.)"
     }
 ]; 
