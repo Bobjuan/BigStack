@@ -1,7 +1,7 @@
-.indLessLayout {
+.indLessLayout { 
   min-height: 100vh;
   width: 100%;
-  background: #000000;
+  background: #0F1115;
   color: white;
   font-family: 'Inter', sans-serif;
   display: flex;
@@ -19,9 +19,6 @@
   padding-bottom: 0rem;
   padding-left: 0rem;
   padding-right: 0rem;
-  height: 100vh;
-  min-height: 100vh;
-  align-items: stretch;
 }
 
 .lessonContent {
@@ -50,15 +47,13 @@
   height: fit-content;
   min-width: 0;
   overflow-x: auto;
-
 }
-
-
 
 @media (min-width: 768px) {
   .chatbotSection {
     width: 33.3333%;
     position: sticky;
+    top: 3rem;
 
   }
 }
@@ -69,69 +64,35 @@
   margin-bottom: 1rem;
   color: white;
   text-align: center;
-  position: sticky;
-}
+} 
 
-.chatbotExplanation {
-  background: #23273a;
-  color: #cbd5e1;
-  border: 1px solid #374151;
-  border-radius: 0.5rem;
-  padding: 0.75rem 1rem;
-  margin-bottom: 1rem;
-  font-size: 0.97rem;
-  text-align: center;
-  font-weight: 500;
-  box-shadow: 0 2px 8px 0 rgba(0,0,0,0.04);
-  width: 100%;
-  display: block;
-}
-
-.chatbotTitleContainer {
-  border: 1.5px solid #374151;
-  border-radius: 1.5rem;
-  background: #1b1f2b;
-  padding: 1.25rem 0;
-  margin: 2rem 0 1.5rem 0;
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  box-shadow: 0 2px 8px 0 rgba(0,0,0,0.04);
-}
-
-.resizerBar {
-  width: 12px;
+.resizer {
+  width: 14px;
   cursor: col-resize;
-  background: #23273a;
-  z-index: 10;
+  background: linear-gradient(180deg, #23273a 60%, #374151 100%);
   border-radius: 8px;
-  align-self: stretch;
+  box-shadow: 0 0 8px 0 #0004;
   position: relative;
+  transition: background 0.2s, box-shadow 0.2s;
+  z-index: 10;
   display: flex;
-  justify-content: center;
   align-items: center;
-  user-select: none;
-  box-shadow: 0 0 8px 0 rgba(0,0,0,0.10);
-  transition: background 0.2s;
-  height: auto;
-  margin: 0;
-  border-left: 1.5px solid #374151;
-  border-right: 1.5px solid #374151;
+  justify-content: center;
 }
-
-.resizerBar:hover {
-  background: #2d3142;
+.resizer:hover {
+  background: linear-gradient(180deg, #374151 60%, #23273a 100%);
+  box-shadow: 0 0 16px 2px #37415188;
 }
-
-.resizerHandle {
+.resizer::before {
+  content: '';
+  display: block;
   width: 4px;
-  height: 48px;
-  background: #374151;
+  height: 36px;
   border-radius: 2px;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  box-shadow: 0 0 4px 0 rgba(0,0,0,0.12);
+  background: repeating-linear-gradient(
+    to bottom,
+    #4b5563 0 6px,
+    transparent 6px 12px
+  );
+  opacity: 0.8;
 } 

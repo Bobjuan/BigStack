@@ -84,12 +84,10 @@ const IndLessLayout = ({ children }) => {
         </div>
         {/* Resizer Bar */}
         <div
-          className={styles.resizerBar}
+          className={styles.resizer}
           onMouseDown={startDrag}
           title="Drag to resize"
-        >
-          <div className={styles.resizerHandle} />
-        </div>
+        />
         {/* Chatbot Section */}
         <div
           className={styles.chatbotSection}

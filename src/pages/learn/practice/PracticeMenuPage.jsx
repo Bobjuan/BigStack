@@ -50,11 +50,11 @@ const PracticeMenuPage = () => {
     }
 
     return (
-        <div className="h-screen w-screen bg-black">
-            <div className="practice-menu h-full w-full flex flex-col">
+        <div className="min-h-screen bg-black overflow-x-hidden">
+            <div className="practice-menu h-full w-full max-w-full flex flex-col">
                 <h1 className="text-3xl font-bold mb-8 text-white px-8 pt-8 text-center">Practice Scenarios</h1>
-                <div className="flex justify-center w-full">
-                  <div className="space-y-4 px-8 pb-8 flex-1 overflow-y-auto max-w-3xl w-full">
+                <div className="flex justify-center items-center w-full min-h-[60vh]">
+                  <div className="space-y-4 px-8 pb-8 max-w-3xl w-full overflow-y-auto overflow-x-hidden">
                     {categories.map(category => {
                         if (!category || !category.scenarios) return null;
                         
