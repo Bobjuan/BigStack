@@ -19,6 +19,8 @@
   padding-bottom: 0rem;
   padding-left: 0rem;
   padding-right: 0rem;
+  height: 100vh;
+  min-height: 100vh;
   align-items: stretch;
 }
 
@@ -48,7 +50,7 @@
   position: sticky;
   top: 1rem;
   align-self: flex-start;
-  height: fit-content;
+  height: 100%;
 }
 
 
@@ -56,6 +58,7 @@
 @media (min-width: 768px) {
   .chatbotSection {
     width: 33.3333%;
+    position: sticky;
   }
 }
 
