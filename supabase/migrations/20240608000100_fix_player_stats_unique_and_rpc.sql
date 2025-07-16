@@ -1,7 +1,20 @@
--- Drop the existing function first
+-- 1. Drop old unique constraint if it exists
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.table_constraints 
+    WHERE table_name='player_stats' AND constraint_type='UNIQUE' AND constraint_name='player_stats_player_id_key'
+  ) THEN
+    ALTER TABLE player_stats DROP CONSTRAINT player_stats_player_id_key;
+  END IF;
+END $$;
+
+-- 2. Add unique constraint on (player_id, session_id)
+ALTER TABLE player_stats ADD CONSTRAINT IF NOT EXISTS player_stats_player_id_session_id_key UNIQUE(player_id, session_id);
+
+-- 3. Update batch_update_player_stats RPC to use ON CONFLICT (player_id, session_id)
 DROP FUNCTION IF EXISTS batch_update_player_stats(jsonb);
 
--- Create the batch_update_player_stats RPC function with session_id support
 CREATE OR REPLACE FUNCTION batch_update_player_stats(params jsonb)
 RETURNS void AS $$
 DECLARE
@@ -13,10 +26,8 @@ DECLARE
     pos_key text;
     pos_stats jsonb;
 BEGIN
-    -- Loop through each update in the batch
     FOR update_record IN SELECT * FROM jsonb_array_elements(params->'updates')
     LOOP
-        -- Extract the player ID, session ID, and data
         player_uuid := (update_record->>'p_player_id')::UUID;
         session_uuid := NULL;
         IF update_record ? 'p_session_id' THEN
@@ -24,8 +35,6 @@ BEGIN
         END IF;
         increments_data := update_record->'p_increments';
         position_data := update_record->'p_position_increments';
-        
-        -- UPSERT the main stats (insert if new, update if exists)
         INSERT INTO player_stats (
             player_id,
             session_id,
@@ -147,89 +156,6 @@ BEGIN
             wwsf_opportunities = player_stats.wwsf_opportunities + COALESCE((increments_data->>'wwsf_opportunities')::INTEGER, 0),
             wwsf_actions = player_stats.wwsf_actions + COALESCE((increments_data->>'wwsf_actions')::INTEGER, 0),
             updated_at = NOW();
-        
-        -- Handle position-specific stats
-        IF position_data IS NOT NULL THEN
-            -- Process each position in the position_data
-            FOR pos_key IN SELECT jsonb_object_keys(position_data)
-            LOOP
-                pos_stats := position_data->pos_key;
-                
-                -- Update position-specific columns based on position name
-                CASE pos_key
-                    WHEN 'BTN' THEN
-                        UPDATE player_stats SET
-                            btn_vpip_opportunities = btn_vpip_opportunities + COALESCE((pos_stats->>'vpip_opportunities')::INTEGER, 0),
-                            btn_vpip_actions = btn_vpip_actions + COALESCE((pos_stats->>'vpip_actions')::INTEGER, 0),
-                            btn_pfr_opportunities = btn_pfr_opportunities + COALESCE((pos_stats->>'pfr_opportunities')::INTEGER, 0),
-                            btn_pfr_actions = btn_pfr_actions + COALESCE((pos_stats->>'pfr_actions')::INTEGER, 0)
-                        WHERE player_id = player_uuid AND session_id IS NOT DISTINCT FROM session_uuid;
-                    WHEN 'SB' THEN
-                        UPDATE player_stats SET
-                            sb_vpip_opportunities = sb_vpip_opportunities + COALESCE((pos_stats->>'vpip_opportunities')::INTEGER, 0),
-                            sb_vpip_actions = sb_vpip_actions + COALESCE((pos_stats->>'vpip_actions')::INTEGER, 0),
-                            sb_pfr_opportunities = sb_pfr_opportunities + COALESCE((pos_stats->>'pfr_opportunities')::INTEGER, 0),
-                            sb_pfr_actions = sb_pfr_actions + COALESCE((pos_stats->>'pfr_actions')::INTEGER, 0)
-                        WHERE player_id = player_uuid AND session_id IS NOT DISTINCT FROM session_uuid;
-                    WHEN 'BB' THEN
-                        UPDATE player_stats SET
-                            bb_vpip_opportunities = bb_vpip_opportunities + COALESCE((pos_stats->>'vpip_opportunities')::INTEGER, 0),
-                            bb_vpip_actions = bb_vpip_actions + COALESCE((pos_stats->>'vpip_actions')::INTEGER, 0),
-                            bb_pfr_opportunities = bb_pfr_opportunities + COALESCE((pos_stats->>'pfr_opportunities')::INTEGER, 0),
-                            bb_pfr_actions = bb_pfr_actions + COALESCE((pos_stats->>'pfr_actions')::INTEGER, 0)
-                        WHERE player_id = player_uuid AND session_id IS NOT DISTINCT FROM session_uuid;
-                    WHEN 'BTN/SB' THEN
-                        UPDATE player_stats SET
-                            btn_sb_vpip_opportunities = btn_sb_vpip_opportunities + COALESCE((pos_stats->>'vpip_opportunities')::INTEGER, 0),
-                            btn_sb_vpip_actions = btn_sb_vpip_actions + COALESCE((pos_stats->>'vpip_actions')::INTEGER, 0),
-                            btn_sb_pfr_opportunities = btn_sb_pfr_opportunities + COALESCE((pos_stats->>'pfr_opportunities')::INTEGER, 0),
-                            btn_sb_pfr_actions = btn_sb_pfr_actions + COALESCE((pos_stats->>'pfr_actions')::INTEGER, 0)
-                        WHERE player_id = player_uuid AND session_id IS NOT DISTINCT FROM session_uuid;
-                    WHEN 'UTG' THEN
-                        UPDATE player_stats SET
-                            utg_vpip_opportunities = utg_vpip_opportunities + COALESCE((pos_stats->>'vpip_opportunities')::INTEGER, 0),
-                            utg_vpip_actions = utg_vpip_actions + COALESCE((pos_stats->>'vpip_actions')::INTEGER, 0),
-                            utg_pfr_opportunities = utg_pfr_opportunities + COALESCE((pos_stats->>'pfr_opportunities')::INTEGER, 0),
-                            utg_pfr_actions = utg_pfr_actions + COALESCE((pos_stats->>'pfr_actions')::INTEGER, 0)
-                        WHERE player_id = player_uuid AND session_id IS NOT DISTINCT FROM session_uuid;
-                    WHEN 'UTG+1' THEN
-                        UPDATE player_stats SET
-                            utg1_vpip_opportunities = utg1_vpip_opportunities + COALESCE((pos_stats->>'vpip_opportunities')::INTEGER, 0),
-                            utg1_vpip_actions = utg1_vpip_actions + COALESCE((pos_stats->>'vpip_actions')::INTEGER, 0),
-                            utg1_pfr_opportunities = utg1_pfr_opportunities + COALESCE((pos_stats->>'pfr_opportunities')::INTEGER, 0),
-                            utg1_pfr_actions = utg1_pfr_actions + COALESCE((pos_stats->>'pfr_actions')::INTEGER, 0)
-                        WHERE player_id = player_uuid AND session_id IS NOT DISTINCT FROM session_uuid;
-                    WHEN 'MP' THEN
-                        UPDATE player_stats SET
-                            mp_vpip_opportunities = mp_vpip_opportunities + COALESCE((pos_stats->>'vpip_opportunities')::INTEGER, 0),
-                            mp_vpip_actions = mp_vpip_actions + COALESCE((pos_stats->>'vpip_actions')::INTEGER, 0),
-                            mp_pfr_opportunities = mp_pfr_opportunities + COALESCE((pos_stats->>'pfr_opportunities')::INTEGER, 0),
-                            mp_pfr_actions = mp_pfr_actions + COALESCE((pos_stats->>'pfr_actions')::INTEGER, 0)
-                        WHERE player_id = player_uuid AND session_id IS NOT DISTINCT FROM session_uuid;
-                    WHEN 'LJ' THEN
-                        UPDATE player_stats SET
-                            lj_vpip_opportunities = lj_vpip_opportunities + COALESCE((pos_stats->>'vpip_opportunities')::INTEGER, 0),
-                            lj_vpip_actions = lj_vpip_actions + COALESCE((pos_stats->>'vpip_actions')::INTEGER, 0),
-                            lj_pfr_opportunities = lj_pfr_opportunities + COALESCE((pos_stats->>'pfr_opportunities')::INTEGER, 0),
-                            lj_pfr_actions = lj_pfr_actions + COALESCE((pos_stats->>'pfr_actions')::INTEGER, 0)
-                        WHERE player_id = player_uuid AND session_id IS NOT DISTINCT FROM session_uuid;
-                    WHEN 'HJ' THEN
-                        UPDATE player_stats SET
-                            hj_vpip_opportunities = hj_vpip_opportunities + COALESCE((pos_stats->>'vpip_opportunities')::INTEGER, 0),
-                            hj_vpip_actions = hj_vpip_actions + COALESCE((pos_stats->>'vpip_actions')::INTEGER, 0),
-                            hj_pfr_opportunities = hj_pfr_opportunities + COALESCE((pos_stats->>'pfr_opportunities')::INTEGER, 0),
-                            hj_pfr_actions = hj_pfr_actions + COALESCE((pos_stats->>'pfr_actions')::INTEGER, 0)
-                        WHERE player_id = player_uuid AND session_id IS NOT DISTINCT FROM session_uuid;
-                    WHEN 'CO' THEN
-                        UPDATE player_stats SET
-                            co_vpip_opportunities = co_vpip_opportunities + COALESCE((pos_stats->>'vpip_opportunities')::INTEGER, 0),
-                            co_vpip_actions = co_vpip_actions + COALESCE((pos_stats->>'vpip_actions')::INTEGER, 0),
-                            co_pfr_opportunities = co_pfr_opportunities + COALESCE((pos_stats->>'pfr_opportunities')::INTEGER, 0),
-                            co_pfr_actions = co_pfr_actions + COALESCE((pos_stats->>'pfr_actions')::INTEGER, 0)
-                        WHERE player_id = player_uuid AND session_id IS NOT DISTINCT FROM session_uuid;
-                END CASE;
-            END LOOP;
-        END IF;
     END LOOP;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER; 

@@ -139,6 +139,31 @@ function startActionTimer(gameId) {
     }, timeForAction);
 }
 
+// Update: fetchStats now accepts sessionId (optional)
+socket.on('fetchStats', async (gameId, sessionId, callback) => {
+  const game = activeGames[gameId];
+  if (!game) return callback && callback({ status: 'error', message: 'Game not found' });
+
+  const userIds = gameEngine.getSeatedPlayers(game)
+                            .map(p => p.userId)
+                            .filter(Boolean); // Filter out any null/undefined userIds
+
+  if (userIds.length === 0) {
+    return callback && callback({ status: 'ok', stats: {} });
+  }
+
+  try {
+    const { data, error } = await statsTracker.getStatsForPlayers(userIds, sessionId || null);
+    if (error) {
+      throw error;
+    }
+    callback && callback({ status: 'ok', stats: data });
+  } catch (error) {
+    console.error('Error fetching player stats:', error);
+    callback && callback({ status: 'error', message: 'Could not fetch stats' });
+  }
+});
+
 function scheduleNextHand(gameId) {
     const game = activeGames[gameId];
     if (!game) return;
@@ -150,7 +175,7 @@ function scheduleNextHand(gameId) {
     // NEW: Broadcast updated stats to the room at the end of the hand.
     const playerIds = gameEngine.getSeatedPlayers(game).map(p => p.userId).filter(Boolean);
     if (playerIds.length > 0) {
-        statsTracker.getStatsForPlayers(playerIds)
+        statsTracker.getStatsForPlayers(playerIds, null) // null = All Stats
             .then(({ data, error }) => {
                 if (error) {
                     console.error(`Error fetching stats for broadcast in game ${gameId}:`, error);
@@ -273,30 +298,6 @@ io.on(SocketEvents.CONNECT, (socket) => {
     callback && callback({ status: 'ok' });
     io.to(gameId).emit(SocketEvents.GAME_STATE_UPDATE, { newState: getSanitizedGameStateForClient(game) });
     io.to(gameId).emit(SocketEvents.PLAYER_JOINED, { message: `${player.name} sat down at seat ${seatIndex + 1}.` });
-  });
-
-  socket.on('fetchStats', async (gameId, callback) => {
-    const game = activeGames[gameId];
-    if (!game) return callback && callback({ status: 'error', message: 'Game not found' });
-
-    const userIds = gameEngine.getSeatedPlayers(game)
-                              .map(p => p.userId)
-                              .filter(Boolean); // Filter out any null/undefined userIds
-
-    if (userIds.length === 0) {
-      return callback && callback({ status: 'ok', stats: {} });
-    }
-
-    try {
-      const { data, error } = await statsTracker.getStatsForPlayers(userIds);
-      if (error) {
-        throw error;
-      }
-      callback && callback({ status: 'ok', stats: data });
-    } catch (error) {
-      console.error('Error fetching player stats:', error);
-      callback && callback({ status: 'error', message: 'Could not fetch stats' });
-    }
   });
 
   socket.on(SocketEvents.START_GAME, (gameId, callback) => {

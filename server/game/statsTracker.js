@@ -176,11 +176,28 @@ function trackAction(handStats, game, player, action) {
   }
 }
 
+/**
+ * Helper: Fetch all active stat sessions for a player (returns array of session objects)
+ */
+async function getActiveSessionsForPlayer(playerId) {
+  if (!supabase) return [{ id: null, name: 'All Stats', is_active: true }];
+  const { data, error } = await supabase
+    .from('stat_sessions')
+    .select('*')
+    .eq('player_id', playerId)
+    .eq('is_active', true);
+  if (error) {
+    console.error('Error fetching active sessions:', error);
+    return [{ id: null, name: 'All Stats', is_active: true }];
+  }
+  // Always include default session (null id)
+  return [{ id: null, name: 'All Stats', is_active: true }, ...(data || [])];
+}
 
 /**
  * Commits the accumulated hand stats to the database using a batch RPC call.
  * This is called at the end of a hand.
- * Assumes a Supabase RPC function `increment_player_stats` exists.
+ * Writes stats to all active sessions for each player (including default).
  */
 async function commitHandStats(handStats) {
   if (!supabase) {
@@ -190,64 +207,74 @@ async function commitHandStats(handStats) {
 
   // Filter out any non-player objects like 'sharedState'.
   const playersToUpdate = Object.values(handStats).filter(statObj => statObj && statObj.playerId);
-
   if (playersToUpdate.length === 0) {
     return; // Nothing to commit
   }
 
-  // Construct the exact payload the 'batch_update_player_stats' function expects.
-  // It requires a single object with a key 'updates' that holds an array.
-  const updatesPayload = playersToUpdate.map(playerStat => {
-    return {
-      p_player_id: playerStat.playerId,
-      p_increments: playerStat.increments,
-      p_position_increments: playerStat.positionIncrements,
-    };
-  });
+  // For each player, get all active sessions and create an update for each session
+  let updatesPayload = [];
+  for (const playerStat of playersToUpdate) {
+    const sessions = await getActiveSessionsForPlayer(playerStat.playerId);
+    console.log(`[DEBUG] Active sessions for player ${playerStat.playerId}:`, sessions.map(s => ({ id: s.id, name: s.name, is_active: s.is_active })));
+    for (const session of sessions) {
+      updatesPayload.push({
+        p_player_id: playerStat.playerId,
+        p_session_id: session.id, // null for default
+        p_increments: playerStat.increments,
+        p_position_increments: playerStat.positionIncrements,
+      });
+    }
+  }
 
-  // Debug: uncomment if needed
-  console.log('Payload to batch_update_player_stats:', JSON.stringify(updatesPayload, null, 2));
+  // Debug: print the full payload
+  console.log('[DEBUG] Payload to batch_update_player_stats:', JSON.stringify(updatesPayload, null, 2));
 
   const { error } = await supabase.rpc('batch_update_player_stats', {
     updates: updatesPayload,
   });
 
   if (error) {
-    console.error('Error returned from batch_update_player_stats RPC:', error);
+    console.error('[DEBUG] Error returned from batch_update_player_stats RPC:', error);
   } else {
-    console.log(`Successfully committed stats for ${playersToUpdate.length} players.`);
+    console.log(`[DEBUG] Successfully committed stats for ${updatesPayload.length} player-session pairs.`);
   }
 }
 
 /**
- * Retrieves the latest stats for a given list of player IDs from the database.
+ * Retrieves the latest stats for a given list of player IDs from the database, filtered by session_id.
  * @param {string[]} playerIds - An array of permanent user IDs.
+ * @param {string|null} sessionId - The session_id to filter by (null for default session).
  * @returns {Promise<{data: object, error: object}>} - The result from the Supabase query.
  */
-async function getStatsForPlayers(playerIds) {
-    if (!supabase) {
-        console.error("statsTracker: Supabase client not initialized. Cannot fetch stats.");
-        return { data: null, error: new Error("Database connection not initialized.") };
-    }
-    if (!playerIds || playerIds.length === 0) {
-        return { data: [], error: null };
-    }
+async function getStatsForPlayers(playerIds, sessionId = null) {
+  if (!supabase) {
+    console.error("statsTracker: Supabase client not initialized. Cannot fetch stats.");
+    return { data: null, error: new Error("Database connection not initialized.") };
+  }
+  if (!playerIds || playerIds.length === 0) {
+    return { data: [], error: null };
+  }
 
-    const { data, error } = await supabase
-        .from('player_stats')
-        .select('*')
-        .in('player_id', playerIds);
+  let query = supabase
+    .from('player_stats')
+    .select('*')
+    .in('player_id', playerIds);
+  if (sessionId === null) {
+    query = query.is('session_id', null);
+  } else {
+    query = query.eq('session_id', sessionId);
+  }
+  const { data, error } = await query;
 
-    // Convert the array of stats objects into a map of { playerId: stats } for easier lookup on the client.
-    if (data) {
-        const statsMap = data.reduce((acc, stats) => {
-            acc[stats.player_id] = stats;
-            return acc;
-        }, {});
-        return { data: statsMap, error: null };
-    }
-
-    return { data, error };
+  // Convert the array of stats objects into a map of { playerId: stats } for easier lookup on the client.
+  if (data) {
+    const statsMap = data.reduce((acc, stats) => {
+      acc[stats.player_id] = stats;
+      return acc;
+    }, {});
+    return { data: statsMap, error: null };
+  }
+  return { data, error };
 }
 
 
@@ -257,4 +284,5 @@ module.exports = {
   trackAction,
   commitHandStats,
   getStatsForPlayers,
+  getActiveSessionsForPlayer,
 }; 

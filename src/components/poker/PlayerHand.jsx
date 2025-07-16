@@ -78,7 +78,10 @@ function PlayerHand({ cards = [], showAll = false, cardContainerStyle = {}, isWi
           style={{
             zIndex: 20 + index,
             pointerEvents: 'auto',
-            transform: index === 0 ? 'rotate(-6deg)' : 'rotate(6deg)',
+            // Add translateY for the first card only:
+            transform: index === 0
+              ? 'rotate(-5deg) translateY(-0.5px)' // Move up by 12px (adjust as needed)
+              : 'rotate(5deg)',
             boxShadow: index === 1 ? '-6px 0 12px -4px rgba(76, 76, 76, 0.85)' : 'none',
           }}
         >

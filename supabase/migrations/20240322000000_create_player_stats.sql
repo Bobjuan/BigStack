@@ -352,3 +352,25 @@ BEGIN
     END LOOP;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER; 
+
+CREATE TABLE IF NOT EXISTS stat_sessions (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    player_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+    UNIQUE(player_id, name)
+);
+
+-- Add session_id to player_stats
+ALTER TABLE player_stats ADD COLUMN IF NOT EXISTS session_id UUID REFERENCES stat_sessions(id);
+
+-- Default session: for all old stats, session_id will be NULL or a special default session row.
+-- Update unique constraint: player_id + session_id
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE table_name='player_stats' AND constraint_name='player_stats_player_id_key') THEN
+        ALTER TABLE player_stats DROP CONSTRAINT player_stats_player_id_key;
+    END IF;
+END $$;
+ALTER TABLE player_stats ADD CONSTRAINT player_stats_player_id_session_id_key UNIQUE(player_id, session_id); 

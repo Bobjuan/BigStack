@@ -141,33 +141,6 @@ const trackBotGameAction = (handStats, gameState, player, action) => {
   }
 };
 
-const commitBotGameStats = async (handStats) => {
-  if (!handStats) return;
-  
-  const playersToUpdate = Object.values(handStats).filter(statObj => statObj && statObj.playerId);
-  if (playersToUpdate.length === 0) return;
-  
-  try {
-    const updatesPayload = playersToUpdate.map(playerStat => ({
-      p_player_id: playerStat.playerId,
-      p_increments: playerStat.increments,
-      p_position_increments: playerStat.positionIncrements,
-    }));
-    
-    const { error } = await supabase.rpc('batch_update_player_stats', {
-      updates: updatesPayload,
-    });
-    
-    if (error) {
-      console.error('Error updating bot game stats:', error);
-    } else {
-      console.log(`Successfully committed bot game stats for ${playersToUpdate.length} players.`);
-    }
-  } catch (error) {
-    console.error('Exception while committing bot game stats:', error);
-  }
-};
-
 const initializePlayer = (id, name, stack) => ({
     id,
     name,
@@ -525,9 +498,57 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
     
     // Move getHumanPlayerId above render logic
     const getHumanPlayerId = () => {
-        if (!vsBot) return 'player1';
-        const humanPlayerIndex = botPlayerIndex === 0 ? 1 : 0;
-        return `player${humanPlayerIndex + 1}`;
+        return `player${botPlayerIndex + 1}`;
+    };
+
+    // Move commitBotGameStats inside component to access user
+    const commitBotGameStats = async (handStats) => {
+        if (!handStats || !user?.id) return;
+        
+        const playersToUpdate = Object.values(handStats).filter(statObj => statObj && statObj.playerId);
+        if (playersToUpdate.length === 0) return;
+        
+        try {
+            // Get active sessions for the user (including default session)
+            const { data: sessions, error: sessionsError } = await supabase
+                .from('stat_sessions')
+                .select('*')
+                .eq('player_id', user.id)
+                .eq('is_active', true);
+            
+            if (sessionsError) {
+                console.error('Error fetching sessions:', sessionsError);
+                return;
+            }
+            
+            const DEFAULT_SESSION_ID = '00000000-0000-0000-0000-000000000000';
+            // Always include default session (default UUID)
+            const activeSessions = [{ id: DEFAULT_SESSION_ID, name: 'All Stats', is_active: true }, ...(sessions || [])];
+            
+            // Commit stats to each active session separately
+            for (const session of activeSessions) {
+                const updatesPayload = playersToUpdate.map(playerStat => ({
+                    p_player_id: playerStat.playerId,
+                    p_session_id: session.id,
+                    p_increments: playerStat.increments,
+                    p_position_increments: playerStat.positionIncrements,
+                }));
+                
+                const { error } = await supabase.rpc('batch_update_player_stats', {
+                    updates: updatesPayload,
+                });
+                
+                if (error) {
+                    console.error(`Error updating bot game stats for session ${session.name}:`, error);
+                } else {
+                    console.log(`Successfully committed bot game stats to session: ${session.name}`);
+                }
+            }
+            
+            console.log(`Completed stats commits for ${playersToUpdate.length} players across ${activeSessions.length} sessions.`);
+        } catch (error) {
+            console.error('Exception while committing bot game stats:', error);
+        }
     };
 
     // Function to fetch current player stats for HUD display
@@ -540,7 +561,7 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
                 .select('*')
                 .eq('player_id', user.id)
                 .single();
-                
+            
             if (error && error.code !== 'PGRST116') {
                 console.error('Error fetching player stats:', error);
                 return null;
@@ -1295,6 +1316,7 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
     }, [handleAction]);
 
     const handleFold = useCallback(() => {
+        let humanJustFolded = false;
         handleAction({
             name: 'Fold',
             amount: 0,
@@ -1304,9 +1326,12 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
                 newState.players[playerIndex].isFolded = true;
                 newState.players[playerIndex].hasActedThisRound = true;
                 newState.players[playerIndex].isTurn = false;
+                // Track if human just folded (for vsBot)
+                if (vsBot && newState.players[playerIndex].id === getHumanPlayerId()) {
+                    humanJustFolded = true;
+                }
                 // Immediately award pot if only one player remains
                 const nonFolded = newState.players.filter(p => !p.isFolded);
-                // Allow hand to continue even when human folds for testing purposes
                 if (nonFolded.length === 1) {
                     return awardPot(newState);
                 }
@@ -1323,7 +1348,20 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
                 return newState;
             }
         });
-    }, [handleAction]);
+        // If human just folded vs bot, start next hand after short delay
+        if (vsBot && gameState.players[gameState.currentPlayerIndex].id === getHumanPlayerId()) {
+            // Commit stats before starting next hand if not already committed
+            if (botGameHandStats && !hasCommittedStatsRef.current) {
+                commitBotGameStats(botGameHandStats);
+                setBotGameHandStats(null);
+                hasCommittedStatsRef.current = true;
+                console.log('[BotStats] Committed hand stats to database (on fold)');
+            }
+            setTimeout(() => {
+                setGameState(prev => startNewHand(JSON.parse(JSON.stringify(prev))));
+            }, 100); // Near instant
+        }
+    }, [handleAction, vsBot, getHumanPlayerId, gameState, botGameHandStats]);
 
         // Bot action handling
     const processBotAction = useCallback(async () => {
@@ -1385,8 +1423,8 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
     }, [vsBot, botProcessing, gameState, botPlayerIndex, slumbotSessionActive, numPlayers]);
 
     const executeBotAction = useCallback(async (botAction) => {
-        // Add a small delay to make bot actions feel more natural
-        await new Promise(resolve => setTimeout(resolve, 50 + Math.random() * 100));
+        // Add a very short delay for snappier bot actions
+        await new Promise(resolve => setTimeout(resolve, 20 + Math.random() * 40));
 
         switch (botAction.type) {
             case 'fold':
@@ -1408,8 +1446,8 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
     }, [handleFold, handleCheck, handleCall, handleBet]);
 
     const executePokerBotAction = useCallback(async () => {
-        // Add a small delay to make bot actions feel more natural
-        await new Promise(resolve => setTimeout(resolve, 50 + Math.random() * 100));
+        // Add a very short delay for snappier bot actions
+        await new Promise(resolve => setTimeout(resolve, 20 + Math.random() * 40));
 
         try {
             const currentPlayer = gameState.players[gameState.currentPlayerIndex];
@@ -1449,8 +1487,8 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
     }, [gameState, handleFold, handleCheck, handleCall, handleBet]);
 
     const executeRandomBotAction = useCallback(async () => {
-        // Add a small delay
-        await new Promise(resolve => setTimeout(resolve, 50 + Math.random() * 100));
+        // Add a very short delay
+        await new Promise(resolve => setTimeout(resolve, 20 + Math.random() * 40));
 
         const { canCheck, canCall, canBet } = getActionButtonState(gameState);
         
@@ -1718,43 +1756,8 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
     const preFolded = scenarioSetup && scenarioSetup.preFolded ? scenarioSetup.preFolded : [];
 
     return (
-        <div className="poker-wrapper w-full h-full" style={{ width: '100%', height: '100%', background: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
-            {/* Top Overlay Info Bar (Practice Mode Only) */}
-            {isPracticeMode && (
-                <div
-                    className={`fixed left-0 top-0 w-full z-40 flex flex-col items-center transition-all duration-300 ${infoBarMinimized ? 'h-12' : 'h-auto'} bg-gradient-to-b from-black/90 to-black/40 shadow-lg`}
-                    style={{ minHeight: infoBarMinimized ? 48 : 80, maxHeight: infoBarMinimized ? 48 : 220, justifyContent: infoBarMinimized ? 'center' : undefined }}
-                >
-                    <div className="w-full relative flex items-center justify-center px-4 pt-2" style={infoBarMinimized ? {height: '100%', paddingTop: 0} : {}}>
-                        {/* Centered scenario description */}
-                        <span className="text-sm text-blue-200 text-center">{scenarioDescription}</span>
-                        {/* Arrow always at top right */}
-                        <button
-                            className="absolute top-1 right-4 text-gray-300 hover:text-white focus:outline-none"
-                            onClick={() => setInfoBarMinimized(v => !v)}
-                            aria-label={infoBarMinimized ? 'Expand Info Bar' : 'Minimize Info Bar'}
-                        >
-                            <span style={{ fontSize: 22, display: 'inline-block', transform: infoBarMinimized ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
-                                ▼
-                            </span>
-                        </button>
-                    </div>
-                    {!infoBarMinimized && (
-                        <div className="w-full flex flex-col items-center px-4 pb-2">
-                            {scenarioTitle && (
-                                <h1 className="text-xl font-bold text-white tracking-wide mb-1 text-center">{scenarioTitle}</h1>
-                            )}
-                            {scenarioDescription && (
-                                <p className="text-sm text-blue-200 mb-2 text-center max-w-2xl">{scenarioDescription}</p>
-                            )}
-                            <h2 className="text-base font-bold text-yellow-200 tracking-wide">{`Round: ${gameState.currentBettingRound}`}</h2>
-                            <p className="text-xs text-yellow-300 h-auto text-center">{gameState.message || ' '}</p>
-                        </div>
-                    )}
-                </div>
-            )}
-           
-             <div
+        <div className="poker-viewport">
+            <div
                 ref={tableRef}
                 className="poker-table relative overflow-hidden"
                 style={getTableStyle(tableTheme)}
@@ -1789,13 +1792,33 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
                     {rotatedPlayers.map((player, index) => {
                         const { infoStyle, cardStyle, betStyle, cardWidth: currentPlayerCardWidth } = getPlayerPosition(index, rotatedPlayers.length, tableDimensions.width, tableDimensions.height);
                         const infoClasses = getPlayerInfoClasses(player, tableTheme, isShowdownOrHandOver && showWinnerAnimation, winnerPlayerIds);
+                        // Determine card visibility logic
+                        let showPlayerCards = true;
+                        if (vsBot) {
+                            if (showAllCards) {
+                                showPlayerCards = true;
+                            } else {
+                                // Only show human's own cards, or at showdown/hand over for non-folded players
+                                const isHuman = player.id === getHumanPlayerId();
+                                if (isHuman) {
+                                    showPlayerCards = true;
+                                } else if (
+                                    (isShowdownOrHandOver && !player.isFolded && rotatedPlayers.filter(p => !p.isFolded).length > 1)
+                                ) {
+                                    showPlayerCards = true;
+                                } else {
+                                    showPlayerCards = false;
+                                }
+                            }
+                        }
                         return (
                             <React.Fragment key={player.id}>
                                 {/* Player Hand (Cards) - Positioned Separately */}
                                 <div style={cardStyle} className={`${player.isFolded && gameState.currentBettingRound !== GamePhase.HAND_OVER ? 'opacity-30 grayscale' : ''}`}>
                                     <PlayerHand 
-                                        cards={player.cards} 
-                                        showAll={true}
+                                        cards={player.cards}
+                                        showAll={showPlayerCards}
+                                        showBacks={!showPlayerCards}
                                         isWinner={winnerPlayerIds.includes(player.id) && showWinnerAnimation}
                                     />
                                 </div>
@@ -1810,7 +1833,7 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
                                     {/* Status Overlay (Folded / All-In) - Inside info container */}
                                     {(player.isFolded && gameState.currentBettingRound !== GamePhase.HAND_OVER || player.isAllIn) && (
                                         <div className="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center z-20 rounded">
-                                            <span className={`font-bold text-lg ${player.isAllIn ? 'text-red-500' : 'text-gray-400'}`}>
+                                            <span className={`font-bold text-lg ${player.isAllIn ? 'text-red-500' : 'text-gray-400'}`}> 
                                                 {player.isAllIn ? 'ALL-IN' : 'FOLDED'}
                                             </span>
                                         </div>
@@ -1942,7 +1965,6 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
                                     </svg>
                                 </button>
                             </div>
-                            
                             {/* Theme Options */}
                             <div className="space-y-4">
                                 <h3 className="text-lg font-medium text-gray-300 mb-3">Table Theme</h3>
@@ -1953,29 +1975,34 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
                                             tableTheme === 'dark' ? 'ring-2 ring-indigo-500' : ''
                                         }`}
                                     >
-                                        <span className="text-white">Dark Mode</span>
-                                        <div className={`w-6 h-6 rounded-full border-2 ${tableTheme === 'dark' ? 'bg-indigo-500 border-indigo-500' : 'border-gray-400'}`}></div>
+                                        <span>Dark</span>
+                                        {tableTheme === 'dark' && <span className="ml-2">✓</span>}
                                     </button>
                                     <button
                                         onClick={() => setTableTheme('light')}
-                                        className={`w-full p-3 rounded-lg bg-white text-black hover:bg-gray-100 transition-colors flex items-center justify-between ${
+                                        className={`w-full p-3 rounded-lg bg-white text-black hover:bg-gray-200 transition-colors flex items-center justify-between ${
                                             tableTheme === 'light' ? 'ring-2 ring-indigo-500' : ''
                                         }`}
                                     >
-                                        <span>Light Mode</span>
-                                        <div className={`w-6 h-6 rounded-full border-2 ${tableTheme === 'light' ? 'bg-indigo-500 border-indigo-500' : 'border-gray-400'}`}></div>
-                                    </button>
-                                    <button
-                                        onClick={() => setTableTheme('classic')}
-                                        className={`w-full p-3 rounded-lg bg-gradient-to-br from-green-700 to-green-900 hover:from-green-600 hover:to-green-800 transition-colors flex items-center justify-between ${
-                                            tableTheme === 'classic' ? 'ring-2 ring-indigo-500' : ''
-                                        }`}
-                                    >
-                                        <span className="text-white">Classic (Green Felt)</span>
-                                        <div className={`w-6 h-6 rounded-full border-2 ${tableTheme === 'classic' ? 'bg-indigo-500 border-indigo-500' : 'border-gray-400'}`}></div>
+                                        <span>Light</span>
+                                        {tableTheme === 'light' && <span className="ml-2">✓</span>}
                                     </button>
                                 </div>
                             </div>
+                            {/* Show All Cards Toggle for vsBot */}
+                            {vsBot && (
+                                <div className="mt-6">
+                                    <label className="flex items-center space-x-3">
+                                        <input
+                                            type="checkbox"
+                                            checked={showAllCards}
+                                            onChange={e => setShowAllCards(e.target.checked)}
+                                            className="form-checkbox h-5 w-5 text-indigo-600 rounded border-white/20 bg-white/10"
+                                        />
+                                        <span className="text-sm text-gray-300">Show All Cards</span>
+                                    </label>
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
@@ -1985,3 +2012,4 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
 }
 
 export default PokerGame;
+

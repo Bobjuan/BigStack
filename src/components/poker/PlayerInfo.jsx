@@ -22,7 +22,7 @@ function PlayerInfo({ position, stack, isTurn, handDescription }) {
             letterSpacing: '0.03em',
             position: 'absolute',
             left: '50%',
-            transform: 'translateX(50%) translateY(60%)',
+            transform: 'translateX(-50%) translateY(65%)',
             bottom: '-0.6em',
             zIndex: 30,
             pointerEvents: 'none',
