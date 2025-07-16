@@ -546,7 +546,6 @@ const ProfilePage = () => {
                     Unlock your playing style insights
                   </div>
                 </div>
-                
                 {/* Progress Bars */}
                 <div className="space-y-4 mb-6">
                   {/* Basic Analysis Progress */}
@@ -567,7 +566,6 @@ const ProfilePage = () => {
                       Get initial insights into your playing style
                     </p>
                   </div>
-
                   {/* Advanced Analysis Progress */}
                   <div className="bg-gray-800/30 rounded-xl p-4 border border-gray-700/30">
                     <div className="flex justify-between items-center mb-2">
@@ -587,62 +585,102 @@ const ProfilePage = () => {
                     </p>
                   </div>
                 </div>
-
-                {/* Recent Hands */}
-                <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700/50 mb-4">
-                  <h3 className="text-sm font-semibold text-gray-300 mb-3 flex items-center">
-                    <svg className="w-4 h-4 mr-2 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 110-4m0 4a2 2 0 100-4m0 4c2.21 0 4-1.79 4-4s-1.79-4-4-4m0 4c-2.21 0-4-1.79-4-4s1.79-4 4-4" />
-                    </svg>
-                    Recent Hands
-                  </h3>
-                  {handsLoading ? (
-                    <div className="text-center py-8 text-gray-400">Loading hands...</div>
-                  ) : recentHands.length === 0 ? (
-                    <div className="text-center py-8 text-gray-400">No recent hands found.</div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm text-gray-300">
-                        <thead>
-                          <tr>
-                            <th className="text-left py-2 px-4">Hand</th>
-                            <th className="text-left py-2 px-4">Date</th>
-                            <th className="text-left py-2 px-4">Position</th>
-                            <th className="text-left py-2 px-4">Result</th>
-                            <th className="text-left py-2 px-4">Pot Size</th>
-                            <th className="text-left py-2 px-4">Cards</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {recentHands.map(hand => (
-                            <tr key={hand.handId} className="hover:bg-gray-700/50">
-                              <td className="py-2 px-4">{hand.handNumber}</td>
-                              <td className="py-2 px-4">{new Date(hand.startedAt).toLocaleDateString()}</td>
-                              <td className="py-2 px-4">{hand.position}</td>
-                              <td className="py-2 px-4 text-green-400 font-semibold">{hand.result}</td>
-                              <td className="py-2 px-4 text-gray-400 text-sm">${hand.potSize.toFixed(2)}</td>
-                              <td className="py-2 px-4">{formatCards(hand.cards)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-
                 {/* Action Buttons */}
-                <div className="flex justify-end gap-3 mt-4">
+                <div className="flex space-x-3">
                   <button
-                    className="px-6 py-2 rounded-lg bg-purple-600 text-white font-semibold hover:bg-purple-700 transition-colors"
+                    onClick={handleEvaluatePlay}
+                    disabled={!canEvaluate}
+                    className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-all duration-200 ${
+                      canEvaluate
+                        ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg hover:shadow-xl'
+                        : 'bg-gray-700/50 text-gray-500 cursor-not-allowed'
+                    }`}
+                  >
+                    {canEvaluate ? 'Analyze My DNA' : `Play ${BASIC_EVALUATION_HANDS - (playerStats?.hands_played || 0)} More Hands`}
+                  </button>
+                  <button
                     onClick={handleLearnMore}
+                    className="bg-gray-600/50 hover:bg-gray-500/50 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 border border-gray-600/50"
                   >
                     Learn More
                   </button>
+                </div>
+                {!canEvaluate && (
+                  <p className="text-xs text-gray-500 text-center mt-3">
+                    We need at least {BASIC_EVALUATION_HANDS} hands to provide meaningful analysis
+                  </p>
+                )}
+              </div>
+
+              {/* Hand Evaluation Section */}
+              <div className="bg-gradient-to-br from-gray-900/95 to-gray-800/95 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50 shadow-2xl">
+                <h2 className="text-xl font-bold text-white mb-6 flex items-center">
+                  <span className="text-2xl mr-3">🎯</span>
+                  Hand Evaluation
+                </h2>
+                {/* Recent Hands */}
+                <div className="mb-6">
+                  <div className="bg-gray-800/30 rounded-xl p-4 border border-gray-700/30">
+                    <h3 className="text-sm font-semibold text-gray-300 mb-4 flex items-center">
+                      <svg className="w-4 h-4 mr-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Recent Hands
+                    </h3>
+                    {handsLoading ? (
+                      <div className="flex justify-center py-4">
+                        <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-400"></div>
+                      </div>
+                    ) : recentHands.length > 0 ? (
+                      <div className="space-y-2">
+                        {recentHands.map((hand) => (
+                          <div key={hand.handId} className="flex items-center justify-between bg-gray-800/50 p-3 rounded-lg border border-gray-700/30 hover:bg-gray-700/50 transition-colors">
+                            <div className="flex items-center space-x-3">
+                              <span className="text-gray-400 text-sm font-mono">#{hand.handNumber}</span>
+                              <span className="font-mono text-white font-semibold">{formatCards(hand.cards)}</span>
+                              <span className="text-gray-400 text-sm">{hand.position}</span>
+                              <span className={`text-sm font-semibold ${hand.result === 'Won' ? 'text-green-400' : 'text-red-400'}`}>{hand.result}</span>
+                            </div>
+                            <button 
+                              onClick={() => handleReviewHand(hand.handId)}
+                              className="bg-blue-600/80 hover:bg-blue-600 text-white px-3 py-1 rounded-lg text-sm transition-colors"
+                            >
+                              Review
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <div className="text-gray-400 mb-4">
+                          <svg className="w-12 h-12 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </div>
+                        <p className="text-gray-400 mb-4">No hands played yet</p>
+                        <button
+                          onClick={handleEnterHand}
+                          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-150"
+                        >
+                          Enter Your First Hand
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                {/* Quick Actions */}
+                <div className="flex space-x-3">
                   <button
-                    className="px-6 py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors"
-                    onClick={handleEvaluatePlay}
+                    onClick={handleEnterHand}
+                    className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl"
                   >
-                    Take me to analyser
+                    Enter New Hand
+                  </button>
+                  <button
+                    onClick={() => navigate('/ai-review?tab=hand-review')}
+                    className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl"
+                  >
+                    Review Hands
                   </button>
                 </div>
               </div>
