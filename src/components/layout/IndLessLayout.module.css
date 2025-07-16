@@ -45,19 +45,17 @@
   border-radius: 0.5rem;
   padding: 1rem;
   border: 1px solid #374151;
-  min-width: 0;
-  overflow-x: auto;
-  flex: 1;
-  height: 100%;
-  top: 1rem;
   position: sticky;
-
+  top: 1rem;
+  align-self: flex-start;
+  height: fit-content;
 }
+
+
 
 @media (min-width: 768px) {
   .chatbotSection {
     width: 33.3333%;
-    position: sticky;
   }
 }
 
