@@ -1,7 +1,7 @@
 .indLessLayout { 
   min-height: 100vh;
   width: 100%;
-  background: #0F1115;
+  background: #000000;
   color: white;
   font-family: 'Inter', sans-serif;
   display: flex;
@@ -40,7 +40,7 @@
 }
 
 .chatbotSection {
-  background: #23273a;
+  background: #1b1f2b;
   border-radius: 0.5rem;
   padding: 1rem;
   border: 1px solid #374151;
@@ -69,7 +69,7 @@
 .resizer {
   width: 14px;
   cursor: col-resize;
-  background: linear-gradient(180deg, #23273a 60%, #374151 100%);
+  background: #374151;
   border-radius: 8px;
   box-shadow: 0 0 8px 0 #0004;
   position: relative;
@@ -80,7 +80,7 @@
   justify-content: center;
 }
 .resizer:hover {
-  background: linear-gradient(180deg, #374151 60%, #23273a 100%);
+  background: #374151;
   box-shadow: 0 0 16px 2px #37415188;
 }
 .resizer::before {
