@@ -3,7 +3,8 @@ const http = require('http');
 const { Server } = require("socket.io");
 const cors = require('cors'); // Import cors
 const { createClient } = require('@supabase/supabase-js');
-const gameEngine = require('./gameEngine'); // NEW import
+// TEMPORARY – toggle new engine via env
+const gameEngine = require('./newGameEngine');
 const { GamePhase, SocketEvents } = require('./constants');
 const statsTracker = require('./game/statsTracker'); // CORRECT PATH
 const handHistory = require('./game/handHistory');
@@ -70,10 +71,13 @@ const initializeServerPlayer = (socketId, playerInfo, stack) => ({
 // --- End Game Logic Helpers ---
 
 const activeGames = {}; // To store state of all active games
-const GAME_HAND_DELAY_MS = 7000; // 7 seconds delay before next hand
+const GAME_HAND_DELAY_MS = 3000; // 3 seconds delay before next hand
 
 function getSanitizedGameStateForClient(game) {
     if (!game) return null;
+    if (typeof game.getPublicState === 'function') {
+        return game.getPublicState();
+    }
     
     // First, create a shallow copy and remove non-serializable properties
     const gameForSerialization = { ...game };
@@ -114,9 +118,18 @@ function startActionTimer(gameId) {
             const playersAtTimeout = gameEngine.getSeatedPlayers(gameAtTimeout);
             const playerToFold = playersAtTimeout[currentPlayerIndex];
 
-            // Determine if folding is a valid action (i.e., can't fold if they can check)
-            const canCheck = playerToFold.currentBet === gameAtTimeout.currentHighestBet;
-            const actionToTake = canCheck ? 'check' : 'fold';
+            // Use engine helper to see what actions are legal for this player
+            let actionToTake = 'fold';
+            try {
+              const legal = gameEngine.legalActions(gameAtTimeout);
+              if (legal && Array.isArray(legal.actions) && legal.actions.includes('check')) {
+                actionToTake = 'check';
+              }
+            } catch(_) {
+              // fallback to old logic
+              const canCheckLegacy = playerToFold.currentBet === gameAtTimeout.currentHighestBet;
+              actionToTake = canCheckLegacy ? 'check' : 'fold';
+            }
 
             const result = gameEngine.processAction(gameAtTimeout, playerToFold.id, actionToTake, {});
 
@@ -138,31 +151,6 @@ function startActionTimer(gameId) {
         }
     }, timeForAction);
 }
-
-// Update: fetchStats now accepts sessionId (optional)
-socket.on('fetchStats', async (gameId, sessionId, callback) => {
-  const game = activeGames[gameId];
-  if (!game) return callback && callback({ status: 'error', message: 'Game not found' });
-
-  const userIds = gameEngine.getSeatedPlayers(game)
-                            .map(p => p.userId)
-                            .filter(Boolean); // Filter out any null/undefined userIds
-
-  if (userIds.length === 0) {
-    return callback && callback({ status: 'ok', stats: {} });
-  }
-
-  try {
-    const { data, error } = await statsTracker.getStatsForPlayers(userIds, sessionId || null);
-    if (error) {
-      throw error;
-    }
-    callback && callback({ status: 'ok', stats: data });
-  } catch (error) {
-    console.error('Error fetching player stats:', error);
-    callback && callback({ status: 'error', message: 'Could not fetch stats' });
-  }
-});
 
 function scheduleNextHand(gameId) {
     const game = activeGames[gameId];
@@ -222,6 +210,31 @@ io.on(SocketEvents.CONNECT, (socket) => {
     console.log('Message from client', socket.id, ':', data);
     // Example: Broadcast a message to all clients
     io.emit('serverMessage', { sender: socket.id, message: data });
+  });
+
+  // Update: fetchStats now accepts sessionId (optional)
+  socket.on('fetchStats', async (gameId, sessionId, callback) => {
+    const game = activeGames[gameId];
+    if (!game) return callback && callback({ status: 'error', message: 'Game not found' });
+  
+    const userIds = gameEngine.getSeatedPlayers(game)
+                              .map(p => p.userId)
+                              .filter(Boolean); // Filter out any null/undefined userIds
+  
+    if (userIds.length === 0) {
+      return callback && callback({ status: 'ok', stats: {} });
+    }
+  
+    try {
+      const { data, error } = await statsTracker.getStatsForPlayers(userIds, sessionId || null);
+      if (error) {
+        throw error;
+      }
+      callback && callback({ status: 'ok', stats: data });
+    } catch (error) {
+      console.error('Error fetching player stats:', error);
+      callback && callback({ status: 'error', message: 'Could not fetch stats' });
+    }
   });
 
   socket.on(SocketEvents.CREATE_GAME, (data, callback) => {
@@ -292,8 +305,9 @@ io.on(SocketEvents.CONNECT, (socket) => {
     }
 
     const player = game.spectators.splice(spectatorIndex, 1)[0];
-    game.seats[seatIndex].isEmpty = false;
-    game.seats[seatIndex].player = player;
+
+    // Inform poker-ts engine & let the wrapper update game.seats[]
+    gameEngine.sitDown(game, player.id, player, seatIndex, player.stack);
 
     callback && callback({ status: 'ok' });
     io.to(gameId).emit(SocketEvents.GAME_STATE_UPDATE, { newState: getSanitizedGameStateForClient(game) });
@@ -382,6 +396,13 @@ io.on(SocketEvents.CONNECT, (socket) => {
       scheduleNextHand(gameId);
     } else {
         startActionTimer(gameId);
+    }
+
+    // If hand not over, restart the action timer for the next player
+    if (game.currentBettingRound !== gameEngine.GamePhase.HAND_OVER){
+        startActionTimer(gameId);
+    } else {
+        scheduleNextHand(gameId);
     }
   });
 
@@ -481,7 +502,7 @@ io.on(SocketEvents.CONNECT, (socket) => {
 
     // Find the player or spectator who sent the message to get their name
     const allPlayers = [...gameEngine.getSeatedPlayers(game), ...game.spectators];
-    const player = allPlayers.find(p => !p.isEmpty && p.player.id === socket.id);
+    const player = allPlayers.find(p => p.id === socket.id);
 
     if (player) {
       io.to(gameId).emit(SocketEvents.CHAT_MESSAGE, {

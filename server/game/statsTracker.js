@@ -180,7 +180,8 @@ function trackAction(handStats, game, player, action) {
  * Helper: Fetch all active stat sessions for a player (returns array of session objects)
  */
 async function getActiveSessionsForPlayer(playerId) {
-  if (!supabase) return [{ id: null, name: 'All Stats', is_active: true }];
+  const DEFAULT_SESSION_ID = '00000000-0000-0000-0000-000000000000';
+  if (!supabase) return [{ id: DEFAULT_SESSION_ID, name: 'All Stats', is_active: true }];
   const { data, error } = await supabase
     .from('stat_sessions')
     .select('*')
@@ -188,10 +189,10 @@ async function getActiveSessionsForPlayer(playerId) {
     .eq('is_active', true);
   if (error) {
     console.error('Error fetching active sessions:', error);
-    return [{ id: null, name: 'All Stats', is_active: true }];
+    return [{ id: DEFAULT_SESSION_ID, name: 'All Stats', is_active: true }];
   }
-  // Always include default session (null id)
-  return [{ id: null, name: 'All Stats', is_active: true }, ...(data || [])];
+  // Always include default session (fixed UUID)
+  return [{ id: DEFAULT_SESSION_ID, name: 'All Stats', is_active: true }, ...(data || [])];
 }
 
 /**
@@ -227,7 +228,7 @@ async function commitHandStats(handStats) {
   }
 
   // Debug: print the full payload
-  console.log('[DEBUG] Payload to batch_update_player_stats:', JSON.stringify(updatesPayload, null, 2));
+  // console.log('[DEBUG] Payload to batch_update_player_stats:', JSON.stringify(updatesPayload, null, 2));
 
   const { error } = await supabase.rpc('batch_update_player_stats', {
     updates: updatesPayload,
@@ -259,8 +260,9 @@ async function getStatsForPlayers(playerIds, sessionId = null) {
     .from('player_stats')
     .select('*')
     .in('player_id', playerIds);
+  const DEFAULT_SESSION_ID = '00000000-0000-0000-0000-000000000000';
   if (sessionId === null) {
-    query = query.is('session_id', null);
+    query = query.eq('session_id', DEFAULT_SESSION_ID);
   } else {
     query = query.eq('session_id', sessionId);
   }
