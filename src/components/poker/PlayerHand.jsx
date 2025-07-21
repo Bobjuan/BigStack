@@ -3,8 +3,7 @@ import React from 'react';
 // Helper function to map card notation to SVG filename
 const getCardSvgFilename = (card) => {
   if (!card || card === '?') {
-    // Use the old card back if no modern back is present
-    return '/src/assets/back_blue.svg';
+    return '/src/assets/Card_back_01.svg';
   }
 
   // Modern SVG naming: e.g., 'AS.svg' for Ace of Spades, 'TD.svg' for Ten of Diamonds

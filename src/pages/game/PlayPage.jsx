@@ -124,12 +124,16 @@ const PlayPage = () => {
             >
               Tournaments
             </button>
-            <Link
-              to="/play/friends"
-              className="px-6 py-2 rounded-full text-base font-semibold text-gray-400 hover:text-white transition-all duration-200"
+            <button
+              onClick={() => navigate('/play/friends')}
+              className={`px-6 py-2 rounded-full text-base font-semibold transition-all duration-200 ${
+                gameType === 'friends'
+                  ? 'bg-indigo-600 text-white'
+                  : 'text-gray-400 hover:text-white'
+              }`}
             >
               Play with Friends
-            </Link>
+            </button>
           </div>
         </div>
 

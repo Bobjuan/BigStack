@@ -5,6 +5,8 @@ import Sidebar from './Sidebar';
 const MainLayout = ({ children }) => {
   const location = useLocation();
   const path = location.pathname;
+  const params = new URLSearchParams(location.search);
+  const isStandalone = params.get('standalone') === 'true';
 
   // Check if current route is a play page that should not have scrolling
   const isPlayPage = () => (
@@ -21,6 +23,15 @@ const MainLayout = ({ children }) => {
   );
 
   if (isPlayPage()) {
+    if (isStandalone) {
+      return (
+        <div className="flex min-h-screen bg-black text-white">
+          <main className="flex-1 flex items-center justify-center bg-black overflow-hidden" style={{ minHeight: '100vh', minWidth: 0 }}>
+            <div className="w-full h-full flex-1">{children}</div>
+          </main>
+        </div>
+      );
+    }
     // For play pages, keep the special layout
     return (
       <div className="flex min-h-screen bg-black text-white">

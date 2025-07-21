@@ -205,7 +205,7 @@ function OnlinePokerTableDisplay({ gameState, currentSocketId, GamePhase, onTake
             left: `${infoX}px`,
             top: `${infoY}px`,
             width: `${infoWidth}px`,
-            zIndex: 10,
+            zIndex: 15,
         };
 
         /* --------------- Sit button (same footprint as info box) --------------- */
@@ -215,7 +215,7 @@ function OnlinePokerTableDisplay({ gameState, currentSocketId, GamePhase, onTake
             top: `${infoY}px`,
             width: `${infoWidth}px`,
             height: `${infoHeight}px`,
-            zIndex: 10,
+            zIndex: 15,
         };
 
         /* --------------- Card hand ---------------- */
@@ -227,7 +227,7 @@ function OnlinePokerTableDisplay({ gameState, currentSocketId, GamePhase, onTake
             top: `${cardY}px`,
             width: `${cardWidth}px`,
             height: `${cardHeight}px`,
-            zIndex: 15,
+            zIndex: 10,
         };
 
         /* --------------- Bet amount ---------------- */
@@ -313,6 +313,7 @@ function OnlinePokerTableDisplay({ gameState, currentSocketId, GamePhase, onTake
                 />
                 <PotDisplay 
                     amount={gameState.pot || 0} 
+                    totalAmount={gameState.totalPot || gameState.pot || 0}
                     label="Pot"
                     pots={gameState.pots || []}
                 />
@@ -359,7 +360,9 @@ function OnlinePokerTableDisplay({ gameState, currentSocketId, GamePhase, onTake
                     const isCurrentUser = player.id === currentSocketId;
                     let showPlayerCards = isCurrentUser;
                     if (!isCurrentUser && (gameState.currentBettingRound === GamePhase.SHOWDOWN || gameState.currentBettingRound === GamePhase.HAND_OVER)) {
-                        if ((gameState.showdownPlayers?.includes(player.id) || gameState.winners?.some(w => w.id === player.id)) && !player.isFolded) {
+                        const winnerInfo = gameState.winners?.find(w => w.id === player.id);
+                        const canReveal = winnerInfo && winnerInfo.handDescription !== 'Opponents folded' && winnerInfo.handDescription !== 'Only remaining player';
+                        if ((gameState.showdownPlayers?.includes(player.id) || canReveal) && !player.isFolded) {
                             showPlayerCards = true;
                         }
                     }

@@ -138,13 +138,9 @@ function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
       };
       sock.emit('createGame', { playerInfo: playerDetails, gameSettings: settings || initialGameSettings }, (response) => {
         if (response.status === 'ok') {
-          setGameId(response.gameId);
-          fetchHandRows(response.gameId);
-          setInputGameId(response.gameId);
-          setMessages(prev => [...prev, `Game room ${response.gameId} created! Share ID.`]);
-          setError('');
-          // Update the URL to include the new game ID
-          navigate(`/play-with-friends/${response.gameId}`, { replace: true });
+          window.open(`/play/friends/${response.gameId}?standalone=true`, '_blank');
+          // Do not update local state; keep user on lobby page.
+          return; // prevent further processing in current tab
         } else {
           setError(response.message || 'Error creating game.');
         }
@@ -162,12 +158,10 @@ function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
       };
       sock.emit('joinGame', { gameId: idToJoin, playerInfo: playerDetails }, (response) => {
         if (response.status === 'ok' || response.status === 'already_joined') {
-          setGameId(idToJoin);
-          fetchHandRows(idToJoin);
-          setMessages(prev => [...prev, response.message || `Joined ${idToJoin}!`]);
-          setError('');
+          window.open(`/play/friends/${idToJoin}?standalone=true`, '_blank');
+          return; // do not proceed in current tab
           // NEW: Fetch stats for all players in the game
-          sock.emit('fetchStats', idToJoin, (statsResponse) => {
+          sock.emit('fetchStats', idToJoin, null, (statsResponse) => {
             if (statsResponse.status === 'ok') {
               setPlayerStats(statsResponse.stats);
               console.log('Fetched initial stats:', statsResponse.stats);
@@ -180,7 +174,7 @@ function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
         }
       });
     }
-  }, [socket, inputGameId, playerName, user]);
+  }, [socket, inputGameId, playerName, user, navigate]);
 
   // Effect for auto-triggering create or join game (runs when socket or relevant props change)
   useEffect(() => {
