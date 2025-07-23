@@ -145,14 +145,48 @@ const LeakAnalysisRow = ({ leak, openCoachPanel }) => {
           <p className="text-gray-400 text-sm leading-relaxed">{leak.fix}</p>
           <div className="flex justify-start mt-4">
             <button
-              className="bg-green-600 hover:bg-green-700 text-white rounded-full shadow-lg border-2 border-green-400 flex items-center gap-2 px-3 py-2 text-base"
+              style={{
+                backgroundColor: '#232032',
+                border: '2px solid #1a1420',
+                boxShadow: '0 4px 24px 0 rgba(40,34,58,0.15)',
+                borderRadius: '9999px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                padding: '0.5rem 1.25rem',
+                color: 'white',
+                fontWeight: 700,
+                fontSize: '1.1rem',
+                transition: 'transform 0.2s',
+              }}
+              onMouseOver={e => { e.currentTarget.style.backgroundColor = '#2d2942'; e.currentTarget.style.transform = 'scale(1.07)'; }}
+              onMouseOut={e => { e.currentTarget.style.backgroundColor = '#232032'; e.currentTarget.style.transform = 'scale(1)'; }}
               onClick={() => openCoachPanel(`Explain the leak: ${leak.name}. Why is it a problem and how can I fix it?`)}
               title={`Ask P.H.I.L. about ${leak.name}`}
             >
-              <span className="w-12 h-12 flex items-center justify-center rounded-full overflow-hidden">
-                <img src="/images/shark.png" alt="P.H.I.L." className="w-full h-full object-cover" />
+              <span style={{
+                width: '48px',
+                height: '48px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '50%',
+                overflow: 'hidden',
+                background: 'transparent'
+              }}>
+                <img
+                  src="/images/shark.png"
+                  alt="P.H.I.L."
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    borderRadius: '50%',
+                    display: 'block'
+                  }}
+                />
               </span>
-              <span className="font-semibold">Ask P.H.I.L. about this leak</span>
+              <span style={{ fontWeight: 700, fontSize: '1.1rem' }}>Ask P.H.I.L. about this leak</span>
             </button>
           </div>
         </div>
@@ -245,6 +279,7 @@ const DnaAnalysisPage = () => {
   const navigate = useNavigate();
   const [playerStats, setPlayerStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showSpinner, setShowSpinner] = useState(false); // debounce spinner
   const [sessions, setSessions] = useState([]); // All sessions with >= 150 hands
   const [selectedSessions, setSelectedSessions] = useState([DEFAULT_SESSION_ID]); // Array of selected session IDs
   const [coachOpen, setCoachOpen] = useState(false);
@@ -254,6 +289,17 @@ const DnaAnalysisPage = () => {
     setCoachInitialQuestion(question);
     setCoachOpen(true);
   };
+
+  // Debounce spinner: only show if loading > 300ms
+  useEffect(() => {
+    let timeout;
+    if (loading) {
+      timeout = setTimeout(() => setShowSpinner(true), 300);
+    } else {
+      setShowSpinner(false);
+    }
+    return () => clearTimeout(timeout);
+  }, [loading]);
 
   // Fetch all sessions for the user, but only include those with >= 150 hands
   useEffect(() => {
@@ -335,10 +381,10 @@ const DnaAnalysisPage = () => {
     fetchStats();
   }, [user, selectedSessions]);
 
-  if (loading) {
+  if (loading && showSpinner) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
+      <div className="fixed inset-0 flex items-center justify-center pointer-events-none z-50" style={{ background: 'rgba(15,17,21,0.4)' }}>
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white/80"></div>
       </div>
     );
   }
@@ -360,12 +406,14 @@ const DnaAnalysisPage = () => {
     >
       {/* Floating Ask P.H.I.L. Button (pill style, png) */}
       <button
-        className="fixed bottom-6 right-6 z-50 bg-green-600 hover:bg-green-700 text-white rounded-full shadow-lg border-2 border-green-400 flex items-center gap-2 px-4 py-2"
+        className="fixed bottom-6 right-6 z-50 text-white rounded-full shadow-lg border-2 flex items-center gap-2 px-4 py-2 transition-transform duration-200"
+        style={{ backgroundColor: '#232032', borderColor: '#1a1420', boxShadow: '0 4px 24px 0 rgba(40,34,58,0.15)' }}
+        onMouseOver={e => { e.currentTarget.style.backgroundColor = '#2d2942'; e.currentTarget.style.transform = 'scale(1.07)'; }}
+        onMouseOut={e => { e.currentTarget.style.backgroundColor = '#232032'; e.currentTarget.style.transform = 'scale(1)'; }}
         onClick={() => openCoachPanel('Can you review my stats and leaks and give me advice?')}
-        style={{ boxShadow: '0 4px 24px 0 rgba(0,255,128,0.15)' }}
       >
         <span className="w-14 h-14 flex items-center justify-center rounded-full overflow-hidden">
-          <img src="/images/shark.png" alt="P.H.I.L." className="w-full h-full object-cover" />
+          <img src="/images/shark.png" alt="P.H.I.L." className="w-full h-full object-cover rounded-full" style={{ display: 'block' }} />
         </span>
         <span className="font-bold text-lg ml-2">Ask P.H.I.L.</span>
       </button>
@@ -438,17 +486,41 @@ const DnaAnalysisPage = () => {
           ) : (
             <>
               {/* Left Column: Player Stats */}
-              <div className="lg:col-span-1 bg-gradient-to-br from-gray-900/95 to-gray-800/95 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50 shadow-2xl h-fit relative">
-                {/* Core Metrics Ask P.H.I.L. button */}
-                <button
-                  className="absolute top-4 right-4 z-20 bg-white/10 hover:bg-green-600 transition-colors rounded-full shadow-lg border-2 border-green-400 flex items-center justify-center w-10 h-10"
-                  style={{ boxShadow: '0 2px 8px 0 rgba(0,255,128,0.10)' }}
-                  onClick={() => openCoachPanel('Can you explain what the core metrics mean and how I can improve them?')}
-                  title="Ask P.H.I.L. about Core Metrics"
-                >
-                  <img src="/images/shark.png" alt="P.H.I.L." className="w-full h-full rounded-full object-cover" />
-                </button>
-                <h3 className="text-xl font-semibold text-gray-100 mb-4">Core Metrics</h3>
+              <div className="lg:col-span-1 bg-gradient-to-br from-gray-900/95 to-gray-800/95 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50 shadow-2xl h-fit">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-semibold text-gray-100">Core Metrics</h3>
+                  <button
+                    style={{
+                      backgroundColor: 'transparent',
+                      border: 'none',
+                      boxShadow: 'none',
+                      width: '64px',
+                      height: '64px',
+                      borderRadius: '50%',
+                      overflow: 'hidden',
+                      padding: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                    onMouseOver={e => { e.currentTarget.style.transform = 'scale(1.07)'; }}
+                    onMouseOut={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+                    onClick={() => openCoachPanel('Can you explain what the core metrics mean and how I can improve them?')}
+                    title="Ask P.H.I.L. about Core Metrics"
+                  >
+                    <img
+                      src="/images/shark.png"
+                      alt="P.H.I.L."
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        borderRadius: '50%',
+                        display: 'block'
+                      }}
+                    />
+                  </button>
+                </div>
                 <div className="space-y-4">
                   <div className="flex justify-between items-center bg-green-500/10 p-3 rounded-lg border border-green-500/30">
                     <span className="text-gray-300">Primary Style</span>
@@ -484,14 +556,37 @@ const DnaAnalysisPage = () => {
         <div>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-3xl font-bold text-white">Identified Leaks & Recommendations</h2>
-              {/* Leaks section header Ask P.H.I.L. button */}
+              {/* Leaks section header Ask P.H.I.L. button (make 64x64) */}
               <button
-                className="bg-white/10 hover:bg-green-600 transition-colors rounded-full shadow-lg border-2 border-green-400 flex items-center justify-center w-10 h-10"
-                style={{ boxShadow: '0 2px 8px 0 rgba(0,255,128,0.10)' }}
+                style={{
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  boxShadow: 'none',
+                  width: '64px',
+                  height: '64px',
+                  borderRadius: '50%',
+                  overflow: 'hidden',
+                  padding: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+                onMouseOver={e => { e.currentTarget.style.transform = 'scale(1.07)'; }}
+                onMouseOut={e => { e.currentTarget.style.transform = 'scale(1)'; }}
                 onClick={() => openCoachPanel('Can you explain my leaks and how to fix them?')}
                 title="Ask P.H.I.L. about Leaks"
               >
-                <img src="/images/shark.png" alt="P.H.I.L." className="w-full h-full rounded-full object-cover" />
+                <img
+                  src="/images/shark.png"
+                  alt="P.H.I.L."
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    borderRadius: '50%',
+                    display: 'block'
+                  }}
+                />
               </button>
             </div>
             {identifiedLeaks.length > 0 ? (
