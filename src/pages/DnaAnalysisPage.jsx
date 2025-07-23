@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../config/supabase';
 import PlayerStyleGraph from '../components/ai-review/PlayerStyleGraph';
 import { useNavigate } from 'react-router-dom';
+import CoachPanel from '../components/ai-review/CoachPanel';
 
 // --- Helper Functions for Stat Calculation ---
 const calculateStat = (actions, opportunities) => {
@@ -113,7 +114,7 @@ const analyzeLeaks = (stats) => {
 
 
 // --- Sub-component for each leak ---
-const LeakAnalysisRow = ({ leak }) => {
+const LeakAnalysisRow = ({ leak, openCoachPanel }) => {
   const [isOpen, setIsOpen] = useState(false);
   const severityColor = {
     High: 'text-red-400',
@@ -142,6 +143,18 @@ const LeakAnalysisRow = ({ leak }) => {
           <p className="text-gray-400 mb-4 text-sm leading-relaxed">{leak.why}</p>
           <h4 className="font-semibold text-emerald-400 mb-2">How to fix it:</h4>
           <p className="text-gray-400 text-sm leading-relaxed">{leak.fix}</p>
+          <div className="flex justify-start mt-4">
+            <button
+              className="bg-green-600 hover:bg-green-700 text-white rounded-full shadow-lg border-2 border-green-400 flex items-center gap-2 px-3 py-2 text-base"
+              onClick={() => openCoachPanel(`Explain the leak: ${leak.name}. Why is it a problem and how can I fix it?`)}
+              title={`Ask P.H.I.L. about ${leak.name}`}
+            >
+              <span className="w-12 h-12 flex items-center justify-center rounded-full overflow-hidden">
+                <img src="/images/shark.png" alt="P.H.I.L." className="w-full h-full object-cover" />
+              </span>
+              <span className="font-semibold">Ask P.H.I.L. about this leak</span>
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -234,6 +247,13 @@ const DnaAnalysisPage = () => {
   const [loading, setLoading] = useState(true);
   const [sessions, setSessions] = useState([]); // All sessions with >= 150 hands
   const [selectedSessions, setSelectedSessions] = useState([DEFAULT_SESSION_ID]); // Array of selected session IDs
+  const [coachOpen, setCoachOpen] = useState(false);
+  const [coachInitialQuestion, setCoachInitialQuestion] = useState('');
+
+  const openCoachPanel = (question = '') => {
+    setCoachInitialQuestion(question);
+    setCoachOpen(true);
+  };
 
   // Fetch all sessions for the user, but only include those with >= 150 hands
   useEffect(() => {
@@ -338,6 +358,31 @@ const DnaAnalysisPage = () => {
     <div 
       className="min-h-screen w-full bg-[#0F1115] text-white relative overflow-y-auto"
     >
+      {/* Floating Ask P.H.I.L. Button (pill style, png) */}
+      <button
+        className="fixed bottom-6 right-6 z-50 bg-green-600 hover:bg-green-700 text-white rounded-full shadow-lg border-2 border-green-400 flex items-center gap-2 px-4 py-2"
+        onClick={() => openCoachPanel('Can you review my stats and leaks and give me advice?')}
+        style={{ boxShadow: '0 4px 24px 0 rgba(0,255,128,0.15)' }}
+      >
+        <span className="w-14 h-14 flex items-center justify-center rounded-full overflow-hidden">
+          <img src="/images/shark.png" alt="P.H.I.L." className="w-full h-full object-cover" />
+        </span>
+        <span className="font-bold text-lg ml-2">Ask P.H.I.L.</span>
+      </button>
+      {/* CoachPanel Modal */}
+      <CoachPanel
+        open={coachOpen}
+        onClose={() => setCoachOpen(false)}
+        context={{
+          stats: playerStats,
+          leaks: identifiedLeaks,
+          playerType,
+          vpip,
+          pfr,
+          aggression
+        }}
+        initialQuestion={coachInitialQuestion}
+      />
       <div className="absolute inset-0 z-0 pointer-events-none">
         <div className="absolute top-[5%] left-[5%] w-[30vw] h-[30vw] max-w-[400px] max-h-[400px] bg-indigo-500/10 rounded-full blur-3xl"></div>
         <div className="absolute bottom-[5%] right-[5%] w-[25vw] h-[25vw] max-w-[350px] max-h-[350px] bg-fuchsia-500/10 rounded-full blur-3xl"></div>
@@ -393,7 +438,16 @@ const DnaAnalysisPage = () => {
           ) : (
             <>
               {/* Left Column: Player Stats */}
-              <div className="lg:col-span-1 bg-gradient-to-br from-gray-900/95 to-gray-800/95 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50 shadow-2xl h-fit">
+              <div className="lg:col-span-1 bg-gradient-to-br from-gray-900/95 to-gray-800/95 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50 shadow-2xl h-fit relative">
+                {/* Core Metrics Ask P.H.I.L. button */}
+                <button
+                  className="absolute top-4 right-4 z-20 bg-white/10 hover:bg-green-600 transition-colors rounded-full shadow-lg border-2 border-green-400 flex items-center justify-center w-10 h-10"
+                  style={{ boxShadow: '0 2px 8px 0 rgba(0,255,128,0.10)' }}
+                  onClick={() => openCoachPanel('Can you explain what the core metrics mean and how I can improve them?')}
+                  title="Ask P.H.I.L. about Core Metrics"
+                >
+                  <img src="/images/shark.png" alt="P.H.I.L." className="w-full h-full rounded-full object-cover" />
+                </button>
                 <h3 className="text-xl font-semibold text-gray-100 mb-4">Core Metrics</h3>
                 <div className="space-y-4">
                   <div className="flex justify-between items-center bg-green-500/10 p-3 rounded-lg border border-green-500/30">
@@ -428,10 +482,25 @@ const DnaAnalysisPage = () => {
 
         {/* Leaks Analysis Section */}
         <div>
-            <h2 className="text-3xl font-bold text-white mb-6">Identified Leaks & Recommendations</h2>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-3xl font-bold text-white">Identified Leaks & Recommendations</h2>
+              {/* Leaks section header Ask P.H.I.L. button */}
+              <button
+                className="bg-white/10 hover:bg-green-600 transition-colors rounded-full shadow-lg border-2 border-green-400 flex items-center justify-center w-10 h-10"
+                style={{ boxShadow: '0 2px 8px 0 rgba(0,255,128,0.10)' }}
+                onClick={() => openCoachPanel('Can you explain my leaks and how to fix them?')}
+                title="Ask P.H.I.L. about Leaks"
+              >
+                <img src="/images/shark.png" alt="P.H.I.L." className="w-full h-full rounded-full object-cover" />
+              </button>
+            </div>
             {identifiedLeaks.length > 0 ? (
                 <div className="space-y-4">
-                    {identifiedLeaks.map(leak => <LeakAnalysisRow key={leak.id} leak={leak} />)}
+                    {identifiedLeaks.map(leak => (
+                      <div key={leak.id} className="relative">
+                        <LeakAnalysisRow leak={leak} openCoachPanel={openCoachPanel} />
+                      </div>
+                    ))}
                 </div>
             ) : (
                 <div className="text-center py-16 bg-gray-800/30 rounded-2xl border border-gray-700/30">
