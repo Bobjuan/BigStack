@@ -22,6 +22,12 @@ const MainLayout = ({ children }) => {
     path.startsWith('/gto-trainer')
   );
 
+  // Check if current route should not have sidebar
+  const shouldHideSidebar = () => (
+    path === '/ai-review' ||
+    path.startsWith('/ai-review')
+  );
+
   if (isPlayPage()) {
     if (isStandalone) {
       return (
@@ -41,6 +47,17 @@ const MainLayout = ({ children }) => {
           style={{ minHeight: '100vh', minWidth: 0 }}
         >
           <div className="w-full h-full flex-1">{children}</div>
+        </main>
+      </div>
+    );
+  }
+
+  // For AI review page, use layout without sidebar
+  if (shouldHideSidebar()) {
+    return (
+      <div className="min-h-screen bg-black text-white">
+        <main className="w-full" style={{ minHeight: '100vh', minWidth: 0 }}>
+          {children}
         </main>
       </div>
     );

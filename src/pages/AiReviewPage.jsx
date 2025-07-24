@@ -1,125 +1,113 @@
 import React, { useState, useEffect } from 'react';
 import RandomQuestionsChat from '../components/ai-review/RandomQuestionsChat';
-import HandReviewChat from '../components/ai-review/HandReviewChat';
-import PlayerStatsChat from '../components/ai-review/PlayerStatsChat';
 import '../components/ai-review/PokerChatbot.css';
 import TopNavBar from '../components/layout/TopNavBar';
 import Footer from '../components/layout/Footer';
 import { useAuth } from '../context/AuthContext';
-import { supabase } from '../config/supabase';
-
-const statFields = [
-  { key: 'hands_played', label: 'Hands Played' },
-  { key: 'vpip', label: 'VPIP' },
-  { key: 'pfr', label: 'PFR' },
-  { key: 'vpip_actions', label: 'VPIP Actions' },
-  { key: 'vpip_opportunities', label: 'VPIP Opportunities' },
-  { key: 'pfr_actions', label: 'PFR Actions' },
-  { key: 'pfr_opportunities', label: 'PFR Opportunities' },
-];
-
-const PlayerStatsDisplay = ({ stats }) => {
-  // Calculate derived stats
-  const vpip = stats && stats.vpip_opportunities ? Math.round((stats.vpip_actions / stats.vpip_opportunities) * 100) : null;
-  const pfr = stats && stats.pfr_opportunities ? Math.round((stats.pfr_actions / stats.pfr_opportunities) * 100) : null;
-  return (
-    <div className="bg-[#181c27] rounded-xl shadow-lg p-6 border border-gray-700 w-full max-w-md mx-auto">
-      <h2 className="text-2xl font-bold mb-4 text-white text-center">Your Poker Stats</h2>
-      <table className="w-full text-left text-white">
-        <tbody>
-          {statFields.map(({ key, label }) => (
-            <tr key={key}>
-              <td className="py-2 font-semibold">{label}</td>
-              <td>
-                {key === 'vpip'
-                  ? (vpip !== null ? `${vpip}%` : 'N/A')
-                  : key === 'pfr'
-                  ? (pfr !== null ? `${pfr}%` : 'N/A')
-                  : stats && stats[key] !== undefined && stats[key] !== null
-                  ? stats[key]
-                  : '-'}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-};
+import { useNavigate } from 'react-router-dom';
 
 const AiReviewPage = () => {
-  const [activeTab, setActiveTab] = useState('random');
   const { user } = useAuth();
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    const fetchStats = async () => {
-      if (!user?.id) return;
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('player_stats')
-        .select('*')
-        .eq('player_id', user.id)
-        .single();
-      if (!error && data) setStats(data);
-      else setStats(null);
-      setLoading(false);
-    };
-    if (activeTab === 'player-stats' && user?.id) {
-      fetchStats();
-    }
-  }, [activeTab, user]);
+  const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen w-full bg-[#0F1115] text-white font-inter">
+    <>
       <TopNavBar />
-      <div className="max-w-5xl mx-auto w-full pt-28 pb-12">
-        <h1 className="text-5xl sm:text-6xl font-bold tracking-tight mb-8 text-white text-center">
-          ♠️ Poker Chatbot
-        </h1>
-        {/* Tabs */}
-        <div className="flex justify-center mb-4 bg-[#23273a] rounded-lg shadow-sm border border-gray-700 pt-0 pb-3 px-0">
-          <div
-            className={`tab flex items-center gap-2 px-6 ${activeTab === 'random' ? 'active' : ''}`}
-            onClick={() => setActiveTab('random')}
-            style={{ cursor: 'pointer' }}
-          >
-            <i className="fas fa-comments"></i>
-            <span className="text-lg font-medium text-white">Random Questions</span>
+      
+      <div className="min-h-screen w-full bg-[#0F1115] text-white relative overflow-y-auto pt-20">
+        {/* Background gradient effects */}
+        <div className="absolute inset-0 z-0 pointer-events-none">
+          <div className="absolute top-[5%] left-[5%] w-[30vw] h-[30vw] max-w-[400px] max-h-[400px] bg-indigo-500/10 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-[5%] right-[5%] w-[25vw] h-[25vw] max-w-[350px] max-h-[350px] bg-fuchsia-500/10 rounded-full blur-3xl"></div>
+        </div>
+        
+        <div className="relative z-10 w-full px-2 md:px-20 pb-8 pt-8">
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-8">
+          <div className="flex items-center" style={{paddingLeft: '0.5rem', paddingRight: '0.5rem'}}>
+            <div className="chip-circle w-24 h-24 rounded-full chip-3d flex items-center justify-center">
+              <img 
+                src="/images/shark.png" 
+                alt="P.H.I.L." 
+                className="w-full h-full object-contain rounded-full"
+              />
+            </div>
           </div>
-          <div
-            className={`tab flex items-center gap-2 px-6 ${activeTab === 'hand-review' ? 'active' : ''}`}
-            onClick={() => setActiveTab('hand-review')}
-            style={{ cursor: 'pointer' }}
-          >
-            <i className="fas fa-chart-line"></i>
-            <span className="text-lg font-medium text-white">Hand Review</span>
-          </div>
-          <div
-            className={`tab flex items-center gap-2 px-6 ${activeTab === 'player-stats' ? 'active' : ''}`}
-            onClick={() => setActiveTab('player-stats')}
-            style={{ cursor: 'pointer' }}
-          >
-            <i className="fas fa-user"></i>
-            <span className="text-lg font-medium text-white">Player Stats</span>
+          <div>
+            <h1 className="text-4xl font-bold text-white">
+              P.H.I.L.
+            </h1>
+            <p className="text-gray-400 text-lg">
+              Poker Hands Intuitive Language
+            </p>
           </div>
         </div>
-        <div className="bg-[#23273a] rounded-lg shadow-lg p-4 border border-gray-700">
-          {activeTab === 'random' && <RandomQuestionsChat />}
-          {activeTab === 'hand-review' && <HandReviewChat />}
-          {activeTab === 'player-stats' && (
-            <div className="flex flex-col md:flex-row gap-6">
-              <div className="md:w-2/3 w-full"><PlayerStatsChat /></div>
-              <div className="md:w-1/3 w-full flex items-center justify-center">
-                {loading ? <div className="text-gray-400">Loading stats...</div> : <PlayerStatsDisplay stats={stats} />}
+
+        {/* Main Chat Section with Quick Tips on the right */}
+        <div className="flex flex-col md:flex-row gap-5 mb-8 px-1 md:px-2">
+          {/* Chat Bot area (left) */}
+          <div className="flex-1 bg-gradient-to-br from-gray-900/95 to-gray-800/95 backdrop-blur-sm rounded-2xl border border-gray-700/50 shadow-2xl overflow-hidden">
+            <div className="p-3 md:p-4 lg:p-5 xl:p-6">
+              <RandomQuestionsChat />
+            </div>
+          </div>
+          {/* Quick Tips Card (right) */}
+          <div className="hidden md:block self-start" style={{minWidth: '260px', maxWidth: '340px'}}>
+            <div className="bg-gradient-to-br from-gray-900/95 to-gray-800/95 backdrop-blur-sm rounded-2xl border border-gray-700/50 shadow-2xl p-4">
+              <h3 className="text-xl font-semibold text-white mb-4">
+                Quick Tips from P.H.I.L.
+              </h3>
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
+                  <p className="text-gray-300 text-sm">Be specific with your questions for better, more actionable advice.</p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-purple-400 rounded-full mt-2 flex-shrink-0"></div>
+                  <p className="text-gray-300 text-sm">Include context like position, stack sizes, and opponent tendencies.</p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-emerald-400 rounded-full mt-2 flex-shrink-0"></div>
+                  <p className="text-gray-300 text-sm">Ask follow-up questions to dive deeper into specific concepts.</p>
+                </div>
               </div>
             </div>
-          )}
+          </div>
+        </div>
+
+
+
+
+
+        {/* Additional P.H.I.L. Integration Info */}
+        <div className="bg-gradient-to-br from-gray-900/50 to-gray-800/50 backdrop-blur-sm rounded-2xl border border-gray-700/30 p-6">
+          <h3 className="text-xl font-semibold text-white mb-4">
+            P.H.I.L. is Everywhere in BigStack
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700/30">
+              <h4 className="font-semibold text-blue-400 mb-2">🎮 Game Tables</h4>
+              <p className="text-gray-300 text-sm">Get real-time coaching and hand analysis while playing at our poker tables.</p>
+            </div>
+            <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700/30">
+              <h4 className="font-semibold text-purple-400 mb-2">📚 Learning Modules</h4>
+              <p className="text-gray-300 text-sm">P.H.I.L. provides personalized explanations and examples throughout your learning journey.</p>
+            </div>
+            <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700/30">
+              <h4 className="font-semibold text-emerald-400 mb-2">🎯 Practice Scenarios</h4>
+              <p className="text-gray-300 text-sm">Receive detailed feedback and strategy tips on practice hands and scenarios.</p>
+            </div>
+            <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700/30">
+              <h4 className="font-semibold text-amber-400 mb-2">📊 Progress Tracking</h4>
+              <p className="text-gray-300 text-sm">P.H.I.L. analyzes your progress and suggests targeted improvements based on your stats.</p>
+            </div>
+          </div>
         </div>
       </div>
+      
       <Footer />
     </div>
+    </>
   );
 };
 
