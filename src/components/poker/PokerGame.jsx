@@ -102,8 +102,15 @@ const createBotGameHandStats = (userId) => {
 };
 
 const trackBotGameAction = (handStats, gameState, player, action) => {
-  if (!handStats || !handStats[player.id]) return;
-  
+  console.log(`TEST1`);
+
+  // Add debug log if missing
+  if (!handStats || !handStats[player.id]) {
+    console.log('DEBUG: Missing handStats or handStats[player.id]', { handStats, playerId: player.id });
+    return;
+  }
+  console.log(`TEST2`);
+
   const stats = handStats[player.id];
   
   // Only track pre-flop stats for VPIP and PFR
@@ -111,33 +118,66 @@ const trackBotGameAction = (handStats, gameState, player, action) => {
     return;
   }
   
-  // Check if BB had a free option
-  const isBBOption = player.isBB && gameState.currentHighestBet === BIG_BLIND_AMOUNT && action === 'check';
-  if (isBBOption) {
-    stats.increments.vpip_opportunities = 0;
-    if (stats.positionIncrements[player.positionName]) {
-      stats.positionIncrements[player.positionName].vpip_opportunities = 0;
+  // Only print debug logs for the human player
+  const getHumanPlayerId = () => `player${(gameState.botPlayerIndex || 1) + 1}`;
+  if (player.id === getHumanPlayerId()) {
+    // Check if BB had a free option
+    const isBBOption = player.isBB && gameState.currentHighestBet === BIG_BLIND_AMOUNT && action === 'check';
+    if (isBBOption) {
+      stats.increments.vpip_opportunities = 0;
+      if (stats.positionIncrements[player.positionName]) {
+        stats.positionIncrements[player.positionName].vpip_opportunities = 0;
+      }
     }
-  }
-  
-  // Track VPIP actions
-  if (action === 'call' || action === 'bet' || action === 'raise') {
-    stats.increments.vpip_actions = 1;
-    const posStats = stats.positionIncrements[player.positionName];
-    if (posStats && posStats.vpip_actions === 0) {
-      posStats.vpip_actions = 1;
+    // Track VPIP actions
+
+    if (action === 'call' || action === 'bet' || action === 'raise') {
+      stats.increments.vpip_actions = 1;
+      const posStats = stats.positionIncrements[player.positionName];
+      if (posStats && posStats.vpip_actions === 0) {
+        posStats.vpip_actions = 1;
+      }
+      console.log(`[BOTMODE DEBUG] Set vpip_actions=1 for ${player.name} (action: ${action})`);
+      console.log('[BOTMODE DEBUG] increments after VPIP:', JSON.stringify(stats.increments));
     }
-  }
-  
-  // Track PFR actions
-  const isPreflopRaise = (action === 'bet' || action === 'raise');
-  if (isPreflopRaise && !stats.handState.hasRaisedPreflop) {
-    stats.increments.pfr_actions = 1;
-    const posStats = stats.positionIncrements[player.positionName];
-    if (posStats) {
-      posStats.pfr_actions = 1;
+    // Track PFR actions
+    const isPreflopRaise = (action === 'bet' || action === 'raise');
+    if (isPreflopRaise && !stats.handState.hasRaisedPreflop) {
+      stats.increments.pfr_actions = 1;
+      const posStats = stats.positionIncrements[player.positionName];
+      if (posStats) {
+        posStats.pfr_actions = 1;
+      }
+      stats.handState.hasRaisedPreflop = true;
+      console.log(`[BOTMODE DEBUG] Set pfr_actions=1 for ${player.name} (action: ${action})`);
+      console.log('[BOTMODE DEBUG] increments after PFR:', JSON.stringify(stats.increments));
     }
-    stats.handState.hasRaisedPreflop = true;
+  } else {
+    // For bots, do not print debug logs
+    // Still update stats as before
+    const isBBOption = player.isBB && gameState.currentHighestBet === BIG_BLIND_AMOUNT && action === 'check';
+    if (isBBOption) {
+      stats.increments.vpip_opportunities = 0;
+      if (stats.positionIncrements[player.positionName]) {
+        stats.positionIncrements[player.positionName].vpip_opportunities = 0;
+      }
+    }
+    if (action === 'call' || action === 'bet' || action === 'raise') {
+      stats.increments.vpip_actions = 1;
+      const posStats = stats.positionIncrements[player.positionName];
+      if (posStats && posStats.vpip_actions === 0) {
+        posStats.vpip_actions = 1;
+      }
+    }
+    const isPreflopRaise = (action === 'bet' || action === 'raise');
+    if (isPreflopRaise && !stats.handState.hasRaisedPreflop) {
+      stats.increments.pfr_actions = 1;
+      const posStats = stats.positionIncrements[player.positionName];
+      if (posStats) {
+        posStats.pfr_actions = 1;
+      }
+      stats.handState.hasRaisedPreflop = true;
+    }
   }
 };
 
@@ -629,12 +669,11 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
         // Initialize bot game stats tracking if in bot mode and user is authenticated
         if (vsBot && user?.id) {
             // Find the human player (not the bot)
-            const humanPlayer = currentState.players.find(p => p.id !== `player${botPlayerIndex + 1}`);
+            const humanPlayer = currentState.players.find(p => p.id === `player${botPlayerIndex + 1}`);
             
             if (humanPlayer) {
                 const handStats = {};
-                handStats[humanPlayer.id] = createBotGameHandStats(user.id);
-                
+                handStats[humanPlayer.id] = createBotGameHandStats(user.id); // Use UUID for DB, in-game id for key
                 // Set position-specific opportunities
                 const posStats = handStats[humanPlayer.id].positionIncrements[humanPlayer.positionName];
                 if (posStats) {

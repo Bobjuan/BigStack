@@ -115,26 +115,22 @@ function trackAction(handStats, game, player, action) {
     // --- Pre-Flop VPIP Tracking ---
     // A VPIP opportunity is now counted by default. We only need to check if the BB had a free option.
     const isBBOption = player.isBB && game.currentHighestBet === game.bigBlind && action === 'check';
+    console.log('TESTTTT');
     if (isBBOption) {
-      // If the BB checks their option for free, it was not a voluntary action.
-      // Remove overall and positional opportunity.
       stats.increments.vpip_opportunities = 0;
       if (stats.positionIncrements[player.positionName]) {
         stats.positionIncrements[player.positionName].vpip_opportunities = 0;
       }
-      console.log(`[StatsTracker] Game ${game.id}: VPIP opportunity revoked for ${player.name} due to BB option check.`);
     }
     
     // If an opportunity existed, check if they took a voluntary action.
     if (action === 'call' || action === 'bet' || action === 'raise') {
         stats.increments.vpip_actions = 1;
-        // Position-specific VPIP
         const posStats = stats.positionIncrements[player.positionName] || { vpip_opportunities: 0, vpip_actions: 0, pfr_opportunities: 0, pfr_actions: 0 };
         if (posStats.vpip_actions === 0) {
           posStats.vpip_actions = 1;
         }
         stats.positionIncrements[player.positionName] = posStats;
-        console.log(`[StatsTracker] Game ${game.id}: VPIP action taken by ${player.name}.`);
     }
 
     // --- PFR (Pre-Flop Raise) Tracking ---
@@ -144,32 +140,25 @@ function trackAction(handStats, game, player, action) {
 
     if (isPreflopRaise && !stats.handState.hasRaisedPreflop) {
       stats.increments.pfr_actions = 1;
-      // Position-specific PFR
       const posStats = stats.positionIncrements[player.positionName] || { vpip_opportunities: 0, vpip_actions: 0, pfr_opportunities: 0, pfr_actions: 0 };
       posStats.pfr_actions = 1;
       stats.positionIncrements[player.positionName] = posStats;
       stats.handState.hasRaisedPreflop = true; // Mark that they have now raised.
-      
-      // We still set this shared flag for other stats that depend on it (like 3-Bet opportunities).
       if (handStats.sharedState) {
         handStats.sharedState.preflopRaiseMade = true;
       }
-      console.log(`[StatsTracker] Game ${game.id}: PFR action taken by ${player.name}.`);
     }
   } else { // Post-Flop Logic (FLOP, TURN, RIVER)
     // Post-flop actions are simpler to track for Aggression Factor.
     switch (action) {
       case 'bet':
         stats.increments.agg_bets += 1;
-        console.log(`[StatsTracker] Game ${game.id}: Post-flop Bet tracked for ${player.name}.`);
         break;
       case 'raise':
         stats.increments.agg_raises += 1;
-        console.log(`[StatsTracker] Game ${game.id}: Post-flop Raise tracked for ${player.name}.`);
         break;
       case 'call':
         stats.increments.agg_calls += 1;
-        console.log(`[StatsTracker] Game ${game.id}: Post-flop Call tracked for ${player.name}.`);
         break;
       // 'check' and 'fold' do not contribute to Aggression Factor.
     }
@@ -216,7 +205,6 @@ async function commitHandStats(handStats) {
   let updatesPayload = [];
   for (const playerStat of playersToUpdate) {
     const sessions = await getActiveSessionsForPlayer(playerStat.playerId);
-    console.log(`[DEBUG] Active sessions for player ${playerStat.playerId}:`, sessions.map(s => ({ id: s.id, name: s.name, is_active: s.is_active })));
     for (const session of sessions) {
       updatesPayload.push({
         p_player_id: playerStat.playerId,
@@ -226,9 +214,6 @@ async function commitHandStats(handStats) {
       });
     }
   }
-
-  // Debug: print the full payload
-  // console.log('[DEBUG] Payload to batch_update_player_stats:', JSON.stringify(updatesPayload, null, 2));
 
   const { error } = await supabase.rpc('batch_update_player_stats', {
     updates: updatesPayload,

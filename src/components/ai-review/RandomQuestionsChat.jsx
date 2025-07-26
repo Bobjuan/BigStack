@@ -9,8 +9,8 @@ const API_URL = 'http://127.0.0.1:5000/ask';
 const RandomQuestionsChat = ({ isWidget, inputValue, setInputValue, lessonsMode }) => {
   const [messages, setMessages] = useState([
     { sender: 'bot', text: lessonsMode
-      ? 'Hey Poker Player! Ask away.'
-      : 'Welcome to Random Questions mode! Ask any poker-related question.' }
+      ? 'Hey Poker Player! I\'m P.H.I.L. - your Poker Hands Intuitive Language assistant. Ask me anything about the highlighted text!'
+      : 'Welcome! I\'m P.H.I.L. - your Poker Hands Intuitive Language assistant. Ask me any poker-related question and I\'ll help you improve your game!' }
   ]);
   const [questionInput, setQuestionInput] = useState('');
   const [internalInput, setInternalInput] = useState('');
@@ -40,12 +40,13 @@ const RandomQuestionsChat = ({ isWidget, inputValue, setInputValue, lessonsMode 
     });
   }, []);
 
-  const sendMessage = async () => {
-    if (!questionInput.trim() && !(lessonsMode && highlightedText)) return;
-    let fullMessage = questionInput.trim();
+  const sendMessage = async (customQuestion) => {
+    const question = typeof customQuestion === 'string' ? customQuestion : questionInput;
+    if (!question.trim() && !(lessonsMode && highlightedText)) return;
+    let fullMessage = question.trim();
     if (lessonsMode && highlightedText) {
       // Compose a mini prompt for the lessons page
-      fullMessage = `This question is about a lesson. The highlighted text from the lesson is: "${highlightedText}". The user's question about the text is: ${questionInput.trim()}`;
+      fullMessage = `This question is about a lesson. The highlighted text from the lesson is: "${highlightedText}". The user's question about the text is: ${question.trim()}`;
     }
     setMessages(msgs => [...msgs, { sender: 'user', text: fullMessage }]);
     setLoading(true);
@@ -58,7 +59,7 @@ const RandomQuestionsChat = ({ isWidget, inputValue, setInputValue, lessonsMode 
       const data = await res.json();
       setMessages(msgs => [...msgs, { sender: 'bot', text: data.response }]);
     } catch (e) {
-      setMessages(msgs => [...msgs, { sender: 'bot', text: 'Sorry, there was an error processing your request.' }]);
+      setMessages(msgs => [...msgs, { sender: 'bot', text: 'Sorry, there was an error processing your request. Please try again!' }]);
     }
     setLoading(false);
     setQuestionInput('');
@@ -72,30 +73,110 @@ const RandomQuestionsChat = ({ isWidget, inputValue, setInputValue, lessonsMode 
     }
   };
 
+  const EXAMPLE_QUESTIONS = [
+    "What's the optimal 3-betting range from the cutoff?",
+    "How should I play AK suited on a dry flop?",
+    "What are the key differences between cash games and tournaments?"
+  ];
+
   return (
-    <div className={isWidget ? "w-full h-full flex flex-col" : "bg-[#1b1f2b] w-full px-6"}>
-      <div className={isWidget ? "p-0 flex flex-col h-full" : "max-w-3xl mx-auto py-8"}>
-        {/* Back to Home button removed */}
+    <div className={isWidget ? "w-full h-full flex flex-col" : "w-full"}>
+      <div className={isWidget ? "p-0 flex flex-col h-full" : "w-full"}>
+        {/* Chat messages and example questions inside chat area */}
         <div
-          className={
-            `chat-container bg-[#1b1f2b] rounded-xl p-4 border border-gray-700 shadow-md`
-          }
-          style={isWidget ? { flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' } : { maxHeight: 400, minHeight: 200, overflowY: 'auto' }}
+          className="chat-container clean-chat-bubble"
+          style={isWidget ? { flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' } : { maxHeight: 500, minHeight: 300, overflowY: 'auto' }}
         >
-          {messages.map((msg, i) => (
-            <div key={i} className={
-              'flex items-end mb-2 ' + (msg.sender === 'user' ? 'justify-end' : 'justify-start')
-            }>
+          {/* Render the first bot message */}
+          {messages.length > 0 && (
+            <div
+              className={
+                messages[0].sender === 'bot'
+                  ? 'chat-row-bot flex items-center gap-5 mb-4 ml-0 mr-16'
+                  : 'chat-row-user flex flex-row items-center gap-2 mb-4 mr-0 ml-16 justify-end'
+              }
+            >
+              {messages[0].sender === 'bot' && (
+                <div className="flex-shrink-0 flex items-center justify-center" title="P.H.I.L.">
+                  <div className="chip-circle w-20 h-20 rounded-full flex items-center justify-center">
+                    <img
+                      src="/images/shark.png"
+                      alt="P.H.I.L."
+                      className="w-full h-full object-contain rounded-full"
+                    />
+                  </div>
+                </div>
+              )}
+              <div className={
+                messages[0].sender === 'user'
+                  ? 'user-message'
+                  : 'bot-message'
+              }>
+                {messages[0].sender === 'bot' ? (
+                  <span dangerouslySetInnerHTML={{
+                    __html: DOMPurify.sanitize(marked.parse(messages[0].text))
+                  }} />
+                ) : (
+                  messages[0].text
+                )}
+              </div>
+              {messages[0].sender === 'user' && (
+                <div className="flex-shrink-0 flex items-center justify-center" title="You">
+                  <div className="w-10 h-10 bg-gradient-to-br from-gray-600 to-gray-700 rounded-xl flex items-center justify-center shadow-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-white">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 7.5a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 19.5a7.5 7.5 0 1115 0v.75a.75.75 0 01-.75.75h-13.5a.75.75 0 01-.75-.75v-.75z" />
+                    </svg>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          {/* Example Questions Suggestions (under bot message, only if no user messages yet) */}
+          {messages.length === 1 && messages[0].sender === 'bot' && (
+            <div className="suggested-questions">
+              {EXAMPLE_QUESTIONS.map((q, idx) => (
+                <button
+                  key={idx}
+                  className="suggestion-chip"
+                  onClick={() => {
+                    setQuestionInput(q);
+                    setTimeout(() => {
+                      sendMessage(q);
+                    }, 0);
+                  }}
+                  tabIndex={0}
+                  type="button"
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
+          )}
+          {/* Render the rest of the messages (if any) */}
+          {messages.slice(1).map((msg, i) => (
+            <div
+              key={i + 1}
+              className={
+                msg.sender === 'bot'
+                  ? 'chat-row-bot flex items-center gap-5 mb-4 ml-0 mr-16'
+                  : 'chat-row-user flex flex-row items-center gap-2 mb-4 mr-0 ml-16 justify-end'
+              }
+            >
               {msg.sender === 'bot' && (
-                <span className="mr-2 flex-shrink-0" title="Bot">
-                  {/* Robot SVG */}
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="36" height="36" className="text-blue-400"><circle cx="12" cy="12" r="10" fill="#23273a"/><rect x="7" y="9" width="10" height="6" rx="3" fill="#60a5fa"/><circle cx="9" cy="12" r="1" fill="#fff"/><circle cx="15" cy="12" r="1" fill="#fff"/><rect x="11" y="6" width="2" height="3" rx="1" fill="#60a5fa"/></svg>
-                </span>
+                <div className="flex-shrink-0 flex items-center justify-center" title="P.H.I.L.">
+                  <div className="chip-circle w-20 h-20 rounded-full flex items-center justify-center">
+                    <img
+                      src="/images/shark.png"
+                      alt="P.H.I.L."
+                      className="w-full h-full object-contain rounded-full"
+                    />
+                  </div>
+                </div>
               )}
               <div className={
                 msg.sender === 'user'
-                  ? 'bg-blue-700 text-white rounded-lg p-3 max-w-[80%] text-right'
-                  : 'bg-[#2f3542] text-white rounded-lg p-3 max-w-[80%]'
+                  ? 'user-message'
+                  : 'bot-message'
               }>
                 {msg.sender === 'bot' ? (
                   <span dangerouslySetInnerHTML={{
@@ -106,34 +187,44 @@ const RandomQuestionsChat = ({ isWidget, inputValue, setInputValue, lessonsMode 
                 )}
               </div>
               {msg.sender === 'user' && (
-                <span className="ml-2 flex-shrink-0" title="User">
-                  {/* Human outline SVG */}
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width="28" height="28" className="text-white"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 7.5a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 19.5a7.5 7.5 0 1115 0v.75a.75.75 0 01-.75.75h-13.5a.75.75 0 01-.75-.75v-.75z" /></svg>
-                </span>
+                <div className="flex-shrink-0 flex items-center justify-center" title="You">
+                  <div className="w-10 h-10 bg-gradient-to-br from-gray-600 to-gray-700 rounded-xl flex items-center justify-center shadow-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-white">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 7.5a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 19.5a7.5 7.5 0 1115 0v.75a.75.75 0 01-.75.75h-13.5a.75.75 0 01-.75-.75v-.75z" />
+                    </svg>
+                  </div>
+                </div>
               )}
             </div>
           ))}
           {loading && (
-            <div className="flex items-end mb-2 justify-start">
-              <span className="mr-2 flex-shrink-0" title="Bot">
-                {/* Robot SVG (36px) */}
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="36" height="36" className="text-blue-400"><circle cx="12" cy="12" r="10" fill="#23273a"/><rect x="7" y="9" width="10" height="6" rx="3" fill="#60a5fa"/><circle cx="9" cy="12" r="1" fill="#fff"/><circle cx="15" cy="12" r="1" fill="#fff"/><rect x="11" y="6" width="2" height="3" rx="1" fill="#60a5fa"/></svg>
-              </span>
-              <div className="bg-[#2f3542] text-white rounded-lg p-3 max-w-[80%] flex gap-1 items-center">
-                <span className="inline-block w-2 h-2 bg-blue-400 rounded-full animate-bounce mr-1"></span>
-                <span className="inline-block w-2 h-2 bg-blue-400 rounded-full animate-bounce mr-1"></span>
-                <span className="inline-block w-2 h-2 bg-blue-400 rounded-full animate-bounce"></span>
+            <div className="flex items-center gap-4 mb-4 ml-2 mr-8">
+              <div className="flex-shrink-0 flex items-center justify-center" title="P.H.I.L.">
+                <div className="chip-circle w-20 h-20 rounded-full flex items-center justify-center">
+                  <img
+                    src="/images/shark.png"
+                    alt="P.H.I.L."
+                    className="w-full h-full object-contain rounded-full"
+                  />
+                </div>
+              </div>
+              <div className="typing-indicator">
+                <div className="typing-dot"></div>
+                <div className="typing-dot"></div>
+                <div className="typing-dot"></div>
               </div>
             </div>
           )}
           <div ref={chatEndRef} />
         </div>
-        <div className={isWidget ? "flex flex-col gap-2 p-3 mt-0" : "flex flex-col gap-2"}>
+        
+        <div className={isWidget ? "flex flex-col gap-3 p-3 mt-0" : "flex flex-col gap-3 mt-4"}>
           {/* Highlighted text area (read-only, always visible in lessonsMode) */}
           {lessonsMode && (
-            <div className="mb-1">
+            <div className="mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2">Highlighted Text:</label>
               <textarea
-                className="w-full px-4 py-2 rounded-lg border border-gray-700 !bg-[#23273a] !text-white text-xs resize-none min-h-[40px] max-h-[120px] mb-1 cursor-not-allowed opacity-80"
+                className="w-full px-4 py-3 rounded-xl border border-gray-700/50 bg-gray-800/50 text-white text-sm resize-none min-h-[40px] max-h-[120px] cursor-not-allowed opacity-80 backdrop-blur-sm"
                 value={highlightedText}
                 placeholder="Highlighted text will appear here!"
                 readOnly
@@ -141,24 +232,29 @@ const RandomQuestionsChat = ({ isWidget, inputValue, setInputValue, lessonsMode 
                 style={{overflowY: 'auto'}} />
             </div>
           )}
+          
           {/* User question input */}
           <div className="flex gap-3 items-center">
-            <textarea
-              className="flex-1 px-5 py-3 rounded-lg border border-gray-700 !bg-[#23273a] !text-white !placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-600 text-base resize-none min-h-[56px] max-h-[220px] scrollbar-thin scrollbar-thumb-[#4b5563] scrollbar-track-[#23273a]"
-              placeholder={lessonsMode ? "Ask a question about the highlighted text above..." : "Ask any poker question..."}
-              value={questionInput}
-              onChange={e => setQuestionInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              disabled={loading}
-              rows={Math.min(8, Math.max(2, questionInput.split('\n').length))}
-              style={{overflowY: 'auto'}} />
+            <div className="input-wrapper flex-1">
+              <textarea
+                className="w-full px-4 py-3 rounded-xl border border-gray-700/50 bg-gray-800/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base resize-none min-h-[56px] max-h-[220px] backdrop-blur-sm transition-all duration-300"
+                placeholder={lessonsMode ? "Ask a question about the highlighted text above..." : "Ask P.H.I.L. any poker question..."}
+                value={questionInput}
+                onChange={e => setQuestionInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                disabled={loading}
+                rows={Math.min(8, Math.max(2, questionInput.split('\n').length))}
+                style={{overflowY: 'auto'}} />
+            </div>
             <button
-              className="h-[56px] px-6 py-4 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 border border-blue-700 disabled:opacity-50 flex items-center justify-center"
+              className="send-button h-[56px] px-6 py-3 rounded-xl disabled:opacity-50 flex items-center justify-center transition-all duration-300"
               onClick={sendMessage}
               disabled={loading || (!questionInput.trim() && !(lessonsMode && highlightedText))}
               style={{ minWidth: 56 }}
             >
-              <i className="fas fa-paper-plane"></i>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              </svg>
             </button>
           </div>
         </div>
