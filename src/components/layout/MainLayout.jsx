@@ -23,6 +23,19 @@ const MainLayout = ({ children }) => {
   );
 
   if (isPlayPage()) {
+    // Hide sidebar only when URL contains a specific gameId (e.g. /play/friends/abc123)
+    const hideSidebarForFriends = /^\/play\/friends\/[^/]+/.test(path);
+
+    if (isStandalone || hideSidebarForFriends) {
+      return (
+        <div className="flex min-h-screen bg-black text-white">
+          <main className="flex-1 flex items-center justify-center bg-black overflow-hidden" style={{ minHeight: '100vh', minWidth: 0 }}>
+            <div className="w-full h-full flex-1">{children}</div>
+          </main>
+        </div>
+      );
+    }
+
     if (isStandalone) {
       return (
         <div className="flex min-h-screen bg-black text-white">

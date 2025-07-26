@@ -9,6 +9,7 @@ import RitVoteModal from './RitVoteModal'; // Import RIT vote modal
 import HandHistoryTab from './HandHistoryTab';
 import dayjs from 'dayjs';
 import tableBg from '/src/assets/blacktable.png'; // Import table background
+import TableMenu from '../common/TableMenu';
 
 // Connect to your backend server. Make sure the port matches your server.js
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:4000'; 
@@ -46,6 +47,7 @@ function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [ritVoteOpen, setRitVoteOpen] = useState(false);
   const [isEligibleForRit, setIsEligibleForRit] = useState(false);
+  const [isPlayersPanelVisible, setIsPlayersPanelVisible] = useState(false);
 
   const SERVER_API = SERVER_URL; // same origin for dev
 
@@ -56,9 +58,16 @@ function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
     }
   }, [user]);
 
-  // Effect for WebSocket connection and listeners setup (runs once)
+  // Establish a singleton socket so navigating between lobby and table does not
+  // cause a disconnect that would delete the game on the server.
+  const socketSingletonRef = useRef(null);
+
   useEffect(() => {
-    const newSocket = io(SERVER_URL);
+    if (!socketSingletonRef.current) {
+      socketSingletonRef.current = io(SERVER_URL);
+    }
+
+    const newSocket = socketSingletonRef.current;
     setSocket(newSocket);
 
     newSocket.on('connect', () => {
@@ -69,6 +78,10 @@ function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
       console.log('Received gameStateUpdate:', data.newState);
       const newState = data.newState;
       setGameState(newState);
+      // Ensure local gameId is always in sync with server state
+      if (newState?.id && newState.id !== gameId) {
+        setGameId(newState.id);
+      }
       
       let logMessage = null;
       if (data.actionLog && data.actionLog.message) {
@@ -123,8 +136,19 @@ function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
         setMessages(prev => [...prev, 'Disconnected from server.']);
     });
 
+    // Do NOT disconnect on unmount – we want the same connection across
+    // route transitions within the poker lobby & table.
     return () => {
-      newSocket.disconnect();
+      // Clean up listeners we attached in this mount.
+      newSocket.off('gameStateUpdate');
+      newSocket.off('playerStatsUpdate');
+      newSocket.off('playerJoined');
+      newSocket.off('playerLeft');
+      newSocket.off('message');
+      newSocket.off('chatMessage');
+      newSocket.off('ritPrompt');
+      newSocket.off('gameNotFound');
+      newSocket.off('disconnect');
     };
   }, []); // Empty dependency array: runs only on mount and unmount
 
@@ -135,18 +159,21 @@ function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
       const playerDetails = { 
         name: playerName || `Player_${sock.id.substring(0,5)}`,
         userId: user?.id,
+        email: user?.email,
       };
       sock.emit('createGame', { playerInfo: playerDetails, gameSettings: settings || initialGameSettings }, (response) => {
         if (response.status === 'ok') {
-          window.open(`/play/friends/${response.gameId}?standalone=true`, '_blank');
-          // Do not update local state; keep user on lobby page.
-          return; // prevent further processing in current tab
+          // Store the new gameId locally so subsequent actions (take seat, etc.) work in-tab.
+          setGameId(response.gameId);
+          // Update the route so MainLayout reacts (hides sidebar) and URL is shareable
+          navigate(`/play/friends/${response.gameId}`, { replace: true });
+          setError('');
         } else {
           setError(response.message || 'Error creating game.');
         }
       });
     }
-  }, [socket, playerName, initialGameSettings, navigate, user]);
+  }, [socket, playerName, initialGameSettings, user, navigate]);
 
   const handleJoinGame = useCallback((currentSocket, gameIdToJoin) => {
     const sock = currentSocket || socket;
@@ -155,12 +182,14 @@ function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
       const playerDetails = { 
         name: playerName || `Player_${sock.id.substring(0,5)}`,
         userId: user?.id,
+        email: user?.email,
       };
       sock.emit('joinGame', { gameId: idToJoin, playerInfo: playerDetails }, (response) => {
         if (response.status === 'ok' || response.status === 'already_joined') {
-          window.open(`/play/friends/${idToJoin}?standalone=true`, '_blank');
-          return; // do not proceed in current tab
-          // NEW: Fetch stats for all players in the game
+          // Stay in the same tab – just remember the gameId
+          setGameId(idToJoin);
+          navigate(`/play/friends/${idToJoin}`, { replace: true });
+          // Fetch initial stats for the table now that we are in the room
           sock.emit('fetchStats', idToJoin, null, (statsResponse) => {
             if (statsResponse.status === 'ok') {
               setPlayerStats(statsResponse.stats);
@@ -404,55 +433,67 @@ function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
   return (
     <div className="poker-wrapper w-full h-full fixed inset-0" style={{backgroundColor:'#111111',display:'flex',alignItems:'center',justifyContent:'center'}}>
         
-        {/* Game Info - Top Left */}
-        <div className="absolute top-4 left-4 z-20 text-left max-w-xs text-white">
-            <div className="flex items-center space-x-2">
-                <h2 className="text-lg font-bold">Game: {gameId}</h2>
-                <button 
-                    onClick={() => setIsSettingsModalOpen(true)} 
-                    className="text-gray-400 hover:text-white w-8 h-8 flex items-center justify-center bg-gray-800 bg-opacity-50 hover:bg-gray-700 hover:bg-opacity-70 rounded-md transition-colors"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0L8 7.48a1 1 0 01-1.41 1.41l-4.31-1.51c-1.56-.38-2.38 1.24-1.25 2.38l3.17 3.17a1 1 0 010 1.41l-3.17 3.17c-1.13 1.13.31 2.75 1.87 2.37l4.31-1.51a1 1 0 011.41 1.41l-1.51 4.31c-.38 1.56 1.24 2.38 2.38 1.25l3.17-3.17a1 1 0 011.41 0l3.17 3.17c1.13 1.13 2.75-.31 2.37-1.87l-1.51-4.31a1 1 0 011.41-1.41l4.31 1.51c1.56.38 2.38-1.24 1.25-2.38l-3.17-3.17a1 1 0 010-1.41l3.17-3.17c1.13-1.13-.31-2.75-1.87-2.37l-4.31 1.51a1 1 0 01-1.41-1.41l1.51-4.31zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
-                    </svg>
-                </button>
-            </div>
-            {error && <p className="text-red-500 bg-red-100 border border-red-500 p-2 rounded my-1 text-sm">Error: {error}</p>}
-             {gameState && (
-                 <>
-                    {hostName && <p className="text-sm text-gray-400">Host: {hostName}</p>}
-                    <p className="text-md">Status: <span className="font-semibold">{gameState.currentBettingRound}</span></p>
-                    {gameState.hostId === socket?.id && gameState.currentBettingRound === GamePhase.WAITING && gameState.seats.filter(s => !s.isEmpty).length >= 2 && (
-                        <button 
-                            onClick={handleStartGame} 
-                            className="mt-2 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded transition duration-150 ease-in-out text-sm">
-                            Start Game ({gameState.seats.filter(s => !s.isEmpty).length}/{gameState.gameSettings.maxPlayers || 'N/A'})
-                        </button>
-                    )}
-                    {gameState.hostId === socket?.id && gameState.currentBettingRound === GamePhase.WAITING && gameState.seats.filter(s => !s.isEmpty).length < 2 && (
-                        <p className="text-yellow-400 mt-1 text-sm">Waiting for at least 2 players...</p>
-                    )}
-                 </>
-             )}
+        {/* Game Info - Top Center */}
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 text-center select-none">
+            {gameState && (
+                <div className="px-4 py-1 rounded-full backdrop-blur-sm bg-white/5 border border-white/10 text-sm text-gray-200 flex items-center space-x-2">
+                    <span className="font-medium">Table {gameId}</span>
+                    <span className="text-xs text-gray-400">{gameState.currentBettingRound}</span>
+                </div>
+            )}
         </div>
 
-        {/* Player List - Top Right */}
-        {gameState && (
-             <div className="absolute top-4 right-4 z-20 text-right max-w-xs text-white bg-black bg-opacity-40 p-2 rounded">
-                <h3 className="text-md font-bold mb-1">Players & Spectators:</h3>
-                <ul className="text-sm">
-                  {gameState.seats.filter(s => !s.isEmpty).map((s, index) => (
-                    <li key={s.player.id} className={`${s.player.id === socket?.id ? 'font-bold text-yellow-300' : ''}`}>
-                      {s.player.name} (Stack: {s.player.stack})
-                      {gameState.currentPlayerIndex === index && ' (Turn)'}
-                    </li>
-                  ))}
-                  {gameState.spectators.map(spectator => (
-                     <li key={spectator.id} className={`italic text-gray-400 ${spectator.id === socket?.id ? 'font-bold' : ''}`}>
-                        {spectator.name} (Spectating)
-                     </li>
-                  ))}
+        {/* Table menu (top-left) */}
+        <div className="absolute top-4 left-4 z-30">
+            <TableMenu align="left"
+                onSettings={() => setIsSettingsModalOpen(true)}
+                onPlayers={() => setIsPlayersPanelVisible(true)}
+                onLedger={() => alert('Ledger coming soon')} // placeholder
+                onLeave={() => {
+                    if (socketSingletonRef.current) {
+                       try { socketSingletonRef.current.disconnect(); } catch(_){}
+                       socketSingletonRef.current = null;
+                    }
+                    navigate('/play');
+                }}
+            />
+        </div>
+
+        {/* Start game button (host only) */}
+        {gameState && gameState.hostId === socket?.id && gameState.currentBettingRound === GamePhase.WAITING && (
+            <div className="absolute top-4 right-4 z-30">
+               {gameState.seats.filter(s=>!s.isEmpty).length >=2 ? (
+                  <button
+                    onClick={handleStartGame}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-2 rounded-full shadow">
+                      Start Game
+                  </button>
+               ) : (
+                  <span className="text-xs text-gray-400">Waiting for players…</span>
+               )}
+            </div>
+        )}
+
+        {/* Players & spectators panel */}
+        {isPlayersPanelVisible && gameState && (
+            <div className="fixed top-0 right-0 h-full w-64 bg-black/90 backdrop-blur-sm border-l border-white/10 z-40 p-4 overflow-y-auto">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold text-white">Players</h3>
+                  <button onClick={()=>setIsPlayersPanelVisible(false)} className="text-gray-400 hover:text-white">✕</button>
+                </div>
+                <ul className="space-y-2 text-sm">
+                    {gameState.seats.filter(s=>!s.isEmpty).map((s)=> (
+                        <li key={s.player.id} className="flex justify-between"><span>{s.player.name}</span><span>${s.player.stack}</span></li>
+                    ))}
                 </ul>
+                {gameState.spectators.length>0 && (
+                  <>
+                    <h4 className="mt-4 mb-2 text-sm font-semibold text-gray-300">Spectators</h4>
+                    <ul className="space-y-1 text-xs text-gray-400">
+                       {gameState.spectators.map(sp=>(<li key={sp.id}>{sp.name}</li>))}
+                    </ul>
+                  </>
+                )}
             </div>
         )}
 

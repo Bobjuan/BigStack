@@ -22,15 +22,15 @@ function PotDisplay({ amount, totalAmount = null, label = 'Pot', subtext = null,
 
   // --- Single pot with optional total pot indicator ---
   return (
-    <div className="pot-display relative flex flex-col items-center my-1">
+    <div className="pot-display relative flex flex-col items-center my-1 select-none">
       {/* Main pot */}
-      <span className="bg-gray-800 text-yellow-300 text-base font-bold rounded-full px-5 py-2 shadow-md border-2 border-yellow-400 drop-shadow-xl">
+      <span className="backdrop-blur-sm bg-white/10 text-amber-200 text-base font-medium rounded-full px-6 py-2 shadow-inner shadow-black/30">
         {label}: ${amount}
       </span>
 
-      {/* Total pot bubble */}
+      {/* Total pot chip */}
       {totalAmount !== null && totalAmount !== amount && (
-        <span className="absolute -top-2 -right-3 bg-gray-700 text-green-300 text-xs font-semibold rounded-full px-2 py-0.5 border border-green-400 shadow">
+        <span className="absolute -top-2 -right-3 bg-white/10 text-emerald-300 text-xs font-medium rounded-full px-2 py-0.5 shadow ring-1 ring-white/20">
           ${totalAmount}
         </span>
       )}

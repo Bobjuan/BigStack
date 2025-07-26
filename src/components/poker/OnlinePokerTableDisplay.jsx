@@ -73,6 +73,8 @@ const PlayerDisplay = ({ player, positionStyles, showPlayerCards, isTurn, cardWi
                 <PlayerInfo
                     position={displayPosition}
                     stack={player.stack}
+                    name={player.name}
+                    email={player.email}
                     isTurn={isTurn}
                 />
 

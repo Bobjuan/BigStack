@@ -106,48 +106,59 @@ function startActionTimer(gameId) {
     const currentPlayer = seatedPlayers[currentPlayerIndex];
     if (!currentPlayer) return;
 
+    // Capture the playerId instead of relying on array index.  The seating array
+    // can change (players bust, leave, etc.) between now and the timeout, which
+    // previously caused the wrong player to be folded.
+    const playerIdAtTimerStart = currentPlayer.id;
+
     const timeForAction = (game.timeBank + 1) * 1000; // Give 1 extra second buffer
 
     game.actionTimer = setTimeout(() => {
         const gameAtTimeout = activeGames[gameId];
-        // Check if game still exists and if it's still the same player's turn
-        if (gameAtTimeout && gameAtTimeout.currentPlayerIndex === currentPlayerIndex) {
-            console.log(`Player ${currentPlayer.name} timed out in game ${gameId}. Folding.`);
-            
-            // Re-fetch player to ensure we have the most current version
-            const playersAtTimeout = gameEngine.getSeatedPlayers(gameAtTimeout);
-            const playerToFold = playersAtTimeout[currentPlayerIndex];
+        if (!gameAtTimeout) return;
 
-            // Use engine helper to see what actions are legal for this player
-            let actionToTake = 'fold';
-            try {
-              const legal = gameEngine.legalActions(gameAtTimeout);
-              if (legal && Array.isArray(legal.actions) && legal.actions.includes('check')) {
-                actionToTake = 'check';
-              }
-            } catch(_) {
-              // fallback to old logic
-              const canCheckLegacy = playerToFold.currentBet === gameAtTimeout.currentHighestBet;
-              actionToTake = canCheckLegacy ? 'check' : 'fold';
-            }
+        // Re-evaluate who is currently supposed to act.
+        const seatedAtTimeout = gameEngine.getSeatedPlayers(gameAtTimeout);
+        const idxAtTimeout = gameAtTimeout.currentPlayerIndex;
+        if (idxAtTimeout === -1) return; // hand might be over
 
-            const result = gameEngine.processAction(gameAtTimeout, playerToFold.id, actionToTake, {});
+        const activePlayer = seatedAtTimeout[idxAtTimeout];
 
-            if (result.error) {
-                 io.to(playerToFold.id).emit(SocketEvents.MESSAGE, { text: result.error });
-            } else {
-                // After the timeout action is processed, check the game state and proceed.
-                // This ensures the game moves on if the timeout ended the hand.
-                gameEngine.checkGameAndProceed(gameAtTimeout);
-            }
+        // Abort if the player to act has changed (player acted in time, seat order
+        // shifted, etc.)
+        if (!activePlayer || activePlayer.id !== playerIdAtTimerStart) {
+            return;
+        }
 
-            io.to(gameId).emit(SocketEvents.GAME_STATE_UPDATE, { newState: getSanitizedGameStateForClient(gameAtTimeout), actionLog: { message: `${playerToFold.name} timed out and was auto-${actionToTake}ed.` } });
+        console.log(`Player ${activePlayer.name} timed out in game ${gameId}. Executing auto-action.`);
 
-            if (gameAtTimeout.currentBettingRound === gameEngine.GamePhase.HAND_OVER) {
-                scheduleNextHand(gameId);
-            } else {
-                startActionTimer(gameId);
-            }
+        // Determine whether a check is legal; otherwise fold.
+        let actionToTake = 'fold';
+        try {
+          const legal = gameEngine.legalActions(gameAtTimeout);
+          if (legal && Array.isArray(legal.actions) && legal.actions.includes('check')) {
+            actionToTake = 'check';
+          }
+        } catch(_) {
+          const canCheckLegacy = activePlayer.currentBet === gameAtTimeout.currentHighestBet;
+          actionToTake = canCheckLegacy ? 'check' : 'fold';
+        }
+
+        const result = gameEngine.processAction(gameAtTimeout, activePlayer.id, actionToTake, {});
+
+        if (result.error) {
+             io.to(activePlayer.id).emit(SocketEvents.MESSAGE, { text: result.error });
+        } else {
+            // Ensure game advances if the timeout ended the hand.
+            gameEngine.checkGameAndProceed(gameAtTimeout);
+        }
+
+        io.to(gameId).emit(SocketEvents.GAME_STATE_UPDATE, { newState: getSanitizedGameStateForClient(gameAtTimeout), actionLog: { message: `${activePlayer.name} timed out and was auto-${actionToTake}ed.` } });
+
+        if (gameAtTimeout.currentBettingRound === gameEngine.GamePhase.HAND_OVER) {
+            scheduleNextHand(gameId);
+        } else {
+            startActionTimer(gameId);
         }
     }, timeForAction);
 }
