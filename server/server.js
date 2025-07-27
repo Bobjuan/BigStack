@@ -8,6 +8,7 @@ const gameEngine = require('./newGameEngine');
 const { GamePhase, SocketEvents } = require('./constants');
 const statsTracker = require('./game/statsTracker'); // CORRECT PATH
 const handHistory = require('./game/handHistory');
+const { BotManager } = require('./bots/BotManager');
 
 // Load environment variables and initialize Supabase
 require('dotenv').config();
@@ -72,6 +73,51 @@ const initializeServerPlayer = (socketId, playerInfo, stack) => ({
 
 const activeGames = {}; // To store state of all active games
 const GAME_HAND_DELAY_MS = 3000; // 3 seconds delay before next hand
+
+// Initialize Bot Manager
+const botManager = new BotManager();
+
+// Handle bot actions
+botManager.on('botAction', (actionData) => {
+    const { gameId, action, details } = actionData;
+    const game = activeGames[gameId];
+    
+    if (!game) {
+        console.error(`[BotManager] Bot action for non-existent game: ${gameId}`);
+        return;
+    }
+    
+    console.log(`[BotManager] Processing bot action: ${action} for game ${gameId}`);
+    
+    // Process the bot action using existing game logic
+    try {
+        const result = gameEngine.processActionWrapper(game, actionData.botId || actionData.socketId, action, details);
+        
+        if (result.error) {
+            console.error(`[BotManager] Bot action failed: ${result.error}`);
+            return;
+        }
+        
+        // Broadcast updated game state
+        io.to(gameId).emit(SocketEvents.GAME_STATE_UPDATE, {
+            newState: getSanitizedGameStateForClient(game),
+            actionLog: { message: `Bot ${action}s` }
+        });
+        
+        // Update bots with new game state
+        botManager.updateGameState(gameId, game);
+        
+        // Check if hand is over
+        if (game.currentBettingRound === GamePhase.HAND_OVER) {
+            scheduleNextHand(gameId);
+        } else {
+            startActionTimer(gameId);
+        }
+        
+    } catch (error) {
+        console.error(`[BotManager] Error processing bot action:`, error);
+    }
+});
 
 function getSanitizedGameStateForClient(game) {
     if (!game) return null;
@@ -251,7 +297,8 @@ io.on(SocketEvents.CONNECT, (socket) => {
   socket.on(SocketEvents.CREATE_GAME, (data, callback) => {
     const { playerInfo, gameSettings } = data;
     const gameId = `game_${Math.random().toString(36).substr(2, 9)}`;
-    console.log(`Game created by ${playerInfo.name || socket.id} with ID: ${gameId}`);
+    console.log(`Game created by ${playerInfo.name || socket.id} with ID: ${gameId}`, 
+      { gameType: gameSettings.gameType, vsBot: gameSettings.vsBot });
 
     const gameState = gameEngine.initGameState(gameSettings);
     const creatorPlayer = initializeServerPlayer(socket.id, playerInfo, gameSettings.startingStack);
@@ -263,6 +310,51 @@ io.on(SocketEvents.CONNECT, (socket) => {
     gameState.gameSettings = gameSettings;
     gameState.hostId = socket.id;
     activeGames[gameId] = gameState;
+
+    // Create bots if this is a bot game
+    if (gameSettings.vsBot && gameSettings.botConfig) {
+      console.log(`[CreateGame] Creating bots for game ${gameId}`);
+      const { numBots, difficulty, botNames } = gameSettings.botConfig;
+      
+      try {
+        const bots = botManager.createBotsForGame(gameId, numBots, difficulty, botNames);
+        
+        // Add bots to the game as seated players
+        bots.forEach((bot, index) => {
+          const botPlayerInfo = {
+            userId: bot.id,
+            name: bot.botName,
+            isBot: true
+          };
+          
+          // Find an empty seat for the bot
+          const seatIndex = gameEngine.getSeatedPlayers(gameState).length + index;
+          if (seatIndex < gameSettings.maxPlayers) {
+            const result = gameEngine.sitDownWrapper(
+              gameState, 
+              bot.id, 
+              botPlayerInfo, 
+              seatIndex, 
+              gameSettings.startingStack || 1000
+            );
+            
+            if (result.error) {
+              console.error(`[CreateGame] Failed to seat bot ${bot.botName}:`, result.error);
+            } else {
+              console.log(`[CreateGame] Bot ${bot.botName} seated at position ${seatIndex}`);
+              
+              // Make the bot join the room (simulated)
+              botManager.joinBotToRoom(gameId, bot.id, gameId);
+            }
+          }
+        });
+        
+        console.log(`[CreateGame] Created ${bots.length} bots for game ${gameId}`);
+      } catch (error) {
+        console.error(`[CreateGame] Failed to create bots:`, error);
+        // Continue without bots rather than failing the game creation
+      }
+    }
 
     socket.join(gameId);
     callback && callback({ status: 'ok', gameId });
@@ -334,6 +426,13 @@ io.on(SocketEvents.CONNECT, (socket) => {
     if (game.currentBettingRound !== gameEngine.GamePhase.WAITING) return callback && callback({ status: 'error', message: 'Game already started' });
 
     gameEngine.startHand(game);
+    
+    // Notify bots of game start if this is a bot game
+    if (game.gameSettings?.vsBot) {
+      console.log(`[StartGame] Notifying bots for game ${gameId}`);
+      botManager.updateGameState(gameId, game);
+    }
+    
     io.to(gameId).emit(SocketEvents.GAME_STATE_UPDATE, { newState: getSanitizedGameStateForClient(game) });
     startActionTimer(gameId);
     callback && callback({ status: 'ok' });
@@ -377,6 +476,11 @@ io.on(SocketEvents.CONNECT, (socket) => {
         details
       }
     });
+    
+    // Notify bots of state change if this is a bot game
+    if (game.gameSettings?.vsBot) {
+      botManager.updateGameState(gameId, game);
+    }
 
     // Check if RIT vote is needed
     if (game.ritPending) {
@@ -530,6 +634,15 @@ io.on(SocketEvents.CONNECT, (socket) => {
       const game = activeGames[gameId];
       let playerWasInGame = false;
       let disconnectedPlayerName = 'A player';
+      
+      // Check if this was the last human player in a bot game
+      let wasLastHuman = false;
+      if (game.gameSettings?.vsBot) {
+        const humanPlayers = game.seats.filter(s => 
+          !s.isEmpty && s.player.id === socket.id
+        );
+        wasLastHuman = humanPlayers.length === 1;
+      }
 
       // Check if the disconnected player was in a seat
       const seatIndex = game.seats.findIndex(s => !s.isEmpty && s.player.id === socket.id);
@@ -588,6 +701,27 @@ io.on(SocketEvents.CONNECT, (socket) => {
         }
 
         io.to(gameId).emit(SocketEvents.GAME_STATE_UPDATE, { newState: getSanitizedGameStateForClient(game) });
+        
+        // Clean up bots if this was the last human player
+        if (wasLastHuman) {
+          console.log(`[Disconnect] Last human left bot game ${gameId}, cleaning up bots`);
+          botManager.removeBotsForGame(gameId);
+          
+          // Mark game for cleanup if no human players remain
+          setTimeout(() => {
+            const currentGame = activeGames[gameId];
+            if (currentGame && currentGame.gameSettings?.vsBot) {
+              const remainingHumans = currentGame.seats.filter(s => 
+                !s.isEmpty && !s.player.isBot
+              );
+              
+              if (remainingHumans.length === 0) {
+                console.log(`[Cleanup] Removing empty bot game ${gameId}`);
+                delete activeGames[gameId];
+              }
+            }
+          }, 30000); // 30 second grace period for reconnection
+        }
       }
     }
   });
