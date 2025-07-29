@@ -34,7 +34,7 @@
 
 @media (min-width: 768px) {
   .lessonContent {
-    width: 66.6667%;
+    width: 55%;
     margin-bottom: 0;
   }
 }
@@ -51,7 +51,7 @@
 
 @media (min-width: 768px) {
   .chatbotSection {
-    width: 33.3333%;
+    width: 45%;
     position: sticky;
     top: 3rem;
 

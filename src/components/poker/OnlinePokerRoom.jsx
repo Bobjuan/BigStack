@@ -333,7 +333,7 @@ function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
 
   const tableStyle = {
       width: '180vmin',
-      aspectRatio: '16/9',
+      aspectRatio: '1.75',
       backgroundSize: 'cover',
       backgroundPosition: 'center',
       backgroundRepeat: 'no-repeat',

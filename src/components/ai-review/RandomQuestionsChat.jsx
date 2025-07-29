@@ -6,7 +6,7 @@ import 'highlight.js/styles/github.css';
 
 const API_URL = 'http://127.0.0.1:5000/ask';
 
-const RandomQuestionsChat = ({ isWidget, inputValue, setInputValue, lessonsMode }) => {
+const RandomQuestionsChat = ({ isWidget, inputValue, setInputValue, lessonsMode, hideExampleQuestions = false }) => {
   const [messages, setMessages] = useState([
     { sender: 'bot', text: lessonsMode
       ? 'Hey Poker Player! I\'m P.H.I.L. - your Poker Hands Intuitive Language assistant. Ask me anything about the highlighted text!'
@@ -132,7 +132,7 @@ const RandomQuestionsChat = ({ isWidget, inputValue, setInputValue, lessonsMode 
             </div>
           )}
           {/* Example Questions Suggestions (under bot message, only if no user messages yet) */}
-          {messages.length === 1 && messages[0].sender === 'bot' && (
+          {messages.length === 1 && messages[0].sender === 'bot' && !hideExampleQuestions && (
             <div className="suggested-questions">
               {EXAMPLE_QUESTIONS.map((q, idx) => (
                 <button

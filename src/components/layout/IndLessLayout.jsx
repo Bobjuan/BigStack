@@ -8,7 +8,7 @@ const MIN_CHAT_WIDTH = 300;
 const IndLessLayout = ({ children }) => {
   const [chatInput, setChatInput] = useState('');
   const lessonRef = useRef(null);
-  const [lessonWidth, setLessonWidth] = useState(0.66); // percent of container (default 2/3)
+  const [lessonWidth, setLessonWidth] = useState(0.55); // percent of container (default 55% for lesson, 45% for bot)
   const containerRef = useRef(null);
   const isDragging = useRef(false);
 
@@ -105,7 +105,7 @@ const IndLessLayout = ({ children }) => {
           </div>
           <div style={{flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflowY: 'auto'}}>
             <h2 className={styles.chatbotTitle}>Ask the Poker Chatbot</h2>
-            <RandomQuestionsChat isWidget inputValue={chatInput} setInputValue={setChatInput} lessonsMode={true} />
+            <RandomQuestionsChat isWidget inputValue={chatInput} setInputValue={setChatInput} lessonsMode={true} hideExampleQuestions={true} />
           </div>
         </div>
       </div>

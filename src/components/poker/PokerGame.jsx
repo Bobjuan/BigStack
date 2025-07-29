@@ -413,7 +413,7 @@ function getPlayerPosition(index, totalPlayers, currentTableWidth, currentTableH
 function getTableStyle(tableTheme) {
     const style = {
         width: '180vmin',
-        aspectRatio: '16/9',
+        aspectRatio: '1.75',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',

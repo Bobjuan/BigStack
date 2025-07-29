@@ -62,7 +62,7 @@ const TournamentPage = () => {
         </div>
       </div>
       
-      <div className="aspect-video bg-[#2f3542] rounded-lg mb-6 flex items-center justify-center">
+      <div className="aspect-[1.75] bg-[#2f3542] rounded-lg mb-6 flex items-center justify-center">
         <p className="text-gray-400">Tournament table will be rendered here</p>
       </div>
 
