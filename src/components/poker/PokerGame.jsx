@@ -307,7 +307,7 @@ function getWinningCommunityCardIndices(winningHandCards, communityCards) {
 // --- Helper Functions ---
 
 // Player Positioning Logic
-function getPlayerPosition(index, totalPlayers, currentTableWidth, currentTableHeight) {
+function getPlayerPosition(index, totalPlayers, currentTableWidth, currentTableHeight, isMobile = false) {
     if (currentTableWidth === 0 || currentTableHeight === 0) {
         const defaultStyle = { position: 'absolute', left: '0%', top: '0%', width: '0px', height: '0px', opacity: 0, zIndex: 0 };
         return { infoStyle: defaultStyle, cardStyle: defaultStyle, betStyle: defaultStyle, cardWidth: 0, playerAngle: 0 };
@@ -352,7 +352,7 @@ function getPlayerPosition(index, totalPlayers, currentTableWidth, currentTableH
 
     // Calculate Card Hand Position 
     let cardX = baseX - cardWidth / 2;
-    let cardY = infoY - cardHeight * 1.08; // Restore original logic
+    let cardY = infoY - cardHeight * (isMobile ? 1.8 : 1.0); // Mobile: more distance, Desktop: original spacing
     const cardLeftPercent = (cardX / tableWidth) * 100;
     const cardTopPercent = (cardY / tableHeight) * 100;
     const cardStyle = {
@@ -410,7 +410,7 @@ function getPlayerPosition(index, totalPlayers, currentTableWidth, currentTableH
 }
 
 // Table Style Logic
-function getTableStyle(tableTheme) {
+function getTableStyle(tableTheme, isMobile = false) {
     const style = {
         width: '100%',
         height: '100%',
@@ -421,6 +421,8 @@ function getTableStyle(tableTheme) {
         overflow: 'visible',
         backgroundImage: `url(${tableBg})`,
     };
+    
+    // Don't rotate the container - we'll handle background rotation separately
     switch (tableTheme) {
         case 'light':
             style.backgroundColor = '#f0f0f0';
@@ -503,7 +505,7 @@ function getPlayerInfoClasses(player, tableTheme, isShowdownOrHandOver, winnerPl
 }
 // --- End Helper Functions ---
 
-function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = null, vsBot = false, botPlayerIndex = 1, initialNumPlayers, scenarioTitle, scenarioDescription, actionSequence = null }) {
+function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = null, vsBot = false, botPlayerIndex = 1, initialNumPlayers, scenarioTitle, scenarioDescription, actionSequence = null, isMobile = false }) {
     const { user } = useAuth(); // Get authenticated user for stats tracking
     const defaultNumPlayers = vsBot ? (initialNumPlayers || 2) : initialGameState.numPlayers;
     const [numPlayers, setNumPlayers] = useState(defaultNumPlayers);
@@ -1801,6 +1803,25 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
                 className="poker-table relative overflow-hidden"
                 style={getTableStyle(tableTheme)}
             >
+                {/* Rotated background layer for mobile */}
+                {isMobile && (
+                    <div 
+                        className="absolute"
+                        style={{
+                            backgroundImage: `url(${tableBg})`,
+                            backgroundSize: 'contain',
+                            backgroundPosition: 'center',
+                            backgroundRepeat: 'no-repeat',
+                            transform: 'rotate(90deg)',
+                            transformOrigin: 'center center',
+                            zIndex: 0,
+                            width: '180%',
+                            height: '150%',
+                            left: '-40%',
+                            top: '-20%'
+                        }}
+                    />
+                )}
                 {/* Central Area for Community Cards & Pot */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none">
                     {/* Use the same cardWidth as PlayerHand for community cards */}
@@ -1829,7 +1850,7 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
                 {/* Players Area - Render Player Info and Hand separately */}
                 <div className="players-area absolute inset-0 w-full h-full z-0">
                     {rotatedPlayers.map((player, index) => {
-                        const { infoStyle, cardStyle, betStyle, cardWidth: currentPlayerCardWidth } = getPlayerPosition(index, rotatedPlayers.length, tableDimensions.width, tableDimensions.height);
+                        const { infoStyle, cardStyle, betStyle, cardWidth: currentPlayerCardWidth } = getPlayerPosition(index, rotatedPlayers.length, tableDimensions.width, tableDimensions.height, isMobile);
                         const infoClasses = getPlayerInfoClasses(player, tableTheme, isShowdownOrHandOver && showWinnerAnimation, winnerPlayerIds);
                         // Determine card visibility logic
                         let showPlayerCards = true;

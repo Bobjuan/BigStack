@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 export const usePokerGameScaling = () => {
   const containerRef = useRef(null);
   const [scale, setScale] = useState(1);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     const calculateScale = () => {
@@ -12,9 +13,18 @@ export const usePokerGameScaling = () => {
       const containerWidth = container.clientWidth;
       const containerHeight = container.clientHeight;
       
-      // Fixed ideal dimensions of the poker game
-      const idealWidth = 1400;
-      const idealHeight = 800;
+      // Determine if we should use mobile layout
+      // Use mobile layout when width is less than 768px AND aspect ratio is portrait-like
+      const mobileBreakpoint = 768;
+      const aspectRatio = containerWidth / containerHeight;
+      const isPortrait = aspectRatio < 1; // Width is less than 80% of height
+      const shouldUseMobile = containerWidth < mobileBreakpoint && isPortrait;
+      
+      setIsMobile(shouldUseMobile);
+      
+      // Fixed ideal dimensions - switch between landscape and portrait
+      const idealWidth = shouldUseMobile ? 800 : 1400;  // Portrait vs Landscape
+      const idealHeight = shouldUseMobile ? 1400 : 800;  // Portrait vs Landscape
       
       // Add padding to ensure the game never gets too close to the edges
       const padding = 0; // 20px padding on all sides
@@ -55,5 +65,5 @@ export const usePokerGameScaling = () => {
     };
   }, []);
 
-  return { containerRef, scale };
+  return { containerRef, scale, isMobile };
 }; 

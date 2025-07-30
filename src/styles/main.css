@@ -164,4 +164,11 @@
   /* Ensure proper positioning */
   margin: 0;
   padding: 0;
+}
+
+/* Mobile container - portrait orientation */
+.poker-game-container-mobile {
+  width: 800px; /* Mobile ideal width */
+  height: 1400px; /* Mobile ideal height */
+  aspect-ratio: 0.57; /* 800/1400 = 0.57 */
 } 

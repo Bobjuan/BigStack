@@ -2,7 +2,7 @@ import React from 'react';
 import { usePokerGameScaling } from '../../hooks/usePokerGameScaling';
 
 const ResponsivePokerGame = ({ children }) => {
-  const { containerRef, scale } = usePokerGameScaling();
+  const { containerRef, scale, isMobile } = usePokerGameScaling();
 
   return (
     <div className="w-full h-full bg-black flex items-center justify-center overflow-hidden play-page">
@@ -11,13 +11,13 @@ const ResponsivePokerGame = ({ children }) => {
         className="relative w-full h-full"
       >
         <div 
-          className="poker-game-container"
+          className={`poker-game-container ${isMobile ? 'poker-game-container-mobile' : ''}`}
           style={{ 
             transform: `translate(-50%, -50%) scale(${scale})`,
             transformOrigin: 'center center'
           }}
         >
-          {children}
+          {React.cloneElement(children, { isMobile })}
         </div>
       </div>
     </div>
