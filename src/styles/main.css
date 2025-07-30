@@ -135,7 +135,6 @@
 .poker-table {
   width: 100%;
   height: 100%;
-  aspect-ratio: 1.75;
   background: #111;
   position: relative;
   overflow: visible;
@@ -150,6 +149,7 @@
 .poker-game-container {
   width: 1400px; /* Fixed ideal width */
   height: 800px; /* Fixed ideal height (1400/1.75 = 800) */
+  aspect-ratio: 1.75;
   display: flex;
   align-items: center;
   justify-content: center;
