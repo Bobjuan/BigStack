@@ -122,7 +122,9 @@ botManager.on('botAction', (actionData) => {
 function getSanitizedGameStateForClient(game) {
     if (!game) return null;
     if (typeof game.getPublicState === 'function') {
-        return game.getPublicState();
+        const state = game.getPublicState();
+    state.hostUserId = game.hostUserId;
+    return state;
     }
     
     // First, create a shallow copy and remove non-serializable properties
@@ -136,6 +138,7 @@ function getSanitizedGameStateForClient(game) {
     // Remove server-side only properties that shouldn't be sent to client
     delete stateForClient.deck; // Client doesn't need the full deck
     
+    stateForClient.hostUserId = game.hostUserId;
     return stateForClient;
 }
 
@@ -309,6 +312,7 @@ io.on(SocketEvents.CONNECT, (socket) => {
     gameState.id = gameId;
     gameState.gameSettings = gameSettings;
     gameState.hostId = socket.id;
+    gameState.hostUserId = playerInfo.userId || socket.id; // persistent host tied to account
     activeGames[gameId] = gameState;
 
     // Create bots if this is a bot game
@@ -420,7 +424,13 @@ io.on(SocketEvents.CONNECT, (socket) => {
   socket.on(SocketEvents.START_GAME, (gameId, callback) => {
     const game = activeGames[gameId];
     if (!game) return callback && callback({ status: 'error', message: 'Game not found' });
-    if (game.hostId !== socket.id) return callback && callback({ status: 'error', message: 'Only host can start' });
+        // Host permission check using persistent userId fallbacking to socket.id
+    const playerRecord = game.seats.find(s => !s.isEmpty && s.player.id === socket.id)?.player ||
+                         game.spectators.find(p => p.id === socket.id);
+    const myUserId = playerRecord?.userId || socket.id;
+    if (game.hostUserId ? game.hostUserId !== myUserId : game.hostId !== socket.id) {
+      return callback && callback({ status: 'error', message: 'Only host can start' });
+    }
     const seatedPlayers = gameEngine.getSeatedPlayers(game);
     if (seatedPlayers.length < 2) return callback && callback({ status: 'error', message: 'Need at least 2 seated players to start' });
     if (game.currentBettingRound !== gameEngine.GamePhase.WAITING) return callback && callback({ status: 'error', message: 'Game already started' });

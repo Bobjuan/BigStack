@@ -1,0 +1,10 @@
+[33m9eb4011[m[33m ([m[1;36mHEAD -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m mobile done
+[33mbc12f8b[m tablet
+[33mace6591[m mobile try
+[33m51ead2e[m   feat: implement complete backend poker migration infrastructure
+[33mdabe61e[m Merge branch 'main' of https://github.com/Bobjuan/BigStack
+[33m5f42737[m updated UI for live play + syncing of backend service overhaul
+[33m29fcbfd[m bot page overhaul
+[33m23905e8[m bot icon
+[33m4c2fa33[m bot in dna
+[33md3a948c[m[33m ([m[1;32mtest/poker-tsscaffold[m[33m)[m switched over to poker-ts

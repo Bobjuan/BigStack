@@ -219,7 +219,7 @@ function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
   }, [socket, initialGameSettings, joinWithGameId, handleCreateGame, handleJoinGame, hasAutoActionTriggered]);
 
   const handleStartGame = useCallback(() => {
-    if (socket && gameId && gameState && gameState.hostId === socket.id) {
+    if (socket && gameId && gameState && amIHost) {
       socket.emit('startGame', gameId, (response) => {
         if (response.status === 'ok') {
           setMessages(prev => [...prev, 'Game started!']);
@@ -266,7 +266,7 @@ function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
   };
 
   const handleSaveSettings = useCallback((newSettings) => {
-    if (socket && gameId && gameState?.hostId === socket.id) {
+    if (socket && gameId && amIHost) {
         socket.emit('updateGameSettings', { gameId, newSettings }, (response) => {
             if (response.status === 'ok') {
                 setMessages(prev => [...prev, 'Game settings have been updated for the next hand.']);
@@ -288,6 +288,12 @@ function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
   const bigBlind = gameState?.gameSettings?.blinds?.big || 10;
   const isPreflop = gameState?.currentBettingRound === GamePhase.PREFLOP;
   let preflopOptions = [];
+
+  // Determine if current user is host using persistent hostUserId when available
+  const amIHost = gameState && (
+    (gameState.hostUserId && user?.id && gameState.hostUserId === user.id) ||
+    (!gameState.hostUserId && gameState.hostId === socket?.id)
+  );
 
   const seatedPlayers = gameState?.seats ? gameState.seats.filter(s => !s.isEmpty).map(s => s.player) : [];
   const currentPlayerFromServer = gameState?.currentPlayerIndex >= 0 ? seatedPlayers[gameState.currentPlayerIndex] : null;
@@ -460,7 +466,7 @@ function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
         </div>
 
         {/* Start game button (host only) */}
-        {gameState && gameState.hostId === socket?.id && gameState.currentBettingRound === GamePhase.WAITING && (
+        {gameState && amIHost && gameState.currentBettingRound === GamePhase.WAITING && (
             <div className="absolute top-4 right-4 z-30">
                {gameState.seats.filter(s=>!s.isEmpty).length >=2 ? (
                   <button
@@ -501,7 +507,7 @@ function OnlinePokerRoom({ initialGameSettings, joinWithGameId }) {
             <GameSettingsModal 
                 gameSettings={gameState?.gameSettings} 
                 onClose={() => setIsSettingsModalOpen(false)} 
-                isHost={gameState?.hostId === socket?.id}
+                isHost={amIHost}
                 onSave={handleSaveSettings}
             />
         )}
