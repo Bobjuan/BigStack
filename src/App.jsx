@@ -33,6 +33,7 @@ import MainLayout from './components/layout/MainLayout';
 import AiReviewPage from './pages/AiReviewPage';
 import FloatingChatWidget from './components/ai-review/FloatingChatWidget';
 import HandReviewPage from './pages/HandReviewPage';
+import HandHistoryListPage from './pages/HandHistoryListPage';
 import Bot6MaxPage from './pages/game/Bot6MaxPage';
 import Bot9MaxPage from './pages/game/Bot9MaxPage';
 
@@ -88,6 +89,7 @@ function App() {
 
           {/* Hand Review */}
           <Route path="/hand/:handId" element={<AuthenticatedPage><HandReviewPage /></AuthenticatedPage>} />
+          <Route path="/hands" element={<AuthenticatedPage><HandHistoryListPage /></AuthenticatedPage>} />
 
           {/* Other Routes */}
           <Route path="/ai-review" element={<AuthenticatedPage><AiReviewPage /></AuthenticatedPage>} />

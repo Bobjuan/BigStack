@@ -67,11 +67,16 @@ const ProfilePage = () => {
       }
 
       const formattedHands = (data || []).map(hand => {
-        const playerData = hand.history?.players?.find(p => p.playerId === user.id);
-        const result = hand.history?.winners?.some(
-          w => w.playerId === user.id || w.id === user.id
-        ) ? 'Won' : 'Lost';
-        
+                const playerData = hand.history?.players?.find(p => p.playerId === user.id);
+        let delta = 0;
+        const seat = (hand.history?.players || []).find(p => p.playerId === user.id);
+        if (seat && typeof seat.finalStack === 'number' && typeof seat.startingStack === 'number') {
+          delta = seat.finalStack - seat.startingStack;
+        } else {
+          const winEntry = hand.history?.winners?.find(w => w.playerId === user.id || w.id === user.id);
+          if (winEntry) delta = winEntry.amountWon || 0;
+        }
+
         return {
           handId: hand.hand_id,
           handNumber: hand.hand_number,
@@ -79,7 +84,7 @@ const ProfilePage = () => {
           cards: playerData?.cards || [],
           position: playerData?.position || 'Unknown',
           potSize: hand.history?.potSize || 0,
-          result
+          delta
         };
       });
 
@@ -609,12 +614,17 @@ const ProfilePage = () => {
                 {/* Recent Hands */}
                 <div className="mb-6">
                   <div className="bg-gray-800/30 rounded-xl p-4 border border-gray-700/30">
-                    <h3 className="text-sm font-semibold text-gray-300 mb-4 flex items-center">
+                    <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-sm font-semibold text-gray-300 flex items-center">
                       <svg className="w-4 h-4 mr-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                       Recent Hands
                     </h3>
+                    <button onClick={() => navigate('/hands')} className="text-xs text-blue-400 hover:underline">
+                      View all
+                    </button>
+                    </div>
                     {handsLoading ? (
                       <div className="flex justify-center py-4">
                         <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-400"></div>
@@ -627,7 +637,7 @@ const ProfilePage = () => {
                               <span className="text-gray-400 text-sm font-mono">#{hand.handNumber}</span>
                               <span className="font-mono text-white font-semibold">{formatCards(hand.cards)}</span>
                               <span className="text-gray-400 text-sm">{hand.position}</span>
-                              <span className={`text-sm font-semibold ${hand.result === 'Won' ? 'text-green-400' : 'text-red-400'}`}>{hand.result}</span>
+                              <span className={`text-sm font-semibold ${hand.delta > 0 ? 'text-green-400' : hand.delta < 0 ? 'text-red-400' : 'text-gray-400'}`}>{hand.delta > 0 ? '+' + hand.delta : hand.delta}</span>
                             </div>
                             <button 
                               onClick={() => handleReviewHand(hand.handId)}
