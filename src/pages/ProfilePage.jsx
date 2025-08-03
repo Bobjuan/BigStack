@@ -51,37 +51,26 @@ const ProfilePage = () => {
 
   // Fetch recent hands for the player
   const fetchRecentHands = async () => {
+    if (!user?.id) return;
     setHandsLoading(true);
     try {
-      console.log('Fetching recent hands for user:', user.id);
-      
-      // Try different approaches to find hands
       const { data, error } = await supabase
         .from('hand_histories')
-        .select('hand_id, hand_number, played_at, history, player_ids')
+        .select('hand_id, hand_number, played_at, history')
+        .contains('player_ids', [user.id]) // server-side filter for this player
         .order('played_at', { ascending: false })
-        .limit(50); // Get more to filter client-side
+        .limit(5);
 
       if (error) {
         console.error('Error fetching hands:', error);
         return;
       }
 
-      console.log('Raw hand data:', data);
-
-      // Filter hands that include this player
-      const playerHands = (data || []).filter(hand => {
-        const playerIds = hand.player_ids || [];
-        const includesPlayer = playerIds.includes(user.id);
-        console.log('Hand', hand.hand_number, 'player_ids:', playerIds, 'includes user:', includesPlayer);
-        return includesPlayer;
-      });
-
-      console.log('Filtered player hands:', playerHands);
-
-      const formattedHands = playerHands.slice(0, 5).map(hand => {
+      const formattedHands = (data || []).map(hand => {
         const playerData = hand.history?.players?.find(p => p.playerId === user.id);
-        const result = hand.history?.winners?.some(w => w.playerId === user.id || w.id === user.id) ? 'Won' : 'Lost';
+        const result = hand.history?.winners?.some(
+          w => w.playerId === user.id || w.id === user.id
+        ) ? 'Won' : 'Lost';
         
         return {
           handId: hand.hand_id,
@@ -94,7 +83,6 @@ const ProfilePage = () => {
         };
       });
 
-      console.log('Formatted hands:', formattedHands);
       setRecentHands(formattedHands);
     } catch (error) {
       console.error('Error fetching recent hands:', error);
@@ -272,8 +260,8 @@ const ProfilePage = () => {
   };
 
   const handleReviewHand = (handId) => {
-    // TODO: Open hand review modal or navigate to review page
-    console.log('Reviewing hand:', handId);
+    if (!handId) return;
+    navigate(`/hand/${handId}`);
   };
 
   const handleEnterHand = () => {

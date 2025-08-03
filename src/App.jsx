@@ -32,6 +32,7 @@ import PracticeScenarioPage from './pages/learn/practice/PracticeScenarioPage';
 import MainLayout from './components/layout/MainLayout';
 import AiReviewPage from './pages/AiReviewPage';
 import FloatingChatWidget from './components/ai-review/FloatingChatWidget';
+import HandReviewPage from './pages/HandReviewPage';
 import Bot6MaxPage from './pages/game/Bot6MaxPage';
 import Bot9MaxPage from './pages/game/Bot9MaxPage';
 
@@ -84,6 +85,9 @@ function App() {
           <Route path="/learn/quiz" element={<AuthenticatedPage><QuizPage /></AuthenticatedPage>} />
           <Route path="/learn/practice" element={<AuthenticatedPage><PracticeMenuPage /></AuthenticatedPage>} />
           <Route path="/learn/practice/:scenarioId" element={<AuthenticatedPage><PracticeScenarioPage /></AuthenticatedPage>} />
+
+          {/* Hand Review */}
+          <Route path="/hand/:handId" element={<AuthenticatedPage><HandReviewPage /></AuthenticatedPage>} />
 
           {/* Other Routes */}
           <Route path="/ai-review" element={<AuthenticatedPage><AiReviewPage /></AuthenticatedPage>} />
