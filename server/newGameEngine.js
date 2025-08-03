@@ -395,7 +395,7 @@ GameWrapper.prototype.startHand = function() {
     }
   });
   // Shared state for tracker logic
-  this.handStats.sharedState = { preflopRaiseMade:false };
+  this.handStats.sharedState = { preflopRaiseMade:false, raiseCount:0, preflopAggressorId:null, streets:{ FLOP:{actors:[],firstAggressorId:null}, TURN:{actors:[],firstAggressorId:null}, RIVER:{actors:[],firstAggressorId:null} } };
 
   this._mirrorSeatData();
   this._debugSeatReport('startHand');
@@ -503,6 +503,18 @@ GameWrapper.prototype._syncAfterAction = function(){
       if (!this.winners || this.winners.length === 0){
         this._determineWinnersNoShowdown();
       }
+    }
+
+    // ---- finalize per-hand stats ----
+    if (this.handStats && this.winners && this.winners.length){
+      this.winners.forEach(w=>{
+        const statObj = this.handStats[w.id];
+        if (statObj && statObj.increments){
+          statObj.increments.hands_won = 1;
+          statObj.increments.total_pot_size_won += w.amountWon || 0;
+          statObj.increments.total_bb_won += (w.amountWon || 0) / this.bigBlind;
+        }
+      });
     }
 
     // Commit stats to DB
