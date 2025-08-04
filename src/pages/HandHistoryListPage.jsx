@@ -13,7 +13,7 @@ export default function HandHistoryListPage() {
     const fetchHands = async () => {
       setLoading(true);
       const { data, error } = await supabase
-        .from('hand_histories')
+        .from('hand_histories_v2')
         .select('hand_id, hand_number, played_at, history, player_ids')
         .contains('player_ids', [user.id])
         .order('played_at', { ascending: false })

@@ -130,6 +130,17 @@ function createHandStatsObject(playerId) {
       sbStealLogged: false,
       sbDefendLogged: false,
       bbStealLogged: false,
+      openLimpActionLogged: false,
+      donkOpportunityLogged: false,
+      donkActionLogged: false,
+      chRaiseOpportunityLogged: false,
+      chRaiseActionLogged: false,
+      was_open_raiser: false,
+      was_three_bettor: false,
+      foldVs3betOpportunityLogged: false,
+      foldVs4betOpportunityLogged: false,
+      foldVs3betActionLogged: false,
+      foldVs4betActionLogged: false,
     }
   };
 }
@@ -177,13 +188,15 @@ function trackAction(handStats, game, player, action) {
     // --- Open-Limp Tracking ---
     // Opportunity: Player acts pre-flop before any raise has occurred.
     const noRaiseYet = !(handStats.sharedState && handStats.sharedState.preflopRaiseMade);
-    if (noRaiseYet && !stats.handState.hasActedPreflop) {
-      // First time this player acts and pot is unopened → they COULD limp.
+    if (noRaiseYet && !stats.handState.hasActedPreflop && !handStats.sharedState.firstPreflopActorLogged) {
+      // The very first actor pre-flop (pot unopened) has an open-limp opportunity.
       stats.increments.open_limp_opportunities = 1;
+      handStats.sharedState.firstPreflopActorLogged = true;
     }
-    // Record an open-limp action = calling when no raise yet.
-    if (noRaiseYet && action === 'call') {
+    // Record an open-limp action only for that first actor.
+    if (handStats.sharedState.firstPreflopActorLogged && action === 'call' && !stats.handState.openLimpActionLogged) {
       stats.increments.open_limp_actions = 1;
+      stats.handState.openLimpActionLogged = true;
     }
 
     // --- Big Blind Defence Tracking ---
@@ -197,14 +210,17 @@ function trackAction(handStats, game, player, action) {
     }
 
     // --- Defence & Fold vs Steal Tracking for SB/BB ---
+    const isHeadsUp = handStats.sharedState && handStats.sharedState.isHeadsUp;
     const firstRaiseOnly = handStats.sharedState && handStats.sharedState.raiseCount === 1;
-    if (firstRaiseOnly && (player.isSB || player.isBB)) {
+    if (!isHeadsUp && firstRaiseOnly && (player.isSB || player.isBB)) {
       if (player.isSB && !stats.handState.sbStealLogged) {
+        // Any time SB faces a single pre-flop raise, they have a defend opportunity.
+        stats.increments.sb_defend_opportunities = 1;
         stats.increments.sb_fold_vs_steal_opportunities = 1;
-        if (action === 'fold') stats.increments.sb_fold_vs_steal_actions = 1;
-        // Record SB defend when they call/raise
-        if (action === 'call' || action === 'bet' || action === 'raise') {
-          stats.increments.sb_defend_opportunities = 1;
+
+        if (action === 'fold') {
+          stats.increments.sb_fold_vs_steal_actions = 1;
+        } else if (action === 'call' || action === 'bet' || action === 'raise') {
           stats.increments.sb_defend_actions = 1;
         }
         stats.handState.sbStealLogged = true;
@@ -213,6 +229,17 @@ function trackAction(handStats, game, player, action) {
         stats.increments.bb_fold_vs_steal_opportunities = 1;
         if (action === 'fold') stats.increments.bb_fold_vs_steal_actions = 1;
         stats.handState.bbStealLogged = true;
+      }
+    }
+
+    // --- Fold vs 3-bet / 4-bet action logging ---
+    if (action === 'fold') {
+      if (stats.handState.was_open_raiser && handStats.sharedState && handStats.sharedState.raiseCount >= 2 && stats.handState.foldVs3betOpportunityLogged && !stats.handState.foldVs3betActionLogged) {
+        stats.increments.fold_vs_3bet_actions += 1;
+        stats.handState.foldVs3betActionLogged = true;
+      } else if (stats.handState.was_three_bettor && handStats.sharedState && handStats.sharedState.raiseCount >= 3 && stats.handState.foldVs4betOpportunityLogged && !stats.handState.foldVs4betActionLogged) {
+        stats.increments.fold_vs_4bet_actions += 1;
+        stats.handState.foldVs4betActionLogged = true;
       }
     }
 
@@ -229,12 +256,34 @@ function trackAction(handStats, game, player, action) {
         stats.positionIncrements[player.positionName] = posStats;
     }
 
+    // --- 3-BET / 4-BET OPPORTUNITY TRACKING ---
+    if (handStats.sharedState && handStats.sharedState.raiseCount === 1 && !player.isBB && !player.isSB && !stats.handState.hasActedPreflop) {
+      // A single raise is in the pot, and this player has the chance to 3-bet.
+      stats.increments["3bet_opportunities"] += 1;
+    }
+
+    if (handStats.sharedState && handStats.sharedState.raiseCount === 2 && stats.handState.was_open_raiser && !stats.handState.foldVs3betOpportunityLogged) {
+      // Original raiser is now facing a 3-bet → 4-bet opportunity + fold-vs-3bet opportunity.
+      stats.increments["4bet_opportunities"] += 1;
+      stats.increments.fold_vs_3bet_opportunities += 1;
+      stats.handState.foldVs3betOpportunityLogged = true;
+    }
+
+    if (handStats.sharedState && handStats.sharedState.raiseCount === 3 && stats.handState.was_three_bettor && !stats.handState.foldVs4betOpportunityLogged) {
+      // 3-bettor now facing a 4-bet → fold-vs-4bet opportunity.
+      stats.increments.fold_vs_4bet_opportunities += 1;
+      stats.handState.foldVs4betOpportunityLogged = true;
+    }
+
     // --- PFR (Pre-Flop Raise) Tracking ---
     // A PFR action is ANY raise made pre-flop. We only count it once per hand.
     // CRITICAL FIX: We check for 'bet' OR 'raise' as the engine uses 'bet' for the first aggression.
     const isPreflopRaise = (action === 'bet' || action === 'raise');
 
     if (isPreflopRaise && !stats.handState.hasRaisedPreflop) {
+      // Determine current raise level BEFORE we increment.
+      const currentRaiseLevel = handStats.sharedState ? handStats.sharedState.raiseCount : 0; // 0 = unopened, 1 = open-raise, 2 = 3-bet, 3 = 4-bet
+
       if (handStats.sharedState) {
         handStats.sharedState.preflopRaiseMade = true;
         handStats.sharedState.preflopAggressorId = player.userId;
@@ -242,12 +291,32 @@ function trackAction(handStats, game, player, action) {
           handStats.sharedState.raiseCount += 1;
         }
       }
-      stats.handState.is_preflop_aggressor = true;
-      stats.increments.pfr_actions = 1;
-      const posStats = stats.positionIncrements[player.positionName] || { vpip_opportunities: 0, vpip_actions: 0, pfr_opportunities: 0, pfr_actions: 0 };
-      posStats.pfr_actions = 1;
-      stats.positionIncrements[player.positionName] = posStats;
-      stats.handState.hasRaisedPreflop = true; // Mark that they have now raised.
+
+      // Log PFR (open raise) / 3-bet / 4-bet actions
+      if (currentRaiseLevel === 0) {
+        // First raise = normal open (PFR)
+        stats.increments.pfr_actions = 1;
+        stats.handState.was_open_raiser = true;
+      } else if (currentRaiseLevel === 1) {
+        // This is a 3-bet
+        stats.increments["3bet_actions"] += 1;
+        stats.handState.was_three_bettor = true;
+      } else if (currentRaiseLevel === 2) {
+        // This is a 4-bet (or higher)
+        stats.increments["4bet_actions"] += 1;
+      }
+
+      // Positional PFR flag (only meaningful for first raise)
+      if (currentRaiseLevel === 0) {
+        const posStats = stats.positionIncrements[player.positionName] || { vpip_opportunities: 0, vpip_actions: 0, pfr_opportunities: 0, pfr_actions: 0 };
+        posStats.pfr_actions = 1;
+        stats.positionIncrements[player.positionName] = posStats;
+      }
+
+      // Mark internal flags
+      if (currentRaiseLevel === 0) stats.handState.is_preflop_aggressor = true;
+      stats.handState.hasRaisedPreflop = true; // Prevent double counting per player
+
       if (handStats.sharedState) {
         handStats.sharedState.preflopRaiseMade = true;
       }
@@ -260,7 +329,11 @@ function trackAction(handStats, game, player, action) {
     }
     const street = game.currentBettingRound; // FLOP / TURN / RIVER
     if (!handStats.sharedState.streets) {
-      handStats.sharedState.streets = { FLOP:{actors:[],firstAggressorId:null}, TURN:{actors:[],firstAggressorId:null}, RIVER:{actors:[],firstAggressorId:null} };
+      handStats.sharedState.streets = {
+        FLOP: { actors: [], firstAggressorId: null, hasAggression: false },
+        TURN: { actors: [], firstAggressorId: null, hasAggression: false },
+        RIVER: { actors: [], firstAggressorId: null, hasAggression: false }
+      };
     }
     const streetState = handStats.sharedState.streets[street];
     // Track action order
@@ -268,6 +341,10 @@ function trackAction(handStats, game, player, action) {
     // First aggressor on street
     if (!streetState.firstAggressorId && (action === 'bet' || action === 'raise')) {
       streetState.firstAggressorId = player.userId;
+    }
+    // Mark that aggression has occurred on this street
+    if (action === 'bet' || action === 'raise') {
+      streetState.hasAggression = true;
     }
 
     // ===== FLOP-specific advanced stats =====
@@ -284,10 +361,15 @@ function trackAction(handStats, game, player, action) {
     const isFlop = street === 'FLOP';
     // ---- generic C-bet stats for any street ----
     const cbetFlag = `cbet${street}Logged`;
-    if (stats.handState.is_preflop_aggressor && streetState.actors[0] === player.userId) {
+    // ----- Improved C-bet opportunity detection -----
+    if (stats.handState.is_preflop_aggressor && !streetState.hasAggression) {
+      // The aggressor has an opportunity as long as nobody has bet/raised yet on this street.
       if (!stats.handState[cbetFlag]) {
         stats.increments[cbetOppKey] += 1;
-        if (action === 'bet' || action === 'raise') stats.increments[cbetActKey] += 1;
+        // If they choose to bet or raise now, log the action.
+        if (action === 'bet' || action === 'raise') {
+          stats.increments[cbetActKey] += 1;
+        }
         stats.handState[cbetFlag] = true;
       }
     }
@@ -314,18 +396,29 @@ function trackAction(handStats, game, player, action) {
     }
 
     if (isFlop) {
-      // Donk-bet (OOP leads into preflop aggressor and is first to act)
-      if (!stats.handState.is_preflop_aggressor && streetState.actors[0] === player.userId && (action === 'bet' || action === 'raise')) {
+      // ------- Donk-bet tracking -------
+      const isFirstToAct = streetState.actors[0] === player.userId;
+      if (!stats.handState.is_preflop_aggressor && isFirstToAct && !stats.handState.donkOpportunityLogged) {
         stats.increments.donk_flop_opportunities = 1;
+        stats.handState.donkOpportunityLogged = true;
+      }
+      if (!stats.handState.is_preflop_aggressor && isFirstToAct && (action === 'bet' || action === 'raise') && !stats.handState.donkActionLogged) {
         stats.increments.donk_flop_actions = 1;
+        stats.handState.donkActionLogged = true;
       }
 
-      // Check-Raise
+      // ------- Check-Raise tracking -------
       if (!stats.handState.checkedThisStreet && action === 'check') {
+        // Player checks first time this street.
         stats.handState.checkedThisStreet = true;
-      } else if (stats.handState.checkedThisStreet && (action === 'raise')) {
+      } else if (stats.handState.checkedThisStreet && !stats.handState.chRaiseOpportunityLogged) {
+        // Once the player has checked, any subsequent aggression they face creates an opportunity.
         stats.increments.ch_raise_flop_opportunities = 1;
+        stats.handState.chRaiseOpportunityLogged = true;
+      }
+      if (stats.handState.chRaiseOpportunityLogged && action === 'raise' && !stats.handState.chRaiseActionLogged) {
         stats.increments.ch_raise_flop_actions = 1;
+        stats.handState.chRaiseActionLogged = true;
       }
     }
     // Post-flop actions are simpler to track for Aggression Factor.

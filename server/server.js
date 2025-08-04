@@ -746,7 +746,7 @@ app.get('/api/games/:gameId/hands', async (req, res) => {
   const limit = Math.min(parseInt(req.query.limit) || 20, 100);
 
   const { data, error } = await supabase
-    .from('hand_histories')
+    .from('hand_histories_v2')
     .select('hand_id, hand_number, played_at, history')
     .eq('game_id', gameId)
     .order('hand_number', { ascending: false })
@@ -770,7 +770,7 @@ app.get('/api/hands/:handId', async (req, res) => {
   const { handId } = req.params;
 
   const { data, error } = await supabase
-    .from('hand_histories')
+    .from('hand_histories_v2')
     .select('history')
     .eq('hand_id', handId)
     .single();

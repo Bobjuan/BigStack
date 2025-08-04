@@ -51,9 +51,11 @@ async function saveHandHistory(game) {
     const playerIds = (game.seats || [])
       .filter(s => s && !s.isEmpty && s.player && s.player.userId)
       .map(s => s.player.userId);
-    const { error } = await supabase.from('hand_histories').insert({
+    const { error } = await supabase.from('hand_histories_v2').insert({
+      hand_id: history.handId,             // explicit PK value
       game_id: game.id,
       hand_number: game.handCounter,
+      played_at: history.startedAt,        // keeps the same timestamp used in JSON
       player_ids: playerIds,
       history
     });

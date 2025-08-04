@@ -4,8 +4,10 @@ import { supabase } from '../config/supabase';
 import PlayerStyleGraph from '../components/ai-review/PlayerStyleGraph';
 import { useNavigate } from 'react-router-dom';
 import CoachPanel from '../components/ai-review/CoachPanel';
+import { leakTexts } from '../leakTexts';
 
 // --- Helper Functions for Stat Calculation ---
+import { thresholds, classify } from '../utils/pokerThresholds';
 const calculateStat = (actions, opportunities) => {
   if (!opportunities || opportunities === 0) return 0;
   return (actions / opportunities) * 100;
@@ -37,13 +39,48 @@ const getPlayerType = (vpip, aggression, hands) => {
 
 // --- Leak Analysis Logic ---
 const analyzeLeaks = (stats) => {
+  const pct = (actions, opps) => opps ? (actions / opps) * 100 : 0;
   const vpip = calculateStat(stats.vpip_actions, stats.vpip_opportunities);
-  const pfr = calculateStat(stats.pfr_actions, stats.pfr_opportunities);
+  const pfr  = calculateStat(stats.pfr_actions,  stats.pfr_opportunities);
+  const threeBetPct = calculateStat(stats["3bet_actions"], stats["3bet_opportunities"]);
+  const foldVs3Pct  = calculateStat(stats.fold_vs_3bet_actions, stats.fold_vs_3bet_opportunities);
 
   const leaks = [];
+  const add = (id, severity) => leaks.push({ id, severity });
 
-  // 1. Excessive Pre-flop Passivity
-  if (pfr > 0 && (vpip / pfr) > 3.5) {
+  // VPIP buckets
+  const vpipClass = classify(vpip / 100, thresholds.vpip, 'twoSided'); // convert to proportion
+  if (vpipClass.severity === 'High' && vpip > 50) {
+    leaks.push({
+      id: 'maniac',
+      name: 'Ultra-Loose Pre-flop',
+      severity: 'High',
+      description: 'Playing more than half of all hands dealt.',
+      why: 'You enter too many pots with weak holdings, forcing tough spots post-flop.',
+      fix: 'Tighten your starting hand range, especially from early positions.'
+    });
+  } else if (vpipClass.severity === 'Medium' && vpip > 35) {
+    leaks.push({
+      id: 'loose',
+      name: 'Overly Loose Pre-flop',
+      severity: 'Medium',
+      description: 'VPIP above population norm.',
+      why: 'Weak range disadvantage leads to tough decisions and red-line bleed.',
+      fix: 'Fold marginal offsuit hands; use charts as baseline.'
+    });
+  } else if (vpip < thresholds.vpip[0] && stats.hands_played > 100) {
+    leaks.push({
+      id: 'nit',
+      name: 'Too Tight / Predictable',
+      severity: 'Medium',
+      description: 'VPIP below 15 %.',
+      why: 'Opponents can safely fold when you enter a pot, killing your value.',
+      fix: 'Open up suited connectors and broadways on the BTN/CO.'
+    });
+  }
+
+  // Passivity ratio
+  if (pfr > 0 && (vpip / pfr) > thresholds.vpipPfr[1]) {
     leaks.push({
       id: 'passivity',
       name: 'Excessive Pre-flop Passivity',
@@ -81,35 +118,205 @@ const analyzeLeaks = (stats) => {
   // Note: More leak analyses can be added here once their corresponding stats are tracked.
   // Examples: "Fit-or-Fold Tendency", "Brittle Pre-flop Aggression", etc.
 
-  // --- Hardcoded Incomplete Leaks for UI preview ---
-  leaks.push({
-    id: 'fitorfold',
-    name: 'Fit-or-Fold Tendency (INCOMPLETE)',
-    severity: 'Medium',
-    description: 'Giving up on the flop too often if you don\'t hit a strong hand.',
-    why: 'Opponents can exploit this by frequently making small "continuation bets" on the flop. They know you will fold unless you have a strong hand, allowing them to win many small pots without resistance.',
-    fix: 'Start "floating" more often. This means calling a flop bet with the intention of bluffing on a later street. Also, learn to recognize boards where your opponent is unlikely to have a strong hand and bluff them more often.'
-  });
+    /* ---------- Additional leaks Phase 1 ---------- */
+  // 5. Spewy aggression – PFR much higher than recommended
+  if (pfr > thresholds.pfr[2] && (vpip - pfr) < 5) {
+    leaks.push({
+      id: 'spewyOpen',
+      name: 'Overly Aggressive Opens',
+      severity: 'Medium',
+      description: 'Raising pre-flop with a very wide range.',
+      why: 'Loose opens can be exploited by 3-bets and puts you OOP with weak hands.',
+      fix: 'Tighten your opening range especially from EP/MP.'
+    });
+  }
 
-  leaks.push({
-    id: 'brittle',
-    name: 'Brittle Pre-flop Aggression (INCOMPLETE)',
-    severity: 'High',
-    description: 'Raising first but then folding too easily when someone re-raises you (3-bets).',
-    why: 'This signals to aggressive players that your initial raises are not always strong. They can 3-bet you with a wider range of hands, forcing you to fold and give up the pot pre-flop, which is a very effective counter-strategy.',
-    fix: 'Develop a "4-betting" range. This means re-raising their 3-bet, both with your premium hands for value and occasionally as a bluff with hands that have good blocking potential (like an Ace).'
-  });
-  
-  leaks.push({
-    id: 'stubborn',
-    name: 'Showdown Stubbornness (INCOMPLETE)',
-    severity: 'High',
-    description: 'Taking weak or marginal hands all the way to the end of the hand, only to lose.',
-    why: 'This is one of the fastest ways to lose money in poker. Continuing with a weak hand when facing significant aggression post-flop often means you are "pot committed" to a losing situation. You lose big pots and only win small ones.',
-    fix: 'Practice folding. When an opponent shows significant aggression on the turn or river, re-evaluate the strength of your hand. Unless you have a very strong hand, folding is often the most profitable play, saving you from larger losses.'
-  });
+  // 6. Button / CO RFI
+  const btnRfi = pct(stats.btn_rfi_actions, stats.btn_rfi_opportunities);
+  if (stats.btn_rfi_opportunities > 30 && btnRfi < 35) {
+    leaks.push({
+      id: 'btnTight',
+      name: 'Under-Opening Button',
+      severity: 'Medium',
+      description: 'Button raise-first-in < 35 %',
+      why: 'You forfeit the most profitable position at the table.',
+      fix: 'Open at least top 45-50 % of hands on the BTN.'
+    });
+  }
+  const coRfi = pct(stats.co_rfi_actions, stats.co_rfi_opportunities);
+  if (stats.co_rfi_opportunities > 30 && coRfi < 25) {
+    leaks.push({
+      id: 'coTight',
+      name: 'Under-Opening Cut-off',
+      severity: 'Medium',
+      description: 'CO raise-first-in < 25 %',
+      why: 'You miss many profitable steal spots.',
+      fix: 'Aim for 28-32 % opening frequency from CO.'
+    });
+  }
 
-  return leaks;
+  // 7. Limp habit
+  const openLimpPct = pct(stats.open_limp_actions, stats.open_limp_opportunities);
+  if (stats.open_limp_opportunities > 30 && openLimpPct > thresholds.openLimp[0]*100) {
+    leaks.push({
+      id: 'openLimp',
+      name: 'Open-Limping',
+      severity: 'Medium',
+      description: 'You limp first into the pot too often.',
+      why: 'Open-limping gives up initiative and makes pots multi-way.',
+      fix: 'Raise or fold; avoid limping except in special live games.'
+    });
+  }
+
+  // 8/9. SB & BB over-fold vs steal
+  const sbFoldSteal = pct(stats.sb_fold_vs_steal_actions, stats.sb_fold_vs_steal_opportunities);
+  if (stats.sb_fold_vs_steal_opportunities > 20 && sbFoldSteal > 80) {
+    leaks.push({
+      id: 'sbOverFold',
+      name: 'SB Over-Folds vs Steal',
+      severity: 'High',
+      description: 'Small blind defends less than 20 % of the time.',
+      why: 'BB collects dead money; you lose blinds uncontested.',
+      fix: 'Defend by 3-betting or calling with top 25 % vs BTN steals.'
+    });
+  }
+  const bbFoldSteal = pct(stats.bb_fold_vs_steal_actions, stats.bb_fold_vs_steal_opportunities);
+  if (stats.bb_fold_vs_steal_opportunities > 20 && bbFoldSteal > 70) {
+    leaks.push({
+      id: 'bbOverFold',
+      name: 'BB Over-Folds vs Steal',
+      severity: 'High',
+      description: 'Big blind defence < 30 %.',
+      why: 'You give up the 2.5 BB pot too easily.',
+      fix: 'Defend with suited hands and 3-bet more against late-position opens.'
+    });
+  }
+
+  // 10-12 Post-flop C-bet leaks
+  const cbetFlop = pct(stats.cbet_flop_actions, stats.cbet_flop_opportunities);
+  if (stats.cbet_flop_opportunities > 30 && cbetFlop > 70) {
+    leaks.push({ id:'overCbet', name:'Over-C-Bet Flop', severity:'Medium', description:'Flop C-bet > 70 %', why:'You barrel every board, opponents float/raise light.', fix:'Check more on wet boards and multi-way pots.' });
+  }
+  if (stats.cbet_flop_opportunities > 30 && cbetFlop < 40) {
+    leaks.push({ id:'underCbet', name:'Under-C-Bet Flop', severity:'Medium', description:'Flop C-bet < 40 %', why:'You miss value and let opponents realise equity for free.', fix:'C-bet more on dry boards heads-up.' });
+  }
+  // Turn & River continuation
+  const cbetTurn = pct(stats.cbet_turn_actions, stats.cbet_turn_opportunities);
+  if (stats.cbet_turn_opportunities > 20 && cbetTurn < 35 && cbetFlop > 40) {
+    leaks.push({ id:'rareDouble', name:'Rare Double-Barrel', severity:'Medium', description:'Turn C-bet < 35 % after flop C-bet.', why:'You give up too often on turn, allowing opponents to realise equity.', fix:'Barrel more favourable turns, especially heads-up.' });
+  }
+  const cbetRiver = pct(stats.cbet_river_actions, stats.cbet_river_opportunities);
+  if (stats.cbet_river_opportunities > 15 && cbetRiver > 45) {
+    leaks.push({ id:'spewTriple', name:'Spewy Triple-Barrel', severity:'Medium', description:'River C-bet > 45 %.', why:'High river fire frequency without nutted range can be exploited.', fix:'Select river bluffs carefully; give up more often on blank rivers.' });
+  }
+  const foldVsCbetFlop = pct(stats.fold_vs_cbet_flop_actions, stats.fold_vs_cbet_flop_opportunities);
+  if (stats.fold_vs_cbet_flop_opportunities > 30 && foldVsCbetFlop > 70) {
+    leaks.push({ id:'foldVsCbet', name:'Folds Too Much vs Flop C-Bet', severity:'High', description:'Fold > 70 % when facing flop C-bet.', why:'Opponents profit by auto-barreling you.', fix:'Defend with top-pair+, back-door equity and occasional raises.' });
+  }
+
+  // 13. 3-Bet / 4-Bet leaks
+  const threeBetOverall = pct(stats["3bet_actions"], stats["3bet_opportunities"]);
+  if (stats["3bet_opportunities"] > 50 && threeBetOverall < 3) {
+    leaks.push({ id:'no3bet', name:'Never 3-Betting', severity:'High', description:'Overall 3-bet frequency below 3 %.', why:'You rarely contest pots aggressively, letting open-raisers realise equity.', fix:'Add value 3-bets with QQ+/AK and mix a few suited wheel aces as bluffs.'});
+  }
+
+  const foldVs3 = pct(stats.fold_vs_3bet_actions, stats.fold_vs_3bet_opportunities);
+  if (stats.fold_vs_3bet_opportunities > 30 && foldVs3 > 70) {
+    leaks.push({ id:'fold3bet', name:'Folds Too Much vs 3-Bet', severity:'High', description:'Fold vs 3-bet over 70 %.', why:'Aggressive players can 3-bet you with impunity.', fix:'4-bet or call more with strong hands that opened.'});
+  }
+
+  const fourBetOverall = pct(stats["4bet_actions"], stats["4bet_opportunities"]);
+  if (stats["4bet_opportunities"] > 20 && fourBetOverall < 2) {
+    leaks.push({ id:'no4bet', name:'Never 4-Betting', severity:'High', description:'4-bet frequency below 2 %.', why:'You surrender initiative and leave money on the table with premiums.', fix:'4-bet for value with KK+, and include some A5s/A4s bluffs.'});
+  }
+
+  const foldVs4 = pct(stats.fold_vs_4bet_actions, stats.fold_vs_4bet_opportunities);
+  if (stats.fold_vs_4bet_opportunities > 20 && foldVs4 > 75) {
+    leaks.push({ id:'fold4bet', name:'Folds Too Much vs 4-Bet', severity:'High', description:'Fold vs 4-bet over 75 %.', why:'Observant opponents will 4-bet bluff you.', fix:'Tighten 3-bet range or continue with value portion against 4-bets.'});
+  }
+
+// 17-19 Post-flop barrel leaks
+  const af = calculateAggFactor(stats);
+  if (af < thresholds.af[0]) {
+    leaks.push({ id:'passivePost', severity:'High' });
+  } else if (af > thresholds.af[1] && vpip > 30) {
+    leaks.push({ id:'maniacPost', severity:'Medium' });
+  }
+
+  /* ---------- Showdown Leaks ---------- */
+  const wtsd = pct(stats.wtsd_actions, stats.wtsd_opportunities); // Went to Showdown %
+  if (stats.wtsd_opportunities > 30 && (wtsd/100) > thresholds.wtsd[1]) {
+    leaks.push({ id: 'wtsdHigh', severity: 'Medium' });
+  } else if (stats.wtsd_opportunities > 30 && (wtsd/100) < thresholds.wtsd[0]) {
+    leaks.push({ id: 'wtsdLow', severity: 'Medium' });
+  }
+
+  const wsd = pct(stats.wsd_actions, stats.wsd_opportunities); // Won Showdown %
+  if (stats.wsd_opportunities > 30 && (wsd/100) < thresholds.wsd[0]) {
+    leaks.push({ id: 'wsdLow', severity: 'High' });
+  }
+
+  const wwsf = pct(stats.wwsf_actions, stats.wwsf_opportunities); // Won When Saw Flop %
+  if (stats.wwsf_opportunities > 30 && (wwsf/100) < thresholds.wwsf[0]) {
+    leaks.push({ id: 'wwsfLow', severity: 'Medium' });
+  }
+
+  /* ---------- Special Lines: Donk / Check-Raise ---------- */
+  const donkFlop = pct(stats.donk_flop_actions, stats.donk_flop_opportunities);
+  if (stats.donk_flop_opportunities > 30 && donkFlop < 2) {
+    leaks.push({ id: 'noDonk', severity: 'Medium' });
+  }
+  const xrFlop = pct(stats.ch_raise_flop_actions, stats.ch_raise_flop_opportunities);
+  if (stats.ch_raise_flop_opportunities > 30 && xrFlop < 2) {
+    leaks.push({ id: 'noCheckRaise', severity: 'Medium' });
+  }
+
+  /* ---------- Meta ---------- */
+  if (stats.hands_played > 200 && typeof stats.total_bb_won === 'number') {
+    const bb100 = (stats.total_bb_won / stats.hands_played) * 100;
+    if (bb100 < -2) {
+      leaks.push({ id: 'losingBB', severity: 'High' });
+    }
+  }
+
+  // Personalise text copy with user metrics
+  const metrics = {
+    vpip: vpip.toFixed(1),
+    pfr: pfr.toFixed(1),
+    af: af.toFixed(2),
+    btnRfi: btnRfi.toFixed(1),
+    coRfi: coRfi.toFixed(1),
+    openLimp: openLimpPct.toFixed(1),
+    sbFoldSteal: sbFoldSteal.toFixed(1),
+    bbFoldSteal: bbFoldSteal.toFixed(1),
+    cbetFlop: cbetFlop.toFixed(1),
+    cbetTurn: cbetTurn.toFixed(1),
+    cbetRiver: cbetRiver.toFixed(1),
+    foldVsCbetFlop: foldVsCbetFlop.toFixed(1),
+    threeBetOverall: threeBetOverall.toFixed(1),
+    foldVs3: foldVs3.toFixed(1),
+    fourBetOverall: fourBetOverall.toFixed(1),
+    foldVs4: foldVs4.toFixed(1),
+    donkFlop: donkFlop.toFixed(1),
+    xrFlop: xrFlop.toFixed(1),
+    wtsd: wtsd.toFixed(1),
+    wsd: wsd.toFixed(1),
+    wwsf: wwsf.toFixed(1),
+    bb100: (stats.total_bb_won && stats.hands_played ? ((stats.total_bb_won / stats.hands_played) * 100).toFixed(2) : '0')
+  };
+
+  const personalise = str => str && str.replace(/\{(\w+)\}/g, (_, key) => metrics[key] !== undefined ? metrics[key] : `{${key}}`);
+
+  return leaks.map(l => {
+    const copy = leakTexts[l.id] || {};
+    return {
+      ...l,
+      ...copy,
+      description: personalise(copy.description),
+      why: personalise(copy.why),
+      fix: personalise(copy.fix),
+    };
+  });
 };
 
 
@@ -392,7 +599,71 @@ const DnaAnalysisPage = () => {
   const vpip = calculateStat(playerStats?.vpip_actions, playerStats?.vpip_opportunities);
   const pfr = calculateStat(playerStats?.pfr_actions, playerStats?.pfr_opportunities);
   const aggression = calculateAggFactor(playerStats);
-  const identifiedLeaks = playerStats ? analyzeLeaks(playerStats) : [];
+  // Helper pct function for component scope
+  const pct = (actions, opps) => opps ? (actions / opps) * 100 : 0;
+
+  // Build metrics object used for placeholder substitution
+  const stats = playerStats || {};
+  const btnRfi        = pct(stats.btn_rfi_actions, stats.btn_rfi_opportunities);
+  const coRfi         = pct(stats.co_rfi_actions, stats.co_rfi_opportunities);
+  const openLimpPct   = pct(stats.open_limp_actions, stats.open_limp_opportunities);
+  const sbFoldSteal   = pct(stats.sb_fold_vs_steal_actions, stats.sb_fold_vs_steal_opportunities);
+  const bbFoldSteal   = pct(stats.bb_fold_vs_steal_actions, stats.bb_fold_vs_steal_opportunities);
+  const cbetFlop      = pct(stats.cbet_flop_actions, stats.cbet_flop_opportunities);
+  const cbetTurn      = pct(stats.cbet_turn_actions, stats.cbet_turn_opportunities);
+  const cbetRiver     = pct(stats.cbet_river_actions, stats.cbet_river_opportunities);
+  const foldVsCbetFlop= pct(stats.fold_vs_cbet_flop_actions, stats.fold_vs_cbet_flop_opportunities);
+  const threeBetOverall = pct(stats["3bet_actions"], stats["3bet_opportunities"]);
+  const foldVs3       = pct(stats.fold_vs_3bet_actions, stats.fold_vs_3bet_opportunities);
+  const fourBetOverall = pct(stats["4bet_actions"], stats["4bet_opportunities"]);
+  const foldVs4       = pct(stats.fold_vs_4bet_actions, stats.fold_vs_4bet_opportunities);
+  const donkFlop      = pct(stats.donk_flop_actions, stats.donk_flop_opportunities);
+  const xrFlop        = pct(stats.ch_raise_flop_actions, stats.ch_raise_flop_opportunities);
+  const wtsd          = pct(stats.wtsd_actions, stats.wtsd_opportunities);
+  const wsd           = pct(stats.wsd_actions, stats.wsd_opportunities);
+  const wwsf          = pct(stats.wwsf_actions, stats.wwsf_opportunities);
+  const bb100         = (stats.total_bb_won && stats.hands_played ? ((stats.total_bb_won / stats.hands_played) * 100) : 0);
+
+  const metrics = {
+    vpip: vpip.toFixed(1),
+    pfr: pfr.toFixed(1),
+    af: aggression.toFixed(2),
+    btnRfi: btnRfi.toFixed(1),
+    coRfi: coRfi.toFixed(1),
+    openLimp: openLimpPct.toFixed(1),
+    sbFoldSteal: sbFoldSteal.toFixed(1),
+    bbFoldSteal: bbFoldSteal.toFixed(1),
+    cbetFlop: cbetFlop.toFixed(1),
+    cbetTurn: cbetTurn.toFixed(1),
+    cbetRiver: cbetRiver.toFixed(1),
+    foldVsCbetFlop: foldVsCbetFlop.toFixed(1),
+    threeBetOverall: threeBetOverall.toFixed(1),
+    foldVs3: foldVs3.toFixed(1),
+    fourBetOverall: fourBetOverall.toFixed(1),
+    foldVs4: foldVs4.toFixed(1),
+    donkFlop: donkFlop.toFixed(1),
+    xrFlop: xrFlop.toFixed(1),
+    wtsd: wtsd.toFixed(1),
+    wsd: wsd.toFixed(1),
+    wwsf: wwsf.toFixed(1),
+    bb100: bb100.toFixed(2)
+  };
+
+  const personalise = (str) => str?.replace(/\{(\w+)\}/g, (_, key) => metrics[key] ?? `{${key}}`);
+
+  // Dev/test flag: show all leaks regardless of stats
+  const SHOW_ALL_LEAKS = true;
+  const identifiedLeaks = SHOW_ALL_LEAKS
+    ? Object.entries(leakTexts).map(([id, copy]) => ({
+        id,
+        severity: copy.defaultSeverity || 'Low',
+        ...copy,
+        description: personalise(copy.description),
+        why: personalise(copy.why),
+        fix: personalise(copy.fix),
+      }))
+    : (playerStats ? analyzeLeaks(playerStats) : []);
+
   const playerType = getPlayerType(vpip, aggression, playerStats?.hands_played || 0);
 
   // In the main DNA graph/stats area, if the combined hands_played across all selected sessions >= 150, show analysis; otherwise, show 'Not Enough Hands'.
@@ -402,7 +673,7 @@ const DnaAnalysisPage = () => {
 
   return (
     <div 
-      className="min-h-screen w-full bg-[#0F1115] text-white relative overflow-y-auto"
+      className="min-h-screen w-full h-screen bg-[#0F1115] text-white overflow-y-auto"
     >
       {/* Floating Ask P.H.I.L. Button (pill style, png) */}
       <button
