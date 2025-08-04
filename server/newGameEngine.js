@@ -388,25 +388,16 @@ GameWrapper.prototype.startHand = function() {
 
   // ---------------- stats tracking init ----------------
   this.handStats = {};
+  const statsTracker = require('./game/statsTracker');
   const statsPlayers = this.seats.filter(s=>!s.isEmpty).map(s=>s.player);
   statsPlayers.forEach(p=>{
     if (p.userId){
-      this.handStats[p.userId] = require('./game/statsTracker').createHandStatsObject(p.userId);
+      this.handStats[p.userId] = statsTracker.createHandStatsObject(p.userId);
     }
   });
-  // Shared state for tracker logic
-  this.handStats.sharedState = {
-    preflopRaiseMade: false,
-    raiseCount: 0,
-    preflopAggressorId: null,
-    isHeadsUp: seatedPlayers.length === 2,
-    firstPreflopActorLogged: false,
-    streets: {
-      FLOP: { actors: [], firstAggressorId: null, hasAggression: false },
-      TURN: { actors: [], firstAggressorId: null, hasAggression: false },
-      RIVER: { actors: [], firstAggressorId: null, hasAggression: false }
-    }
-  };
+  // Use the statsTracker's createSharedState to ensure proper initialization
+  this.handStats.sharedState = statsTracker.createSharedState();
+  this.handStats.sharedState.isHeadsUp = seatedPlayers.length === 2;
 
   this._mirrorSeatData();
   this._debugSeatReport('startHand');
@@ -523,33 +514,21 @@ GameWrapper.prototype._syncAfterAction = function(){
         .filter(s=>!s.isEmpty && !s.player.isFolded)
         .map(s=>s.player.userId);
 
-      // Update winner-related stats
-      if (this.winners && this.winners.length){
-        this.winners.forEach(w=>{
-          const statObj = this.handStats[w.id];
-          if (statObj && statObj.increments){
-            statObj.increments.hands_won = 1;
-            statObj.increments.total_pot_size_won += w.amountWon || 0;
-            statObj.increments.total_bb_won += (w.amountWon || 0) / this.bigBlind;
-            // Won at showdown (WS%) if they reached showdown
-            if (reachedShowdown.includes(w.id)) {
-              statObj.increments.wsd_actions = 1;
-            }
-            // Won when saw flop
-            if (statObj.handState && statObj.handState.saw_flop){
-              statObj.increments.wwsf_actions = 1;
-            }
-          }
-        });
+      // Use statsTracker functions for proper showdown tracking
+      const statsTracker = require('./game/statsTracker');
+      
+      // Track showdown stats for all players who reached showdown
+      if (reachedShowdown.length > 0 && this.winners && this.winners.length > 0) {
+        const winnerId = this.winners[0].id;
+        statsTracker.trackShowdown(this.handStats, reachedShowdown, winnerId);
       }
-
-      // WTSD actions for everyone who saw showdown
-      reachedShowdown.forEach(pid=>{
-        const statObj = this.handStats[pid];
-        if (statObj && statObj.increments){
-          statObj.increments.wtsd_actions = 1;
-        }
-      });
+      
+      // Track hand winners
+      if (this.winners && this.winners.length > 0) {
+        const winnerIds = this.winners.map(w => w.id);
+        const totalPot = this.winners.reduce((sum, w) => sum + (w.amountWon || 0), 0);
+        statsTracker.trackHandWinner(this.handStats, winnerIds, totalPot, this.bigBlind);
+      }
     }
 
     // Commit stats to DB

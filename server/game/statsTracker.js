@@ -14,6 +14,26 @@ function init(supabaseConnection) {
 
 const POSITIONS = ['BTN', 'SB', 'BB', 'BTN/SB', 'UTG', 'UTG+1', 'MP', 'LJ', 'HJ', 'CO'];
 
+/**
+ * Initializes the shared state object for tracking cross-player stats.
+ * @returns {object} The initialized shared state
+ */
+function createSharedState() {
+  return {
+    preflopRaiseMade: false,
+    preflopAggressorId: null,
+    raiseCount: 0,
+    firstPreflopActorLogged: false,
+    isHeadsUp: false,
+    activePlayers: new Set(),
+    streets: {
+      FLOP: { actors: [], firstAggressorId: null, hasAggression: false },
+      TURN: { actors: [], firstAggressorId: null, hasAggression: false },
+      RIVER: { actors: [], firstAggressorId: null, hasAggression: false }
+    }
+  };
+}
+
 function createBlankPositionStats() {
   return POSITIONS.reduce((acc, pos) => {
     acc[pos] = {
@@ -155,15 +175,51 @@ function createHandStatsObject(playerId) {
  * @param {string} action - The action the player took (e.g., 'fold', 'bet', 'raise').
  */
 function trackAction(handStats, game, player, action) {
-  const stats = handStats[player.userId];
-  if (!stats) return;
+  try {
+    if (!handStats || !game || !player || !action) {
+      console.error('trackAction: Missing required parameters');
+      return;
+    }
+    
+    const stats = handStats[player.userId];
+    if (!stats) {
+      console.error(`trackAction: No stats found for player ${player.userId}`);
+      return;
+    }
+  
+  // Ensure sharedState exists
+  if (!handStats.sharedState) {
+    handStats.sharedState = createSharedState();
+  }
+  
+  // Ensure activePlayers is a Set (in case it was serialized)
+  if (!handStats.sharedState.activePlayers || !(handStats.sharedState.activePlayers instanceof Set)) {
+    handStats.sharedState.activePlayers = new Set(handStats.sharedState.activePlayers || []);
+  }
+  
+  // Track active players
+  handStats.sharedState.activePlayers.add(player.userId);
+  
+  // Remove folded players from active set
+  if (action === 'fold') {
+    handStats.sharedState.activePlayers.delete(player.userId);
+  }
 
   // We split logic by betting round.
   if (game.currentBettingRound === 'PREFLOP') {
+    // Set positional opportunities at start of hand
+    if (!stats.handState.hasActedPreflop && player.positionName) {
+      const posStats = stats.positionIncrements[player.positionName] || { 
+        vpip_opportunities: 0, vpip_actions: 0, pfr_opportunities: 0, pfr_actions: 0 
+      };
+      posStats.vpip_opportunities = 1;
+      posStats.pfr_opportunities = 1;
+      stats.positionIncrements[player.positionName] = posStats;
+    }
+    
     // --- Pre-Flop VPIP Tracking ---
     // A VPIP opportunity is now counted by default. We only need to check if the BB had a free option.
     const isBBOption = player.isBB && game.currentHighestBet === game.bigBlind && action === 'check';
-    console.log('TESTTTT');
     if (isBBOption) {
       stats.increments.vpip_opportunities = 0;
       if (stats.positionIncrements[player.positionName]) {
@@ -172,7 +228,7 @@ function trackAction(handStats, game, player, action) {
     }
 
     // --- Button / CO RFI Tracking ---
-    const isButton = player.positionName === 'BTN';
+    const isButton = player.positionName === 'BTN' || player.positionName === 'BTN/SB';
     const isCO = player.positionName === 'CO';
     const potUnopened = !(handStats.sharedState && handStats.sharedState.preflopRaiseMade);
 
@@ -194,7 +250,7 @@ function trackAction(handStats, game, player, action) {
       handStats.sharedState.firstPreflopActorLogged = true;
     }
     // Record an open-limp action only for that first actor.
-    if (handStats.sharedState.firstPreflopActorLogged && action === 'call' && !stats.handState.openLimpActionLogged) {
+    if (stats.increments.open_limp_opportunities === 1 && action === 'call' && !stats.handState.openLimpActionLogged) {
       stats.increments.open_limp_actions = 1;
       stats.handState.openLimpActionLogged = true;
     }
@@ -243,6 +299,15 @@ function trackAction(handStats, game, player, action) {
       }
     }
 
+    // --- 3-BET / 4-BET OPPORTUNITY TRACKING ---
+    // Check if there's already a raise in the pot (for 3-bet opportunity)
+    // This must happen BEFORE we set hasActedPreflop = true
+    if (handStats.sharedState && handStats.sharedState.raiseCount >= 1 && !stats.handState.hasActedPreflop) {
+      // A raise is in the pot, and this player has the chance to 3-bet.
+      // This includes blinds when action comes back to them
+      stats.increments["3bet_opportunities"] += 1;
+    }
+
     // Mark that this player has now acted pre-flop
     stats.handState.hasActedPreflop = true;
     
@@ -254,12 +319,6 @@ function trackAction(handStats, game, player, action) {
           posStats.vpip_actions = 1;
         }
         stats.positionIncrements[player.positionName] = posStats;
-    }
-
-    // --- 3-BET / 4-BET OPPORTUNITY TRACKING ---
-    if (handStats.sharedState && handStats.sharedState.raiseCount === 1 && !player.isBB && !player.isSB && !stats.handState.hasActedPreflop) {
-      // A single raise is in the pot, and this player has the chance to 3-bet.
-      stats.increments["3bet_opportunities"] += 1;
     }
 
     if (handStats.sharedState && handStats.sharedState.raiseCount === 2 && stats.handState.was_open_raiser && !stats.handState.foldVs3betOpportunityLogged) {
@@ -336,17 +395,6 @@ function trackAction(handStats, game, player, action) {
       };
     }
     const streetState = handStats.sharedState.streets[street];
-    // Track action order
-    if (!streetState.actors.includes(player.userId)) streetState.actors.push(player.userId);
-    // First aggressor on street
-    if (!streetState.firstAggressorId && (action === 'bet' || action === 'raise')) {
-      streetState.firstAggressorId = player.userId;
-    }
-    // Mark that aggression has occurred on this street
-    if (action === 'bet' || action === 'raise') {
-      streetState.hasAggression = true;
-    }
-
     // ===== FLOP-specific advanced stats =====
     const lower = street.toLowerCase();
 
@@ -362,6 +410,7 @@ function trackAction(handStats, game, player, action) {
     // ---- generic C-bet stats for any street ----
     const cbetFlag = `cbet${street}Logged`;
     // ----- Improved C-bet opportunity detection -----
+    // This must happen BEFORE we mark aggression on the street
     if (stats.handState.is_preflop_aggressor && !streetState.hasAggression) {
       // The aggressor has an opportunity as long as nobody has bet/raised yet on this street.
       if (!stats.handState[cbetFlag]) {
@@ -372,6 +421,17 @@ function trackAction(handStats, game, player, action) {
         }
         stats.handState[cbetFlag] = true;
       }
+    }
+
+    // Track action order
+    if (!streetState.actors.includes(player.userId)) streetState.actors.push(player.userId);
+    // First aggressor on street
+    if (!streetState.firstAggressorId && (action === 'bet' || action === 'raise')) {
+      streetState.firstAggressorId = player.userId;
+    }
+    // Mark that aggression has occurred on this street
+    if (action === 'bet' || action === 'raise') {
+      streetState.hasAggression = true;
     }
 
     const facedFlag = `facedCbet${street}`;
@@ -398,27 +458,40 @@ function trackAction(handStats, game, player, action) {
     if (isFlop) {
       // ------- Donk-bet tracking -------
       const isFirstToAct = streetState.actors[0] === player.userId;
-      if (!stats.handState.is_preflop_aggressor && isFirstToAct && !stats.handState.donkOpportunityLogged) {
+      
+      // Ensure activePlayers is a Set before checking
+      if (!handStats.sharedState.activePlayers || !(handStats.sharedState.activePlayers instanceof Set)) {
+        handStats.sharedState.activePlayers = new Set(handStats.sharedState.activePlayers || []);
+      }
+      
+      const aggressorStillActive = handStats.sharedState.preflopAggressorId && 
+                                  handStats.sharedState.activePlayers.has(handStats.sharedState.preflopAggressorId);
+      
+      if (!stats.handState.is_preflop_aggressor && isFirstToAct && aggressorStillActive && 
+          !stats.handState.donkOpportunityLogged) {
         stats.increments.donk_flop_opportunities = 1;
         stats.handState.donkOpportunityLogged = true;
-      }
-      if (!stats.handState.is_preflop_aggressor && isFirstToAct && (action === 'bet' || action === 'raise') && !stats.handState.donkActionLogged) {
-        stats.increments.donk_flop_actions = 1;
-        stats.handState.donkActionLogged = true;
+        
+        if (action === 'bet' || action === 'raise') {
+          stats.increments.donk_flop_actions = 1;
+          stats.handState.donkActionLogged = true;
+        }
       }
 
       // ------- Check-Raise tracking -------
       if (!stats.handState.checkedThisStreet && action === 'check') {
         // Player checks first time this street.
         stats.handState.checkedThisStreet = true;
-      } else if (stats.handState.checkedThisStreet && !stats.handState.chRaiseOpportunityLogged) {
-        // Once the player has checked, any subsequent aggression they face creates an opportunity.
+      } else if (stats.handState.checkedThisStreet && streetState.hasAggression && 
+                 !stats.handState.chRaiseOpportunityLogged) {
+        // Player checked earlier, now faces aggression and has opportunity to check-raise
         stats.increments.ch_raise_flop_opportunities = 1;
         stats.handState.chRaiseOpportunityLogged = true;
-      }
-      if (stats.handState.chRaiseOpportunityLogged && action === 'raise' && !stats.handState.chRaiseActionLogged) {
-        stats.increments.ch_raise_flop_actions = 1;
-        stats.handState.chRaiseActionLogged = true;
+        
+        if (action === 'raise') {
+          stats.increments.ch_raise_flop_actions = 1;
+          stats.handState.chRaiseActionLogged = true;
+        }
       }
     }
     // Post-flop actions are simpler to track for Aggression Factor.
@@ -434,6 +507,10 @@ function trackAction(handStats, game, player, action) {
         break;
       // 'check' and 'fold' do not contribute to Aggression Factor.
     }
+  }
+  } catch (error) {
+    console.error('Error in trackAction:', error);
+    console.error('Player:', player?.userId, 'Action:', action, 'Round:', game?.currentBettingRound);
   }
 }
 
@@ -454,6 +531,82 @@ async function getActiveSessionsForPlayer(playerId) {
   }
   // Always include default session (fixed UUID)
   return [{ id: DEFAULT_SESSION_ID, name: 'All Stats', is_active: true }, ...(data || [])];
+}
+
+/**
+ * Tracks showdown-specific stats when a hand reaches showdown.
+ * This should be called when the hand reaches showdown.
+ * @param {object} handStats - The temporary stats object for all players in the hand.
+ * @param {array} showdownPlayers - Array of player IDs who made it to showdown.
+ * @param {string} winnerId - The player ID who won the hand.
+ */
+function trackShowdown(handStats, showdownPlayers, winnerId) {
+  try {
+    if (!handStats || !showdownPlayers || showdownPlayers.length === 0) {
+      console.error('trackShowdown: Missing required parameters');
+      return;
+    }
+  
+  // Track WTSD (Went to Showdown) for all players who saw showdown
+  showdownPlayers.forEach(playerId => {
+    const stats = handStats[playerId];
+    if (stats && stats.handState.saw_flop) {
+      stats.increments.wtsd_actions = 1;
+    }
+  });
+  
+  // Track WSD (Won at Showdown) for the winner
+  if (winnerId && handStats[winnerId]) {
+    const winnerStats = handStats[winnerId];
+    if (showdownPlayers.includes(winnerId)) {
+      winnerStats.increments.wsd_opportunities = 1;
+      winnerStats.increments.wsd_actions = 1;
+    }
+  }
+  } catch (error) {
+    console.error('Error in trackShowdown:', error);
+  }
+}
+
+/**
+ * Tracks when a player wins the hand (either at showdown or by everyone else folding).
+ * This should be called when determining the winner(s) of a hand.
+ * @param {object} handStats - The temporary stats object for all players in the hand.
+ * @param {array} winnerIds - Array of player IDs who won the hand (can be multiple in case of split pot).
+ * @param {number} potSize - The total pot size won.
+ * @param {number} bigBlind - The current big blind amount.
+ */
+function trackHandWinner(handStats, winnerIds, potSize, bigBlind) {
+  try {
+    if (!handStats || !winnerIds || winnerIds.length === 0) {
+      console.error('trackHandWinner: Missing required parameters');
+      return;
+    }
+    
+    if (!bigBlind || bigBlind <= 0) {
+      console.error('trackHandWinner: Invalid bigBlind value:', bigBlind);
+      return;
+    }
+  
+  winnerIds.forEach(winnerId => {
+    const stats = handStats[winnerId];
+    if (stats) {
+      stats.increments.hands_won = 1;
+      
+      // Calculate BB won (split evenly if multiple winners)
+      const bbWon = (potSize / winnerIds.length) / bigBlind;
+      stats.increments.total_bb_won += bbWon;
+      stats.increments.total_pot_size_won += (potSize / winnerIds.length);
+      
+      // Track WWSF (Won When Saw Flop)
+      if (stats.handState.saw_flop) {
+        stats.increments.wwsf_actions = 1;
+      }
+    }
+  });
+  } catch (error) {
+    console.error('Error in trackHandWinner:', error);
+  }
 }
 
 /**
@@ -492,9 +645,7 @@ async function commitHandStats(handStats) {
   });
 
   if (error) {
-    console.error('[DEBUG] Error returned from batch_update_player_stats RPC:', error);
-  } else {
-    console.log(`[DEBUG] Successfully committed stats for ${updatesPayload.length} player-session pairs.`);
+    console.error('Error returned from batch_update_player_stats RPC:', error);
   }
 }
 
@@ -540,7 +691,10 @@ async function getStatsForPlayers(playerIds, sessionId = null) {
 module.exports = {
   init,
   createHandStatsObject,
+  createSharedState,
   trackAction,
+  trackShowdown,
+  trackHandWinner,
   commitHandStats,
   getStatsForPlayers,
   getActiveSessionsForPlayer,

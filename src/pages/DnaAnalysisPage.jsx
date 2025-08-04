@@ -664,6 +664,17 @@ const DnaAnalysisPage = () => {
       }))
     : (playerStats ? analyzeLeaks(playerStats) : []);
 
+  // --- DEBUG LOG ---
+  if (playerStats) {
+    // eslint-disable-next-line no-console
+    console.log('[PokerDNA Debug] Stats snapshot', {
+      selectedSessions,
+      rawStats: playerStats,
+      metrics,
+      identifiedLeaks,
+    });
+  }
+
   const playerType = getPlayerType(vpip, aggression, playerStats?.hands_played || 0);
 
   // In the main DNA graph/stats area, if the combined hands_played across all selected sessions >= 150, show analysis; otherwise, show 'Not Enough Hands'.

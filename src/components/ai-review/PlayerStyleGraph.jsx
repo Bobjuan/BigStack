@@ -26,8 +26,8 @@ const PlayerStyleGraph = ({ vpip, aggression, hands }) => {
       <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400 tracking-widest">PASSIVE</span>
       <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400 tracking-widest">AGGRESSIVE</span>
 
-      {/* Gradient background from bottom-left (bad) to top-right (good) */}
-      <div className="absolute inset-12 rounded-lg bg-gradient-to-tr from-orange-600/20 to-green-500/20"></div>
+      {/* Neutral background */}
+      <div className="absolute inset-12 rounded-lg bg-gray-700/10"></div>
 
       {/* Axis lines */}
       <div className="absolute left-1/2 top-12 bottom-12 w-px bg-white/10"></div> {/* Vertical Line */}
