@@ -20,8 +20,8 @@
     box-sizing: border-box;
   }
   
-  /* Additional safety to prevent any scrollbars */
-  html, body {
+  /* Only prevent scrollbars on play pages, not globally */
+  .play-page html, .play-page body {
     overflow: hidden;
   }
   

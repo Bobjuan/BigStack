@@ -26,6 +26,10 @@ export default function HandHistoryListPage() {
 
   const formatCards = (cards=[]) => cards.join(' ');
 
+  const handleAnalyzeHand = (handId) => {
+    navigate(`/hand/${handId}?analyze=true`);
+  };
+
   return (
     <div className="p-8 max-w-4xl mx-auto text-white">
       <h1 className="text-2xl font-bold mb-6">Your Recent Hands</h1>
@@ -44,7 +48,20 @@ export default function HandHistoryListPage() {
                   <span className="text-gray-400">{player.position}</span>
                   <span className={delta>0?'text-green-400':delta<0?'text-red-400':'text-gray-400'}>{delta>0?`+${delta}`:delta}</span>
                 </div>
-                <button onClick={()=>navigate(`/hand/${hand.hand_id}`)} className="bg-blue-600 px-3 py-1 rounded text-sm">Review</button>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={()=>navigate(`/hand/${hand.hand_id}`)} 
+                    className="bg-blue-600 px-3 py-1 rounded text-sm hover:bg-blue-700 transition-colors"
+                  >
+                    Review
+                  </button>
+                  <button 
+                    onClick={()=>handleAnalyzeHand(hand.hand_id)} 
+                    className="bg-green-600 px-3 py-1 rounded text-sm hover:bg-green-700 transition-colors"
+                  >
+                    Analyze
+                  </button>
+                </div>
               </div>
             );
           })}

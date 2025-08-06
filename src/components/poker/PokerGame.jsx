@@ -236,6 +236,7 @@ const initialGameState = {
     lastAggressorIndex: -1,
     actionClosingPlayerIndex: -1,
     handHistory: [],
+    handCounter: 1,
     message: "Initializing...",
     numPlayers: 6,
 };
@@ -543,6 +544,66 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
         return `player${botPlayerIndex + 1}`;
     };
 
+    // Function to save hand history for bot games
+    const saveBotHandHistory = async (gameState) => {
+        if (!user?.id || !gameState) return;
+        
+        try {
+            // Build hand history object similar to server-side
+            const handHistory = {
+                handId: crypto.randomUUID(),
+                gameId: `bot-game-${Date.now()}`,
+                handNumber: gameState.handCounter || 1,
+                startedAt: new Date().toISOString(),
+                blinds: { SB: SMALL_BLIND_AMOUNT, BB: BIG_BLIND_AMOUNT },
+                communityCards: gameState.communityCards || [],
+                actions: gameState.handHistory || [],
+                players: gameState.players.map(p => ({
+                    playerId: p.id === getHumanPlayerId() ? user.id : p.id,
+                    name: p.name,
+                    position: p.positionName,
+                    startingStack: p.stack + (p.totalBetInHand || 0),
+                    finalStack: p.stack,
+                    cards: p.cards || []
+                })),
+                winners: gameState.winners || [],
+                potSize: gameState.pot || 0,
+                resultText: gameState.message || ''
+            };
+            
+            const playerIds = gameState.players
+                .filter(p => p.id === getHumanPlayerId())
+                .map(p => user.id);
+            
+            // Use server endpoint instead of direct database insertion
+            const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:4000';
+            const response = await fetch(`${SERVER_URL}/api/bot/hand-history`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    handHistory,
+                    playerIds
+                })
+            });
+            
+            if (!response.ok) {
+                let errorData;
+                try {
+                    errorData = await response.json();
+                } catch (e) {
+                    errorData = { message: `HTTP ${response.status}: ${response.statusText}` };
+                }
+                console.error('[BotHandHistory] Error inserting hand history:', errorData);
+            } else {
+                console.log('[BotHandHistory] Successfully saved hand history');
+            }
+        } catch (err) {
+            console.error('[BotHandHistory] Exception saving hand history:', err);
+        }
+    };
+
     // Move commitBotGameStats inside component to access user
     const commitBotGameStats = async (handStats) => {
         if (!handStats || !user?.id) return;
@@ -642,6 +703,7 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
         currentState.currentHighestBet = 0;
         currentState.minRaiseAmount = BIG_BLIND_AMOUNT;
         currentState.handHistory = [];
+        currentState.handCounter = (currentState.handCounter || 0) + 1;
         currentState.message = "";
         currentState.lastAggressorIndex = -1;
         currentState.actionClosingPlayerIndex = -1;
@@ -757,8 +819,8 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
         // In startNewHand, after initializing the new hand, reset botsPlayedPreflop
         setBotsPlayedPreflop(new Set());
 
-        // Reset stats commit guard for new hand (6/9 max only)
-        if (vsBot && numPlayers > 2) {
+        // Reset stats commit guard for new hand (all bot games)
+        if (vsBot) {
             hasCommittedStatsRef.current = false;
         }
 
@@ -1069,12 +1131,17 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
         newState.currentPlayerIndex = -1;
         newState.players.forEach(p => { p.isTurn = false; p.currentBet = 0; p.totalBetInHand = 0; });
         
-        // Commit bot game stats when hand is over (6/9 max only, guard against double commit)
-        if (vsBot && user?.id && botGameHandStats && numPlayers > 2 && !hasCommittedStatsRef.current) {
+        // Commit bot game stats when hand is over (all bot games, guard against double commit)
+        if (vsBot && user?.id && botGameHandStats && !hasCommittedStatsRef.current) {
             commitBotGameStats(botGameHandStats);
             setBotGameHandStats(null); // Clear stats for next hand
             hasCommittedStatsRef.current = true;
             console.log('[BotStats] Committed hand stats to database');
+        }
+        
+        // Save hand history for all bot games (heads-up, 6-max, 9-max)
+        if (vsBot && user?.id) {
+            saveBotHandHistory(newState);
         }
         
         // Add:
@@ -1266,6 +1333,19 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
             const newState = JSON.parse(JSON.stringify(prevState));
             newState.players[playerIndex].hasActedThisRound = true;
             newState.players[playerIndex].isTurn = false;
+            
+            // Log the check action in handHistory for bot logic
+            newState.handHistory = newState.handHistory || [];
+            newState.handHistory.push({
+              street: newState.currentBettingRound,
+              actorId: player.id,
+              actorName: player.name,
+              position: player.positionName,
+              action: 'check',
+              amount: 0,
+              potAfter: newState.pot
+            });
+            
             return newState;
             }
         });
@@ -1298,12 +1378,13 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
             // Log the call action in handHistory for bot logic
             newState.handHistory = newState.handHistory || [];
             newState.handHistory.push({
-              round: newState.currentBettingRound,
-              type: 'call',
+              street: newState.currentBettingRound,
+              actorId: player.id,
+              actorName: player.name,
               position: player.positionName,
+              action: 'call',
               amount: actualCallAmount,
-              playerId: player.id,
-              timestamp: Date.now()
+              potAfter: newState.pot + actualCallAmount
             });
             
             return newState;
@@ -1344,12 +1425,13 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
             // Log the raise/bet action in handHistory for bot logic
             newState.handHistory = newState.handHistory || [];
             newState.handHistory.push({
-              round: newState.currentBettingRound,
-              type: 'raise',
+              street: newState.currentBettingRound,
+              actorId: player.id,
+              actorName: player.name,
               position: player.positionName,
+              action: 'raise',
               amount: amount,
-              playerId: player.id,
-              timestamp: Date.now()
+              potAfter: newState.pot + chipsToAdd
             });
             return newState;
             }
@@ -1379,12 +1461,13 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
                 // Log the fold action in handHistory for bot logic
                 newState.handHistory = newState.handHistory || [];
                 newState.handHistory.push({
-                  round: newState.currentBettingRound,
-                  type: 'fold',
+                  street: newState.currentBettingRound,
+                  actorId: newState.players[playerIndex].id,
+                  actorName: newState.players[playerIndex].name,
                   position: newState.players[playerIndex].positionName,
+                  action: 'fold',
                   amount: 0,
-                  playerId: newState.players[playerIndex].id,
-                  timestamp: Date.now()
+                  potAfter: newState.pot
                 });
                 return newState;
             }
@@ -1766,12 +1849,13 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
                     // Optionally, add to handHistory
                     state.handHistory = state.handHistory || [];
                     state.handHistory.push({
-                        round: state.currentBettingRound,
-                        type: act.type.toLowerCase(),
+                        street: state.currentBettingRound,
+                        actorId: state.players[idx].id,
+                        actorName: state.players[idx].name,
                         position: act.position,
+                        action: act.type.toLowerCase(),
                         amount: act.amount || 0,
-                        playerId: state.players[idx].id,
-                        timestamp: Date.now()
+                        potAfter: state.pot
                     });
                     return state;
                 });

@@ -28,6 +28,9 @@ if (!supabaseUrl || !supabaseKey) {
 const app = express();
 const server = http.createServer(app);
 
+// Add JSON body parser middleware
+app.use(express.json());
+
 // Configure CORS
 // Adjust the origin to your frontend's URL. 
 // For development with Vite default, it's usually http://localhost:3000 or http://localhost:5173
@@ -779,6 +782,54 @@ app.get('/api/hands/:handId', async (req, res) => {
 
   res.json(data.history);
 });
+
+// Save bot hand history
+app.post('/api/bot/hand-history', async (req, res) => {
+  console.log('[BotHandHistory] Received request:', req.body);
+  
+  if (!supabase) {
+    console.error('[BotHandHistory] Supabase not ready');
+    return res.status(500).json({ error: 'DB not ready' });
+  }
+  
+  try {
+    const { handHistory, playerIds } = req.body;
+    
+    if (!handHistory || !playerIds) {
+      console.error('[BotHandHistory] Missing required fields:', { handHistory: !!handHistory, playerIds: !!playerIds });
+      return res.status(400).json({ error: 'Missing required fields: handHistory, playerIds' });
+    }
+    
+    console.log('[BotHandHistory] Inserting hand history:', {
+      handId: handHistory.handId,
+      gameId: handHistory.gameId,
+      handNumber: handHistory.handNumber,
+      playerIds
+    });
+    
+    const { error } = await supabase.from('hand_histories_v2').insert({
+      hand_id: handHistory.handId,
+      game_id: handHistory.gameId,
+      hand_number: handHistory.handNumber,
+      played_at: handHistory.startedAt,
+      player_ids: playerIds,
+      history: handHistory
+    });
+    
+    if (error) {
+      console.error('[BotHandHistory] Error inserting hand history:', error);
+      return res.status(500).json({ error: error.message });
+    }
+    
+    console.log('[BotHandHistory] Successfully saved hand history');
+    res.json({ success: true, handId: handHistory.handId });
+    
+  } catch (err) {
+    console.error('[BotHandHistory] Exception saving hand history:', err);
+    res.status(500).json({ error: 'Internal server error', details: err.message });
+  }
+});
+
 // -----------------------------------------------------------------
 
 server.listen(PORT, () => {

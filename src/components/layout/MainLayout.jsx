@@ -34,7 +34,7 @@ const MainLayout = ({ children }) => {
 
     if (isStandalone || hideSidebarForFriends) {
       return (
-        <div className="flex min-h-screen bg-black text-white">
+        <div className="play-page flex min-h-screen bg-black text-white">
           <main className="flex-1 flex items-center justify-center bg-black overflow-hidden" style={{ minHeight: '100vh', minWidth: 0 }}>
             <div className="w-full h-full flex-1">{children}</div>
           </main>
@@ -44,7 +44,7 @@ const MainLayout = ({ children }) => {
 
     if (isStandalone) {
       return (
-        <div className="flex min-h-screen bg-black text-white">
+        <div className="play-page flex min-h-screen bg-black text-white">
           <main className="flex-1 flex items-center justify-center bg-black overflow-hidden" style={{ minHeight: '100vh', minWidth: 0 }}>
             <div className="w-full h-full flex-1">{children}</div>
           </main>
@@ -53,7 +53,7 @@ const MainLayout = ({ children }) => {
     }
     // For play pages, keep the special layout
     return (
-      <div className="flex min-h-screen bg-black text-white">
+      <div className="play-page flex min-h-screen bg-black text-white">
         <Sidebar />
         <main
           className="flex-1 flex items-center justify-center bg-black transition-all duration-300 ml-[var(--sidebar-width)] overflow-hidden"
