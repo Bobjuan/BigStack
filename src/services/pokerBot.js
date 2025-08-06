@@ -380,7 +380,6 @@ class PokerBot {
       }
     }
     if (!range) {
-      console.log(`[PokerBot][WARNING] Range not found: ${rangeType}[${rangeKey}]`);
       return false;
     }
     return range.includes(handNotation);
@@ -410,13 +409,11 @@ class PokerBot {
   shouldPreventInfiniteLoop(numPreflopRaises, stackSize, currentHighestBet) {
     // If we've had more than 5 raises, something is wrong
     if (numPreflopRaises > 5) {
-      console.log(`[PokerBot][SAFETY] Too many raises (${numPreflopRaises}), forcing fold`);
       return true;
     }
     
     // If the bet is more than 80% of our stack, be very conservative
     if (currentHighestBet > stackSize * 0.8) {
-      console.log(`[PokerBot][SAFETY] Bet too large relative to stack, being conservative`);
       return true;
     }
     
@@ -442,7 +439,6 @@ class PokerBot {
 
     // Only handle preflop decisions
     if (!isPreflop) {
-      console.log(`[PokerBot][ERROR] Postflop action requested but bot is preflop-only`);
       return { action: 'fold', amount: 0 };
     }
 
@@ -483,12 +479,8 @@ class PokerBot {
     const aggressorPosition = this.getAggressorPosition(gameState);
     const originalRaiserPosition = this.getOriginalRaiserPosition(gameState);
 
-    // Debug: Print all relevant info
-    console.log(`[PokerBot][DEBUG] PreflopDecision: hand=${handNotation}, pos=${positionName}, raises=${numPreflopRaises}, aggressor=${aggressorPosition}, originalRaiser=${originalRaiserPosition}`);
-
     // Safety check to prevent infinite loops
     if (this.shouldPreventInfiniteLoop(numPreflopRaises, stackSize, currentHighestBet)) {
-      console.log(`[PokerBot][DEBUG] Safety fold/call triggered`);
       if (handNotation === 'AA' || handNotation === 'KK') {
         return { action: 'call', amount: callAmount };
       } else {
@@ -499,7 +491,6 @@ class PokerBot {
     // 0 raises: RFI (open or fold)
     if (numPreflopRaises === 0) {
       const inRFI = this.isHandInSpecificRange(handNotation, positionName, 'rfiRanges');
-      console.log(`[PokerBot][DEBUG] RFI: pos=${positionName}, hand=${handNotation}, inRFI=${inRFI}`);
       if (inRFI) {
         return this.decideRaise(currentHighestBet, stackSize, 'open');
       } else {
@@ -514,7 +505,6 @@ class PokerBot {
         const threeBetKey = this.getRangeKey('BB', aggressorPosition, 'threeBetRanges');
         const in3Bet = this.isHandInSpecificRange(handNotation, threeBetKey, 'threeBetRanges');
         const inDefend = this.shouldBBDefend(handNotation, aggressorPosition);
-        console.log(`[PokerBot][DEBUG] BB: 3betKey=${threeBetKey}, in3Bet=${in3Bet}, inDefend=${inDefend}`);
         if (in3Bet) {
           return this.decideRaise(currentHighestBet, stackSize, '3bet');
         }
@@ -529,7 +519,6 @@ class PokerBot {
         const flattingKey = this.getRangeKey(positionName, aggressorPosition, 'flattingRanges');
         const in3Bet = this.isHandInSpecificRange(handNotation, threeBetKey, 'threeBetRanges');
         const inFlat = this.isHandInSpecificRange(handNotation, flattingKey, 'flattingRanges');
-        console.log(`[PokerBot][DEBUG] 1 raise: pos=${positionName}, hand=${handNotation}, 3betKey=${threeBetKey}, in3Bet=${in3Bet}, flatKey=${flattingKey}, inFlat=${inFlat}`);
         if (in3Bet) {
         return this.decideRaise(currentHighestBet, stackSize, '3bet');
         }
@@ -539,7 +528,6 @@ class PokerBot {
         return { action: 'fold', amount: 0 };
       }
       // Fallback: fold
-      console.log(`[PokerBot][DEBUG] 1 raise fallback fold`);
       return { action: 'fold', amount: 0 };
     }
 
@@ -551,7 +539,6 @@ class PokerBot {
         const threeBetCallingKey = this.getRangeKey(positionName, aggressorPosition, 'threeBetCallingRanges');
         const in4Bet = this.isHandInSpecificRange(handNotation, fourBetKey, 'fourBetRanges');
         const inCall = this.isHandInSpecificRange(handNotation, threeBetCallingKey, 'threeBetCallingRanges');
-        console.log(`[PokerBot][DEBUG] 2 raises: origRaiser=${positionName}, 3bettor=${aggressorPosition}, 4betKey=${fourBetKey}, in4Bet=${in4Bet}, 3betCallKey=${threeBetCallingKey}, inCall=${inCall}`);
         if (in4Bet) {
         return this.decideRaise(currentHighestBet, stackSize, '4bet');
         }

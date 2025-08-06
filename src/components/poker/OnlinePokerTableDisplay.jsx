@@ -17,13 +17,14 @@ const POSITIONS_6MAX = ['BTN', 'SB', 'BB', 'UTG', 'HJ', 'CO'];
 const POSITIONS_HEADSUP = ['BTN/SB', 'BB'];
 
 // Player Component to reduce repetition
-const PlayerDisplay = ({ player, positionStyles, showPlayerCards, isTurn, cardWidth, displayPosition, turnStartTime, timeBank, onHudToggle, isHudVisible, stats }) => {
+const PlayerDisplay = ({ player, positionStyles, showPlayerCards, isTurn, cardWidth, displayPosition, turnStartTime, timeBank, onHudToggle, isHudVisible, stats, isWinner, showWinnerAnimation }) => {
     const { infoStyle, cardStyle, betStyle } = positionStyles;
     
     const infoClasses = [
         'player-info-container relative p-1 border rounded transition-all duration-300 cursor-pointer',
         isTurn ? 'border-yellow-400 ring-4 ring-yellow-300 ring-opacity-50' : 'border-gray-700 bg-gray-900 bg-opacity-80',
-        'text-white' // Assuming dark theme for now
+        'text-white', // Assuming dark theme for now
+        (isWinner && showWinnerAnimation) ? 'winner-glow-bounce' : ''
     ].filter(Boolean).join(' ');
 
     return (
@@ -33,6 +34,7 @@ const PlayerDisplay = ({ player, positionStyles, showPlayerCards, isTurn, cardWi
                 <PlayerHand 
                     cards={player.cards || []} 
                     showAll={showPlayerCards}
+                    isWinner={isWinner && showWinnerAnimation}
                 />
             </div>
 
@@ -112,6 +114,7 @@ function OnlinePokerTableDisplay({ gameState, currentSocketId, GamePhase, onTake
     const tableRef = useRef(null);
     const [tableDimensions, setTableDimensions] = useState({ width: 0, height: 0 });
     const [visibleHudPlayerId, setVisibleHudPlayerId] = useState(null);
+    const [showWinnerAnimation, setShowWinnerAnimation] = useState(false);
 
     const handleHudToggle = (playerId) => {
         setVisibleHudPlayerId(prevId => (prevId === playerId ? null : playerId));
@@ -153,6 +156,35 @@ function OnlinePokerTableDisplay({ gameState, currentSocketId, GamePhase, onTake
             }
         };
     }, []);
+
+    // Add useEffect to handle winner animation after pot is awarded
+    useEffect(() => {
+        let timer;
+        const isShowdownOrHandOver = (gameState.currentBettingRound === GamePhase.SHOWDOWN || gameState.currentBettingRound === GamePhase.HAND_OVER);
+        
+        // Check for winners in different possible data structures
+        let hasWinners = false;
+        if (gameState.winners && gameState.winners.length > 0) {
+            hasWinners = true;
+        } else if (gameState.calculatedPots && gameState.calculatedPots.length > 0) {
+            const mainPot = gameState.calculatedPots[0];
+            if (mainPot && mainPot.winnerIds && mainPot.winnerIds.length > 0) {
+                hasWinners = true;
+            }
+        }
+        
+        if (isShowdownOrHandOver && hasWinners) {
+            setShowWinnerAnimation(false); // Force toggle off first
+            timer = setTimeout(() => {
+                setShowWinnerAnimation(true);
+                const innerTimer = setTimeout(() => setShowWinnerAnimation(false), 900);
+                return () => clearTimeout(innerTimer);
+            }, 10); // Short delay to ensure React re-applies the class
+        } else {
+            setShowWinnerAnimation(false);
+        }
+        return () => clearTimeout(timer);
+    }, [gameState.currentBettingRound, gameState.winners, gameState.calculatedPots]);
 
     const getSeatPosition = (seatIndex, totalSeats, currentTableWidth, currentTableHeight, currentUserSeatIndex) => {
         // Early exit if table has not been sized yet
@@ -202,6 +234,15 @@ function OnlinePokerTableDisplay({ gameState, currentSocketId, GamePhase, onTake
         /* --------------- Info box ---------------- */
         const infoX = baseX - infoWidth / 2;
         const infoY = baseY - infoHeight / 2 + infoHeight * 0.30; // keep nameplate lower
+        
+        // Prevent bottom player from being cut off
+        const infoBottomY = infoY + infoHeight;
+        const maxAllowedBottomY = tableHeight * 0.95; // Leave 5% margin at bottom
+        if (infoBottomY > maxAllowedBottomY) {
+            const adjustment = infoBottomY - maxAllowedBottomY;
+            infoY -= adjustment;
+            baseY -= adjustment;
+        }
         const infoStyle = {
             position: 'absolute',
             left: `${infoX}px`,
@@ -373,6 +414,17 @@ function OnlinePokerTableDisplay({ gameState, currentSocketId, GamePhase, onTake
                     const displayPosition = getPlayerDisplayPosition(player);
                     const isHudVisible = visibleHudPlayerId === player.userId;
                     const stats = playerStats ? playerStats[player.userId] : null;
+                    
+                    // Check for winners in different possible data structures
+                    let isWinner = false;
+                    if (gameState.winners && gameState.winners.some(w => w.id === player.id)) {
+                        isWinner = true;
+                    } else if (gameState.calculatedPots && gameState.calculatedPots.length > 0) {
+                        const mainPot = gameState.calculatedPots[0];
+                        if (mainPot && mainPot.winnerIds && mainPot.winnerIds.includes(player.id)) {
+                            isWinner = true;
+                        }
+                    }
 
                     return (
                         <PlayerDisplay
@@ -388,6 +440,8 @@ function OnlinePokerTableDisplay({ gameState, currentSocketId, GamePhase, onTake
                             onHudToggle={() => handleHudToggle(player.userId)}
                             isHudVisible={isHudVisible}
                             stats={stats}
+                            isWinner={isWinner}
+                            showWinnerAnimation={showWinnerAnimation}
                         />
                     );
                 })}

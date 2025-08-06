@@ -102,14 +102,10 @@ const createBotGameHandStats = (userId) => {
 };
 
 const trackBotGameAction = (handStats, gameState, player, action) => {
-  console.log(`TEST1`);
-
   // Add debug log if missing
   if (!handStats || !handStats[player.id]) {
-    console.log('DEBUG: Missing handStats or handStats[player.id]', { handStats, playerId: player.id });
     return;
   }
-  console.log(`TEST2`);
 
   const stats = handStats[player.id];
   
@@ -118,40 +114,36 @@ const trackBotGameAction = (handStats, gameState, player, action) => {
     return;
   }
   
-  // Only print debug logs for the human player
-  const getHumanPlayerId = () => `player${(gameState.botPlayerIndex || 1) + 1}`;
-  if (player.id === getHumanPlayerId()) {
-    // Check if BB had a free option
-    const isBBOption = player.isBB && gameState.currentHighestBet === BIG_BLIND_AMOUNT && action === 'check';
-    if (isBBOption) {
-      stats.increments.vpip_opportunities = 0;
-      if (stats.positionIncrements[player.positionName]) {
-        stats.positionIncrements[player.positionName].vpip_opportunities = 0;
-      }
-    }
-    // Track VPIP actions
+      // Only print debug logs for the human player
+    const getHumanPlayerId = () => `player${(gameState.botPlayerIndex || 1) + 1}`;
+    if (player.id === getHumanPlayerId()) {
+        // Check if BB had a free option
+        const isBBOption = player.isBB && gameState.currentHighestBet === BIG_BLIND_AMOUNT && action === 'check';
+        if (isBBOption) {
+            stats.increments.vpip_opportunities = 0;
+            if (stats.positionIncrements[player.positionName]) {
+                stats.positionIncrements[player.positionName].vpip_opportunities = 0;
+            }
+        }
+        // Track VPIP actions
 
-    if (action === 'call' || action === 'bet' || action === 'raise') {
-      stats.increments.vpip_actions = 1;
-      const posStats = stats.positionIncrements[player.positionName];
-      if (posStats && posStats.vpip_actions === 0) {
-        posStats.vpip_actions = 1;
-      }
-      console.log(`[BOTMODE DEBUG] Set vpip_actions=1 for ${player.name} (action: ${action})`);
-      console.log('[BOTMODE DEBUG] increments after VPIP:', JSON.stringify(stats.increments));
-    }
-    // Track PFR actions
-    const isPreflopRaise = (action === 'bet' || action === 'raise');
-    if (isPreflopRaise && !stats.handState.hasRaisedPreflop) {
-      stats.increments.pfr_actions = 1;
-      const posStats = stats.positionIncrements[player.positionName];
-      if (posStats) {
-        posStats.pfr_actions = 1;
-      }
-      stats.handState.hasRaisedPreflop = true;
-      console.log(`[BOTMODE DEBUG] Set pfr_actions=1 for ${player.name} (action: ${action})`);
-      console.log('[BOTMODE DEBUG] increments after PFR:', JSON.stringify(stats.increments));
-    }
+        if (action === 'call' || action === 'bet' || action === 'raise') {
+            stats.increments.vpip_actions = 1;
+            const posStats = stats.positionIncrements[player.positionName];
+            if (posStats && posStats.vpip_actions === 0) {
+                posStats.vpip_actions = 1;
+            }
+        }
+        // Track PFR actions
+        const isPreflopRaise = (action === 'bet' || action === 'raise');
+        if (isPreflopRaise && !stats.handState.hasRaisedPreflop) {
+            stats.increments.pfr_actions = 1;
+            const posStats = stats.positionIncrements[player.positionName];
+            if (posStats) {
+                posStats.pfr_actions = 1;
+            }
+            stats.handState.hasRaisedPreflop = true;
+        }
   } else {
     // For bots, do not print debug logs
     // Still update stats as before
@@ -341,6 +333,15 @@ function getPlayerPosition(index, totalPlayers, currentTableWidth, currentTableH
     // Calculate Info Box Position 
     let infoX = baseX - infoWidth / 2;
     let infoY = baseY - infoHeight / 2 + infoHeight * 0.30; // Keep nameplate slightly lower
+    
+    // Prevent bottom player from being cut off
+    const infoBottomY = infoY + infoHeight;
+    const maxAllowedBottomY = tableHeight * 0.95; // Leave 5% margin at bottom
+    if (infoBottomY > maxAllowedBottomY) {
+        const adjustment = infoBottomY - maxAllowedBottomY;
+        infoY -= adjustment;
+        baseY -= adjustment;
+    }
     const infoLeftPercent = (infoX / tableWidth) * 100;
     const infoTopPercent = (infoY / tableHeight) * 100;
     const infoStyle = {
@@ -449,6 +450,7 @@ function getWinnerHighlight(gameState) {
     const isShowdownOrHandOver =
         (gameState.currentBettingRound === 'SHOWDOWN' || gameState.currentBettingRound === 'HAND_OVER')
         && gameState.calculatedPots.length > 0;
+    
     if (isShowdownOrHandOver) {
         const mainPot = gameState.calculatedPots[0];
         if (mainPot && mainPot.winnerIds && mainPot.winnerIds.length > 0) {
@@ -596,8 +598,6 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
                     errorData = { message: `HTTP ${response.status}: ${response.statusText}` };
                 }
                 console.error('[BotHandHistory] Error inserting hand history:', errorData);
-            } else {
-                console.log('[BotHandHistory] Successfully saved hand history');
             }
         } catch (err) {
             console.error('[BotHandHistory] Exception saving hand history:', err);
@@ -643,12 +643,8 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
                 
                 if (error) {
                     console.error(`Error updating bot game stats for session ${session.name}:`, error);
-                } else {
-                    console.log(`Successfully committed bot game stats to session: ${session.name}`);
                 }
             }
-            
-            console.log(`Completed stats commits for ${playersToUpdate.length} players across ${activeSessions.length} sessions.`);
         } catch (error) {
             console.error('Exception while committing bot game stats:', error);
         }
@@ -746,7 +742,6 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
                 }
                 
                 setBotGameHandStats(handStats);
-                console.log(`[BotStats] Initialized hand stats for ${humanPlayer.name} (${humanPlayer.positionName})`);
             }
         }
 
@@ -953,8 +948,10 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
 
     function checkRoundCompletion(state) {
         const nonFoldedPlayers = state.players.filter(p => !p.isFolded);
+        
+        // If only one player remains, hand is over
         if (nonFoldedPlayers.length <= 1) {
-            return true; // Hand is over or only one player left
+            return true;
         }
 
         const activePlayers = state.players.filter(p => !p.isFolded && !p.isAllIn);
@@ -974,6 +971,7 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
              if(allOthersMatchedOrAllIn) return true;
         }
 
+        // Check if all non-folded players have acted and matched the bet
         let roundOver = true;
         for (const player of state.players) {
             if (!player.isFolded && !player.isAllIn) { // Only check players who can still act
@@ -1002,7 +1000,8 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
             state.currentPlayerIndex === bbIndex && 
             state.players[bbIndex].currentBet === BIG_BLIND_AMOUNT && // BB just called the initial blind
             state.currentHighestBet === BIG_BLIND_AMOUNT && // No raise occurred
-            !state.players[bbIndex].isAllIn) // BB is not all-in
+            !state.players[bbIndex].isAllIn && // BB is not all-in
+            !state.players[bbIndex].isFolded) // BB hasn't folded
              {
                  // Check if the BB has acted *beyond* posting the blind
                  // We assume posting blind doesn't set hasActedThisRound initially
@@ -1020,6 +1019,45 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
         const nonFoldedPlayers = state.players.filter(p => !p.isFolded);
         let newState = JSON.parse(JSON.stringify(state));
 
+        // For 6-max/9-max games, just award pot to the last remaining player
+        const isMultiPlayerGame = state.numPlayers > 2;
+        if (isMultiPlayerGame) {
+            // Calculate total pot from all players' bets
+            const totalPot = newState.players.reduce((sum, player) => sum + (player.totalBetInHand || 0), 0);
+            
+            if (nonFoldedPlayers.length === 1) {
+                const winner = nonFoldedPlayers[0];
+                const winnerIndex = newState.players.findIndex(p => p.id === winner.id);
+                newState.players[winnerIndex].stack += totalPot;
+                newState.message = `${winner.name} wins $${totalPot} (everyone else folded).`;
+                newState.calculatedPots = [{ amount: totalPot, eligiblePlayerIds: [winner.id], winnerIds: [winner.id] }];
+                newState.pot = 0;
+                // Set hand to over state
+                newState.currentBettingRound = GamePhase.HAND_OVER;
+                newState.currentPlayerIndex = -1;
+                newState.players.forEach(p => p.isTurn = false);
+            } else {
+                // Split pot if multiple players remain (shouldn't happen in preflop-only games)
+                const potSplit = Math.floor(totalPot / nonFoldedPlayers.length);
+                const oddChip = totalPot % nonFoldedPlayers.length;
+                
+                nonFoldedPlayers.forEach((player, i) => {
+                    const awardAmount = potSplit + (i === 0 ? oddChip : 0);
+                    const playerIndex = newState.players.findIndex(p => p.id === player.id);
+                    newState.players[playerIndex].stack += awardAmount;
+                });
+                
+                newState.message = `${nonFoldedPlayers.map(p => p.name).join(' & ')} split $${totalPot} (preflop complete).`;
+                newState.calculatedPots = [{ amount: totalPot, eligiblePlayerIds: nonFoldedPlayers.map(p => p.id), winnerIds: nonFoldedPlayers.map(p => p.id) }];
+                newState.pot = 0;
+                // Set hand to over state
+                newState.currentBettingRound = GamePhase.HAND_OVER;
+                newState.currentPlayerIndex = -1;
+                newState.players.forEach(p => p.isTurn = false);
+            }
+            return newState;
+        }
+
         if (nonFoldedPlayers.length === 1) {
             const winner = nonFoldedPlayers[0];
             const winnerIndex = newState.players.findIndex(p => p.id === winner.id);
@@ -1027,6 +1065,10 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
             newState.message = `${winner.name} wins $${newState.pot} by default.`;
             newState.calculatedPots = [{ amount: newState.pot, eligiblePlayerIds: [winner.id], winnerIds: [winner.id] }];
             newState.pot = 0;
+            // Set hand to over state
+            newState.currentBettingRound = GamePhase.HAND_OVER;
+            newState.currentPlayerIndex = -1;
+            newState.players.forEach(p => p.isTurn = false);
         } else {
             let contenders = nonFoldedPlayers.map(player => ({
                 ...player,
@@ -1080,7 +1122,7 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
             newState.pot = 0;
 
             let finalMessages = [];
-            pots.forEach((pot, potIndex) => {
+            newState.calculatedPots.forEach((pot, potIndex) => {
                 if (pot.amount <= 0) return;
 
                 const eligibleContenders = contenders.filter(c => pot.eligiblePlayerIds.includes(c.id));
@@ -1136,7 +1178,6 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
             commitBotGameStats(botGameHandStats);
             setBotGameHandStats(null); // Clear stats for next hand
             hasCommittedStatsRef.current = true;
-            console.log('[BotStats] Committed hand stats to database');
         }
         
         // Save hand history for all bot games (heads-up, 6-max, 9-max)
@@ -1167,6 +1208,17 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
         let nextPhase = state.currentBettingRound;
         let cardsToDeal = 0;
         let dealCommunity = true;
+
+        // For 6-max/9-max games, end after preflop
+        const isMultiPlayerGame = state.numPlayers > 2;
+        if (isMultiPlayerGame && state.currentBettingRound === GamePhase.PREFLOP) {
+            // End the hand after preflop for multi-player games
+            state.currentBettingRound = GamePhase.HAND_OVER;
+            state.currentPlayerIndex = -1;
+            state.players.forEach(p => p.isTurn = false);
+            state.message = "Preflop complete. Start next hand.";
+            return state;
+        }
 
         while (dealCommunity) {
             switch (nextPhase) {
@@ -1289,15 +1341,17 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
                 if (currentPlayer && currentPlayer.id === humanPlayerId) {
                     const actionType = actionFn.name.toLowerCase();
                     trackBotGameAction(botGameHandStats, prevState, currentPlayer, actionType);
-                    console.log(`[BotStats] Tracked ${actionType} action for ${currentPlayer.name}`);
                 }
             }
 
             const nonFolded = stateAfterAction.players.filter(p => !p.isFolded);
+            
+            // If only one player remains, immediately award pot and end hand
             if (nonFolded.length === 1) {
                 return awardPot(stateAfterAction);
             }
 
+            // Check if the current round is complete
             if (checkRoundCompletion(stateAfterAction)) {
                 return advanceToNextRound(stateAfterAction);
             } else {
@@ -1479,7 +1533,6 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
                 commitBotGameStats(botGameHandStats);
                 setBotGameHandStats(null);
                 hasCommittedStatsRef.current = true;
-                console.log('[BotStats] Committed hand stats to database (on fold)');
             }
             setTimeout(() => {
                 setGameState(prev => startNewHand(JSON.parse(JSON.stringify(prev))));
@@ -1490,6 +1543,12 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
         // Bot action handling
     const processBotAction = useCallback(async () => {
         if (!vsBot || botProcessing || gameState.currentBettingRound === GamePhase.HAND_OVER) {
+            return;
+        }
+
+        // Additional guard: check if current player is valid and not folded
+        const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+        if (!currentPlayer || currentPlayer.isFolded) {
             return;
         }
 
@@ -1550,6 +1609,11 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
         // Add a very short delay for snappier bot actions
         await new Promise(resolve => setTimeout(resolve, 20 + Math.random() * 40));
 
+        // Check if hand is already over before executing action
+        if (gameState.currentBettingRound === GamePhase.HAND_OVER) {
+            return;
+        }
+
         switch (botAction.type) {
             case 'fold':
                 handleFold();
@@ -1567,11 +1631,16 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
                 console.warn('Unknown bot action:', botAction);
                 await executeRandomBotAction();
         }
-    }, [handleFold, handleCheck, handleCall, handleBet]);
+    }, [handleFold, handleCheck, handleCall, handleBet, gameState.currentBettingRound]);
 
     const executePokerBotAction = useCallback(async () => {
         // Add a very short delay for snappier bot actions
         await new Promise(resolve => setTimeout(resolve, 20 + Math.random() * 40));
+
+        // Check if hand is already over before executing action
+        if (gameState.currentBettingRound === GamePhase.HAND_OVER) {
+            return;
+        }
 
         try {
             const currentPlayer = gameState.players[gameState.currentPlayerIndex];
@@ -1583,8 +1652,6 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
             // Get bot decision
             const botDecision = PokerBot.calculateAction(gameState, currentPlayer);
             const formattedAction = PokerBot.formatAction(botDecision);
-
-            console.log(`[PokerBot] ${currentPlayer.name} (${currentPlayer.positionName}) decides:`, formattedAction);
 
             // Execute the action
             switch (formattedAction.type) {
@@ -1659,6 +1726,7 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
             vsBot &&
             gameState.players.length > 0 &&
             gameState.currentPlayerIndex !== -1 &&
+            gameState.currentBettingRound !== GamePhase.HAND_OVER &&
             gameState.players[gameState.currentPlayerIndex].id !== getHumanPlayerId() &&
             !botProcessing
         ) {
@@ -1667,7 +1735,7 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
             }, 500); // Small delay before bot acts
             return () => clearTimeout(timer);
         }
-    }, [vsBot, gameState.currentPlayerIndex, gameState.players, botProcessing, processBotAction, getHumanPlayerId]);
+    }, [vsBot, gameState.currentPlayerIndex, gameState.players, gameState.currentBettingRound, botProcessing, processBotAction, getHumanPlayerId]);
 
     // Reset bot sessions when starting new hand
     useEffect(() => {
@@ -1714,6 +1782,8 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
 
     // Winner highlight logic
     const { highlightedCommunityIndices, winnerPlayerIds, isShowdownOrHandOver } = getWinnerHighlight(gameState);
+    
+
 
     const getPlayerId = (index) => `player${index + 1}`;
 
@@ -1754,11 +1824,17 @@ function PokerGame({ isPracticeMode = false, scenarioSetup = null, onAction = nu
     // Add useEffect to handle winner animation after pot is awarded
     useEffect(() => {
         let timer;
-        if (gameState.currentBettingRound === 'HAND_OVER' && gameState.calculatedPots.length > 0) {
+        
+        // Only show winner animation for heads-up games (2 players)
+        const isHeadsUp = gameState.numPlayers === 2;
+        
+        if (isHeadsUp && gameState.currentBettingRound === 'HAND_OVER' && gameState.calculatedPots.length > 0) {
             setShowWinnerAnimation(false); // Force toggle off first
             timer = setTimeout(() => {
                 setShowWinnerAnimation(true);
-                const innerTimer = setTimeout(() => setShowWinnerAnimation(false), 1200);
+                const innerTimer = setTimeout(() => {
+                    setShowWinnerAnimation(false);
+                }, 900);
                 return () => clearTimeout(innerTimer);
             }, 10); // Short delay to ensure React re-applies the class
         } else {
