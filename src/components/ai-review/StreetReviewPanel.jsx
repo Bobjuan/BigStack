@@ -10,39 +10,65 @@ export default function StreetReviewPanel({ history, heroId, streetIndex = 0 }) 
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [ready, setReady] = useState(false);
 
-  useEffect(() => {
+  const requestAnalysis = async () => {
     if (!history || !heroId) return;
-
-    const fetchAnalysis = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch(API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            mode: 'hand-review',
-            message: { heroId, history }
-          })
-        });
-        const data = await res.json();
-        if (data.error) {
-          throw new Error(data.error);
-        }
-        console.log('AI Response received:', data.response);
-        console.log('Full response data:', data);
-        setAnalysis(data.response); // expecting markdown string keyed by street headings
-      } catch (err) {
-        console.error('Error fetching analysis:', err);
-        setError(err.message || 'Failed to load analysis');
-      } finally {
-        setLoading(false);
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: 'hand-review',
+          message: { heroId, history }
+        })
+      });
+      const data = await res.json();
+      if (data.error) {
+        throw new Error(data.error);
       }
-    };
+      setAnalysis(data.response);
+    } catch (err) {
+      setError(err.message || 'Failed to load analysis');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchAnalysis();
+  // Only show call-to-action until user clicks
+  useEffect(() => {
+    if (history && heroId) setReady(true);
   }, [history, heroId]);
+
+  if (!analysis) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-center gap-4">
+        <div>
+          <h3 className="text-lg font-semibold text-white mb-1">Game Review</h3>
+          <p className="text-sm text-gray-400">Have P.H.I.L. analyze each street and highlight leaks.</p>
+        </div>
+        <button
+          onClick={requestAnalysis}
+          disabled={!ready || loading}
+          className="px-4 py-2 rounded-lg font-semibold bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-50"
+        >
+          {loading ? 'Analyzing…' : 'Analyze This Hand'}
+        </button>
+        <div className="text-xs text-gray-500 max-w-sm">
+          <p className="mb-1">The AI will analyze:</p>
+          <ul className="list-disc list-inside text-left space-y-1">
+            <li>Preflop action and position</li>
+            <li>Flop texture and betting patterns</li>
+            <li>Turn and river decisions</li>
+            <li>Overall hand strategy</li>
+          </ul>
+        </div>
+        {error && <p className="text-xs text-red-400">{error}</p>}
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -107,11 +133,13 @@ export default function StreetReviewPanel({ history, heroId, streetIndex = 0 }) 
   }
 
   return (
-    <div className="h-full overflow-y-auto pr-2">
-      <div className="bg-[#2f3542] rounded-lg p-4 border border-gray-700">
-        <h3 className="text-lg font-bold text-green-300 mb-2">{currentStreet}</h3>
+    <div className="h-full overflow-y-auto pr-1">
+      <div className="rounded-xl p-4 border border-slate-800 bg-slate-950/40">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-base font-semibold text-emerald-300">{currentStreet}</h3>
+        </div>
         <div
-          className="prose prose-invert text-gray-200 max-w-none"
+          className="prose prose-invert text-gray-200 max-w-none prose-headings:text-gray-100 prose-p:leading-relaxed"
           dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(marked.parse(currentSection)) }}
         />
       </div>

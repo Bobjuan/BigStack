@@ -492,6 +492,34 @@ const DnaAnalysisPage = () => {
   const [coachOpen, setCoachOpen] = useState(false);
   const [coachInitialQuestion, setCoachInitialQuestion] = useState('');
 
+  // Demo/Test mode toggle via env var
+  const DEMO_DNA = import.meta.env?.VITE_DNA_DEMO_MODE === 'true';
+  const demoProfile = {
+    hands_played: 1200,
+    vpip_actions: 540, vpip_opportunities: 1200, // 45%
+    pfr_actions: 420, pfr_opportunities: 1200,   // 35%
+    agg_bets: 700, agg_raises: 320, agg_calls: 220,
+    btn_rfi_actions: 180, btn_rfi_opportunities: 600,
+    co_rfi_actions: 110, co_rfi_opportunities: 500,
+    open_limp_actions: 80, open_limp_opportunities: 350,
+    sb_fold_vs_steal_actions: 180, sb_fold_vs_steal_opportunities: 210,
+    bb_fold_vs_steal_actions: 260, bb_fold_vs_steal_opportunities: 340,
+    cbet_flop_actions: 520, cbet_flop_opportunities: 640,
+    cbet_turn_actions: 140, cbet_turn_opportunities: 520,
+    cbet_river_actions: 130, cbet_river_opportunities: 260,
+    fold_vs_cbet_flop_actions: 320, fold_vs_cbet_flop_opportunities: 420,
+    '3bet_actions': 20, '3bet_opportunities': 900,
+    fold_vs_3bet_actions: 520, fold_vs_3bet_opportunities: 680,
+    '4bet_actions': 4, '4bet_opportunities': 180,
+    fold_vs_4bet_actions: 120, fold_vs_4bet_opportunities: 150,
+    donk_flop_actions: 0, donk_flop_opportunities: 120,
+    ch_raise_flop_actions: 2, ch_raise_flop_opportunities: 160,
+    wtsd_actions: 410, wtsd_opportunities: 900,
+    wsd_actions: 360, wsd_opportunities: 900,
+    wwsf_actions: 340, wwsf_opportunities: 1000,
+    total_bb_won: -240,
+  };
+
   const openCoachPanel = (question = '') => {
     setCoachInitialQuestion(question);
     setCoachOpen(true);
@@ -550,6 +578,11 @@ const DnaAnalysisPage = () => {
 
   // Fetch and combine stats for selected sessions
   useEffect(() => {
+    if (DEMO_DNA) {
+      setPlayerStats(demoProfile);
+      setLoading(false);
+      return;
+    }
     if (!user || selectedSessions.length === 0) return;
     setLoading(true);
     const fetchStats = async () => {
@@ -651,18 +684,35 @@ const DnaAnalysisPage = () => {
 
   const personalise = (str) => str?.replace(/\{(\w+)\}/g, (_, key) => metrics[key] ?? `{${key}}`);
 
-  // Dev/test flag: show all leaks regardless of stats
-  const SHOW_ALL_LEAKS = true;
-  const identifiedLeaks = SHOW_ALL_LEAKS
-    ? Object.entries(leakTexts).map(([id, copy]) => ({
+  // Build leaks list
+  let identifiedLeaks = playerStats ? analyzeLeaks(playerStats) : [];
+  if (DEMO_DNA) {
+    const curated = [
+      { id: 'maniac', severity: 'High' },
+      { id: 'spewTriple', severity: 'High' },
+      { id: 'no3bet', severity: 'High' },
+      { id: 'no4bet', severity: 'Medium' },
+      { id: 'btnTight', severity: 'Medium' },
+      { id: 'coTight', severity: 'Medium' },
+      { id: 'foldVsCbet', severity: 'High' },
+      { id: 'sbOverFold', severity: 'High' },
+      { id: 'bbOverFold', severity: 'High' },
+      { id: 'noDonk', severity: 'Low' },
+      { id: 'noCheckRaise', severity: 'Low' },
+      { id: 'wsdLow', severity: 'High' },
+    ];
+    identifiedLeaks = curated.map(({ id, severity }) => {
+      const copy = leakTexts[id] || {};
+      return {
         id,
-        severity: copy.defaultSeverity || 'Low',
+        severity,
         ...copy,
         description: personalise(copy.description),
         why: personalise(copy.why),
         fix: personalise(copy.fix),
-      }))
-    : (playerStats ? analyzeLeaks(playerStats) : []);
+      };
+    });
+  }
 
   // --- DEBUG LOG ---
   if (playerStats) {
@@ -770,7 +820,7 @@ const DnaAnalysisPage = () => {
               {/* Left Column: Player Stats */}
               <div className="lg:col-span-1 bg-gradient-to-br from-gray-900/95 to-gray-800/95 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50 shadow-2xl h-fit">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-semibold text-gray-100">Core Metrics</h3>
+                  <h3 className="text-xl font-semibold text-gray-100">Core Metrics {DEMO_DNA && (<span className="ml-2 text-xs text-amber-400 bg-amber-900/30 px-2 py-0.5 rounded">Demo</span>)}</h3>
                   <button
                     style={{
                       backgroundColor: 'transparent',

@@ -76,12 +76,15 @@ const MainLayout = ({ children }) => {
     );
   }
 
-  // For all other pages, use the simple layout (no overflow, no extra wrappers)
+  // For all other pages, center content within the remaining space after sidebar
   return (
     <div className="flex min-h-screen bg-black text-white">
       <Sidebar />
-      <main className="flex-1 transition-all duration-300 ml-[var(--sidebar-width)]" style={{ minHeight: '100vh', minWidth: 0 }}>
-        {children}
+      <main
+        className="flex-1 transition-all duration-300 ml-[var(--sidebar-width)] flex justify-center"
+        style={{ minHeight: '100vh', minWidth: 0 }}
+      >
+        <div className="w-full">{children}</div>
       </main>
     </div>
   );

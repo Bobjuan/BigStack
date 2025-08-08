@@ -13,72 +13,68 @@ export default function HandReviewPage() {
   const { user } = useAuth();
   const { hand, loading, error } = useHandHistory(handId);
   const [streetIndex, setStreetIndex] = useState(0);
-  const [analysisTriggered, setAnalysisTriggered] = useState(false);
-
-  // Check if analysis should be auto-triggered
+  // Sidebar: minimize on entry to reduce large left padding from expanded sidebar
   useEffect(() => {
-    if (searchParams.get('analyze') === 'true') {
-      setAnalysisTriggered(true);
-    }
+    try { window.dispatchEvent(new Event('minimizeSidebar')); } catch (_) {}
+  }, []);
+
+  // Note: StreetReviewPanel now owns the Analyze CTA; this hook kept for future params
+  useEffect(() => {
+    // reserved for ?street / ?analyze
   }, [searchParams]);
 
   const nextStreet = () => setStreetIndex((i) => Math.min(i + 1, 4));
   const prevStreet = () => setStreetIndex((i) => Math.max(i - 1, 0));
 
-  const handleAnalyzeHand = () => {
-    setAnalysisTriggered(true);
-  };
+  // Analyze is handled within StreetReviewPanel
 
   return (
     <MainLayout>
-      <div className="flex flex-col items-center justify-center min-h-screen p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-11/12 lg:w-10/12">
-        <h1 className="col-span-full text-2xl font-bold text-center text-white mb-2">AI Hand Review <span className="text-sm font-normal text-gray-400">powered by P.H.I.L.</span></h1>
+      <div className="relative min-h-screen">
+        {/* Subtle layered background */}
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -top-16 -left-24 h-[36vw] w-[36vw] max-h-[520px] max-w-[520px] rounded-full bg-indigo-500/10 blur-3xl" />
+          <div className="absolute bottom-0 right-0 h-[28vw] w-[28vw] max-h-[420px] max-w-[420px] rounded-full bg-fuchsia-500/10 blur-3xl" />
+        </div>
 
-        {/* Replayer */}
-        <div className="lg:col-span-7 bg-gray-800/60 rounded-xl p-6 border border-gray-700 flex flex-col min-h-[400px]">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold text-white">Hand #{handId}</h2>
-            {!analysisTriggered && (
-              <button
-                onClick={handleAnalyzeHand}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold"
-              >
-                Analyze Hand
-              </button>
-            )}
+        <div className="relative w-full max-w-7xl mx-auto px-4 lg:px-8 py-8">
+          {/* Title row */}
+          <div className="mb-4 flex flex-col items-center">
+            <h1 className="text-2xl font-bold text-white tracking-tight">
+              AI Hand Review <span className="text-sm font-normal text-gray-400">powered by P.H.I.L.</span>
+            </h1>
           </div>
-          {loading && <p className="text-gray-400">Loading hand...</p>}
-          {error && <p className="text-red-400">Error: {error.message}</p>}
-          {!loading && !error && (
-            <TextHandReplayer history={hand?.history} streetIndex={streetIndex} setStreetIndex={setStreetIndex} />
-          )}
-        </div>
 
-        {/* PHIL Analysis */}
-        <div className="lg:col-span-5 bg-gray-800/60 rounded-xl p-4 border border-gray-700 overflow-hidden flex flex-col">
-          {analysisTriggered ? (
-            <StreetReviewPanel history={hand?.history} heroId={user?.id || ''} streetIndex={streetIndex} />
-          ) : (
-            <div className="flex flex-col items-center justify-center h-full text-center">
-              <div className="text-gray-400 mb-4">
-                <p className="text-lg font-semibold mb-2">Ready for AI Analysis</p>
-                <p className="text-sm">
-                  Click "Analyze Hand" to get detailed AI commentary on each street of this hand.
-                </p>
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+            {/* Replayer */}
+            <div className="xl:col-span-8 bg-slate-900/70 backdrop-blur rounded-2xl p-6 border border-slate-800 shadow-xl min-h-[460px]">
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-3">
+                  <h2 className="text-xl font-semibold text-white">Hand #{handId}</h2>
+                  {hand?.history?.blinds && (
+                    <span className="text-xs text-gray-400 bg-slate-800/80 border border-slate-700 rounded-md px-2 py-1">SB {hand.history.blinds.SB} / BB {hand.history.blinds.BB}</span>
+                  )}
+                </div>
+                {/* Analyze action moved to the right panel */}
               </div>
-              <div className="text-xs text-gray-500 max-w-md">
-                <p className="mb-2">The AI will analyze:</p>
-                <ul className="text-left space-y-1">
-                  <li>• Preflop action and position</li>
-                  <li>• Flop texture and betting patterns</li>
-                  <li>• Turn and river decisions</li>
-                  <li>• Overall hand strategy</li>
-                </ul>
-              </div>
+
+              {loading && <p className="text-gray-400">Loading hand...</p>}
+              {error && <p className="text-red-400">Error: {error.message}</p>}
+              {!loading && !error && (
+                <TextHandReplayer
+                  history={hand?.history}
+                  streetIndex={streetIndex}
+                  setStreetIndex={setStreetIndex}
+                  heroId={user?.id || hand?.heroId || ''}
+                />
+              )}
             </div>
-          )}
-        </div>
+
+            {/* PHIL Analysis */}
+            <div className="xl:col-span-4 bg-slate-900/70 backdrop-blur rounded-2xl p-4 border border-slate-800 shadow-xl overflow-hidden flex flex-col xl:sticky xl:top-24">
+              <StreetReviewPanel history={hand?.history} heroId={user?.id || ''} streetIndex={streetIndex} />
+            </div>
+          </div>
         </div>
       </div>
     </MainLayout>
