@@ -532,7 +532,7 @@ const ProfilePage = () => {
               <div className="bg-gradient-to-br from-gray-900/95 to-gray-800/95 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50 shadow-2xl">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-bold text-white flex items-center">
-                    <span className="text-2xl mr-3">🧬</span>
+                    <span className="text-2xl mr-3"></span>
                     Poker DNA Analysis
                   </h2>
                   <div className="text-sm text-gray-400">

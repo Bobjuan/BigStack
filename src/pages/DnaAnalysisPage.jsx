@@ -5,6 +5,7 @@ import PlayerStyleGraph from '../components/ai-review/PlayerStyleGraph';
 import { useNavigate } from 'react-router-dom';
 import CoachPanel from '../components/ai-review/CoachPanel';
 import { leakTexts } from '../leakTexts';
+import Markdown from 'markdown-to-jsx';
 
 // --- Helper Functions for Stat Calculation ---
 import { thresholds, classify } from '../utils/pokerThresholds';
@@ -345,11 +346,11 @@ const LeakAnalysisRow = ({ leak, openCoachPanel }) => {
       </button>
       {isOpen && (
         <div className="px-6 pb-6 pt-2 border-t border-gray-700/50">
-          <p className="text-gray-300 mb-4">{leak.description}</p>
+          <p className="text-gray-300 mb-4"><Markdown>{leak.description}</Markdown></p>
           <h4 className="font-semibold text-fuchsia-400 mb-2">Why this is a leak:</h4>
-          <p className="text-gray-400 mb-4 text-sm leading-relaxed">{leak.why}</p>
+          <p className="text-gray-400 mb-4 text-sm leading-relaxed"><Markdown>{leak.why}</Markdown></p>
           <h4 className="font-semibold text-emerald-400 mb-2">How to fix it:</h4>
-          <p className="text-gray-400 text-sm leading-relaxed">{leak.fix}</p>
+          <p className="text-gray-400 text-sm leading-relaxed"><Markdown>{leak.fix}</Markdown></p>
           <div className="flex justify-start mt-4">
             <button
               style={{
@@ -772,7 +773,7 @@ const DnaAnalysisPage = () => {
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
             <h1 className="text-4xl font-bold text-white flex items-center">
-                <span className="text-4xl mr-4">🧬</span>
+                <span className="text-4xl mr-4"></span>
                 Poker DNA Analysis
             </h1>
             <button

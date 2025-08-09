@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import PreLaunchPage from './pages/PreLaunchPage';
+import ProductMarketingPage from './pages/ProductMarketingPage';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/auth/LoginPage';
 import SignupPage from './pages/auth/SignupPage';
@@ -53,8 +54,8 @@ function App() {
     <AuthProvider>
       <Router>
         <Routes>
-          {/* Public pre-launch and auth routes */}
-          <Route path="/" element={<PreLaunchPage />} />
+          {/* Public marketing root and pre-launch gate */}
+          <Route path="/" element={<ProductPage />} />
           <Route path="/welcome" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />

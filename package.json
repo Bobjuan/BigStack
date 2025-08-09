@@ -30,6 +30,7 @@
     "dotenv": "^16.6.0",
     "framer-motion": "^12.12.2",
     "highlight.js": "^11.11.1",
+    "markdown-to-jsx": "^7.7.13",
     "marked": "^16.0.0",
     "poker-ts": "^1.4.1",
     "pokersolver": "^2.1.4",
